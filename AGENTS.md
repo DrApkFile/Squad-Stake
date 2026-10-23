@@ -5,6 +5,7 @@ Squad Stake is a Nimiq Pay Mini App: groups save toward goals with NIM staked in
 member's own wallet, verified on-chain. Cycle 3, **Save**. Deadline **2026-11-11 23:59 UTC**.
 
 ## Read order
+0. `docs/PROGRESS.md` (current handoff).
 1. `docs/PRD.md` (what) · 2. `briefing/BUILD_CONTRACT.md` (frozen decisions) ·
 3. `docs/ARCHITECTURE.md` (how) · 4. `briefing/FAILURE_MODES.md` (guards) ·
 5. `briefing/REALITY_SPIKES.md` (what is proven) · 6. `briefing/knowledge/staking.md` ·
