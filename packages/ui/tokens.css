@@ -1,0 +1,57 @@
+@font-face {
+  font-family: 'Squad Sans';
+  src: url('./fonts/SquadSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Squad Sans';
+  src: url('./fonts/SquadSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+:root {
+  color-scheme: light dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font-sans: 'Squad Sans', sans-serif;
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-md: 1rem;
+  --font-lg: 1.125rem;
+  --font-brand: 1.25rem;
+  --font-display: 2.625rem;
+  --weight-regular: 400;
+  --weight-bold: 700;
+  --leading-body: 1.6;
+  --leading-display: 1.12;
+  --tracking-display: -0.055em;
+  --tracking-eyebrow: 0.09em;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --radius-sm: 0.75rem;
+  --radius-lg: 1.5rem;
+  --radius-round: 50%;
+  --page: #f5f6ef;
+  --surface: #ffffff;
+  --ink: #172b2a;
+  --muted: #546766;
+  --accent: #bce484;
+  --accent-secondary: #72b8a1;
+  --accent-tertiary: #d6e9bd;
+  --button-bg: #203e36;
+  --button-ink: #ffffff;
+  --outline: #377e6d;
+  --disabled-opacity: 0.6;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --page: #14211e; --surface: #1d302a; --ink: #f1f5ec; --muted: #b3c4b9; --button-bg: #bce484; --button-ink: #14211e; --outline: #bce484; }
+}
+[data-theme='light'] { color-scheme: light; --page: #f5f6ef; --surface: #ffffff; --ink: #172b2a; --muted: #546766; --button-bg: #203e36; --button-ink: #ffffff; --outline: #377e6d; }
+[data-theme='dark'] { color-scheme: dark; --page: #14211e; --surface: #1d302a; --ink: #f1f5ec; --muted: #b3c4b9; --button-bg: #bce484; --button-ink: #14211e; --outline: #bce484; }

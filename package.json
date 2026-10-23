@@ -1,0 +1,37 @@
+{
+  "name": "squad-stake",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=22.15.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @squad-stake/web dev",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p tsconfig.tests.json",
+    "lint": "eslint . --max-warnings 0",
+    "test": "node --import ./tests/register.mjs --import tsx --test tests/unit/*.test.*",
+    "test:adversarial": "node --import ./tests/register.mjs --import tsx --test tests/adversarial/*.test.ts",
+    "build": "pnpm --filter @squad-stake/web build",
+    "test:production": "node scripts/check-production.mjs",
+    "secrets": "node scripts/secret-scan.mjs",
+    "deps:check": "node scripts/check-dep-age.mjs",
+    "check:tracked": "git diff --exit-code && git diff --cached --exit-code",
+    "db:migrate": "pnpm --filter @squad-stake/web db:migrate",
+    "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:adversarial && pnpm build && pnpm test:production && pnpm secrets && pnpm deps:check && pnpm check:tracked"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "15.5.27",
+    "@eslint/js": "9.36.0",
+    "@types/node": "22.18.6",
+    "@types/react": "19.1.16",
+    "@types/react-dom": "19.1.9",
+    "eslint": "9.36.0",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.44.1",
+    "@nimiq/core": "2.22.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}

@@ -1,0 +1,31 @@
+@import './tokens.css';
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font-sans); font-size: var(--font-md); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; }
+.sign-in { width: 100%; max-width: 480px; min-width: 375px; min-height: 100svh; margin: auto; padding: calc(var(--space-6) + var(--safe-top)) var(--space-5) calc(var(--space-5) + var(--safe-bottom)); display: flex; flex-direction: column; background: var(--page); color: var(--ink); }
+.brand { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-brand); font-weight: var(--weight-bold); }
+.brand-mark { display: grid; place-items: center; width: 36px; height: 36px; background: var(--button-bg); color: var(--button-ink); border-radius: var(--radius-sm); }
+.sign-in-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: var(--space-5) 0; }
+.squad-symbol { position: relative; height: 140px; width: 170px; margin-bottom: var(--space-6); }
+.squad-symbol i { position: absolute; width: 88px; height: 88px; border-radius: var(--radius-round); background: var(--accent-secondary); top: 44px; left: 0; }
+.squad-symbol i:nth-child(2) { background: var(--accent-tertiary); left: 80px; }
+.squad-symbol i:nth-child(3) { background: var(--accent); top: 0; left: 40px; }
+.eyebrow { font-size: var(--font-xs); letter-spacing: var(--tracking-eyebrow); font-weight: var(--weight-bold); line-height: var(--leading-body); margin: 0 0 var(--space-4); }
+.sign-in h1 { font-size: var(--font-display); line-height: var(--leading-display); letter-spacing: var(--tracking-display); margin: 0 0 var(--space-5); }
+.intro { font-size: var(--font-lg); line-height: var(--leading-body); color: var(--muted); margin: 0; }
+.sign-in-status { min-height: 96px; padding-top: var(--space-6); font-size: var(--font-sm); line-height: var(--leading-body); color: var(--muted); }
+.sign-in-status p { margin: 0 0 var(--space-2); }
+.status-title { font-weight: var(--weight-bold); color: var(--ink); }
+.address { overflow-wrap: anywhere; }
+.primary-button { display: flex; align-items: center; justify-content: center; gap: var(--space-3); width: 100%; min-height: 56px; padding: var(--space-4); border: 0; border-radius: var(--radius-lg); background: var(--button-bg); color: var(--button-ink); text-decoration: none; font-weight: var(--weight-bold); cursor: pointer; }
+.primary-button:disabled { opacity: var(--disabled-opacity); cursor: default; }
+.primary-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
+.fine-print { text-align: center; color: var(--muted); font-size: var(--font-xs); line-height: var(--leading-body); margin: var(--space-4) 0 0; }
+.demo-label { color: var(--muted); font-size: var(--font-xs); margin: var(--space-3) 0 0; }
+.scene-gallery { padding: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-5); }
+.scene-gallery h1 { width: 100%; font-size: var(--font-brand); }
+.scene-gallery figure { margin: 0; }
+.scene-gallery figcaption { padding: var(--space-3) 0; color: var(--muted); }
+.scene-frame { width: 390px; height: 844px; overflow: hidden; border-radius: var(--radius-lg); --safe-top: 0px; --safe-bottom: 0px; }
+.scene-frame .sign-in { height: 844px; min-height: 844px; }

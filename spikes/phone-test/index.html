@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Squad Stake · phone spikes</title>
+<style>
+  :root { color-scheme: light dark; --bg:#fff; --fg:#1f2348; --mute:#6b6f8c; --line:#e3e4ec; --ok:#1e9e5a; --bad:#d6334d; --btn:#1f2348; --btnfg:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14152a; --fg:#eceefd; --mute:#9a9dc0; --line:#2b2d4a; --btn:#eceefd; --btnfg:#14152a; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding: calc(12px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom)); font: 15px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  h1 { font-size: 18px; margin: 0 0 4px; } h2 { font-size: 14px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--mute); }
+  .row { display:flex; gap:8px; margin: 6px 0; } .row > * { flex:1; min-width:0; }
+  input { width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--fg); font: 14px ui-monospace, monospace; }
+  button { min-height:44px; padding:10px; border:0; border-radius:8px; background:var(--btn); color:var(--btnfg); font-weight:600; font-size:14px; }
+  button:disabled { opacity:.5; }
+  #status { font-size:13px; color: var(--mute); }
+  #log { margin-top: 10px; padding:10px; border:1px solid var(--line); border-radius:8px; font: 12px/1.45 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; max-height: 45vh; overflow:auto; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<h1>Squad Stake · phone spikes</h1>
+<div id="status">starting…</div>
+
+<h2>S5 · Sign in</h2>
+<div class="row"><button id="sign">Sign test message</button><button id="accounts">listAccounts (compare only)</button></div>
+
+<h2>S6 · Staking (amounts in NIM)</h2>
+<input id="validator" placeholder="Validator address (NQ…)" value="NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S">
+<div class="row"><input id="amount" inputmode="decimal" value="1000" aria-label="Amount in NIM"></div>
+<div class="row"><button data-act="create">1 · Create staker</button><button data-act="add">2 · Add stake</button></div>
+<div class="row"><button data-act="setActive">3 · Set active = amount</button><button data-act="update">4 · Update validator</button></div>
+<div class="row"><button data-act="retire">5 · Retire amount</button><button data-act="remove">6 · Remove amount</button></div>
+<div class="row"><input id="staker" placeholder="Your staker address (from S5 check)"><button id="read">Read staker (RPC)</button></div>
+
+<h2>S8 · Pay from unstaked NIM</h2>
+<div class="row"><input id="to" placeholder="Recipient NQ address"></div>
+<div class="row"><button id="pay">Send amount with data "squad-test"</button></div>
+
+<h2>Log</h2>
+<div class="row"><button id="copy">Copy log</button><button id="clear">Clear</button></div>
+<div id="log"></div>
+
+<script type="module">
+// Test harness only. Every wallet call is user-approved in Nimiq Pay. Testnet only.
+import { init, NimiqProviderError } from 'https://cdn.jsdelivr.net/npm/@nimiq/mini-app-sdk@0.2.4/+esm'
+
+const $ = id => document.getElementById(id)
+const logEl = $('log')
+const MESSAGE = 'Squad Stake S5 sign-in test'
+const RPC = { testnet: 'https://rpc.testnet.nimiqwatch.com', mainnet: 'https://rpc.nimiqwatch.com' }
+const toLuna = nim => Math.round(Number(nim) * 1e5)
+function log(text, cls) {
+  const line = document.createElement('div')
+  line.textContent = `[${new Date().toISOString().slice(11, 19)}] ${text}`
+  if (cls) line.className = cls
+  logEl.prepend(line)
+}
+function describe(e) {
+  // SDK 0.2.x: branch on NimiqProviderError.is + type, never instanceof or message text.
+  if (NimiqProviderError.is(e)) return `${e.type}: ${e.message}${e.data ? ' ' + JSON.stringify(e.data) : ''}`
+  return `${e?.name ?? 'Error'}: ${e?.message ?? String(e)}`
+}
+
+const network = window.nimiqPay?.network ?? 'unknown'
+let nimiq
+try {
+  nimiq = await init({ timeout: 10_000 })
+  $('status').textContent = `Connected to Nimiq Pay · network: ${network}`
+  log(`init ok, network=${network}`, 'ok')
+  if (network !== 'testnet') log('WARNING: not on testnet. Switch in the hidden dev menu before staking.', 'bad')
+} catch (e) {
+  $('status').textContent = 'Not inside Nimiq Pay (init failed). Open this page from Nimiq Pay.'
+  log(describe(e), 'bad')
+  document.querySelectorAll('button').forEach(b => { if (!['copy', 'clear'].includes(b.id)) b.disabled = true })
+}
+
+async function run(label, fn) {
+  const t0 = performance.now()
+  log(`${label}: waiting for approval…`)
+  try {
+    const r = await fn()
+    log(`${label}: OK in ${Math.round(performance.now() - t0)} ms → ${typeof r === 'string' ? r : JSON.stringify(r)}`, 'ok')
+    return r
+  } catch (e) { log(`${label}: FAILED → ${describe(e)}`, 'bad') }
+}
+
+$('sign').onclick = async () => {
+  const r = await run('sign', () => nimiq.sign(MESSAGE))
+  if (r) log(`S5 → paste into laptop: node s5-verify.mjs '${JSON.stringify({ message: MESSAGE, publicKey: r.publicKey, signature: r.signature })}'`)
+}
+$('accounts').onclick = () => run('listAccounts', () => nimiq.listAccounts())
+
+const v = () => $('validator').value.trim()
+const amt = () => toLuna($('amount').value)
+const actions = {
+  create: () => nimiq.sendNewStakerTransaction({ delegation: v(), value: amt() }),
+  add: () => nimiq.sendStakeTransaction({ value: amt() }),
+  setActive: () => nimiq.sendSetActiveStakeTransaction({ newActiveBalance: amt() }),
+  update: () => nimiq.sendUpdateStakerTransaction({ newDelegation: v(), reactivateAllStake: false }),
+  retire: () => nimiq.sendRetireStakeTransaction({ retireStake: amt() }),
+  remove: () => nimiq.sendRemoveStakeTransaction({ value: amt() }),
+}
+document.querySelectorAll('[data-act]').forEach(b => { b.onclick = () => run(b.textContent, actions[b.dataset.act]) })
+
+$('read').onclick = async () => {
+  const address = $('staker').value.trim()
+  const url = RPC[network] ?? RPC.testnet
+  try {
+    const head = await rpcCall(url, 'getBlockNumber', [])
+    const s = await rpcCall(url, 'getStakerByAddress', [address])
+    log(`staker @ block ${head}: active ${s.balance / 1e5}, inactive ${s.inactiveBalance / 1e5} (from ${s.inactiveFrom ?? '-'}), retired ${s.retiredBalance / 1e5}, delegation ${s.delegation ?? '-'}`, 'ok')
+    if (s.inactiveFrom != null) {
+      const release = await rpcCall(url, 'getBlockAfterReportingWindow', [s.inactiveFrom])
+      log(`retire allowed from block ${release} (${release <= head ? 'NOW' : `~${((release - head) / 3600).toFixed(1)} h left`})`)
+    }
+  } catch (e) { log(`RPC read failed (also tells us if the browser can call RPC directly / CORS): ${describe(e)}`, 'bad') }
+}
+async function rpcCall(url, method, params) {
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) })
+  const body = await res.json()
+  if (body.error) throw new Error(body.error.message ?? JSON.stringify(body.error))
+  return body.result && typeof body.result === 'object' && 'data' in body.result ? body.result.data : body.result
+}
+
+$('pay').onclick = () => run('send', () => nimiq.sendBasicTransactionWithData({
+  recipient: $('to').value.trim(), value: amt(), data: 'squad-test',
+}))
+$('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText([...logEl.children].reverse().map(d => d.textContent).join('\n')); log('log copied', 'ok') }
+  catch (e) { log(`copy failed: ${describe(e)} — select the log text manually`, 'bad') }
+}
+$('clear').onclick = () => { logEl.textContent = '' }
+</script>
+</body>
+</html>

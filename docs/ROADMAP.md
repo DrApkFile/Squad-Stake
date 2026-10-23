@@ -1,0 +1,6 @@
+# Roadmap (not in the build)
+- Pool-aware validator choice and earned-since-joining (P1, S4b)
+- Fiat estimates (P1)
+- Languages: es, de, fr, pt (P2)
+- Squad templates (P2)
+- Push/email reminders (needs infra; later)

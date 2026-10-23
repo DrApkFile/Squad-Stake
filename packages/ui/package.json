@@ -1,0 +1,13 @@
+{
+  "name": "@squad-stake/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./styles.css": "./styles.css",
+    "./scenes": "./scenes/sign-in.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "peerDependencies": { "react": "19.2.8" },
+  "devDependencies": { "react": "19.2.8" }
+}

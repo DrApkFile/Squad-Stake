@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# AGENTS.md: even transitive releases must have aged at least fourteen days.
+minimumReleaseAge: 20160
+saveExact: true
+strictPeerDependencies: true
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

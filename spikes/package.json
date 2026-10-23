@@ -1,0 +1,16 @@
+{
+  "name": "squad-stake-spikes",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "chain": "node s1-chain.mjs",
+    "chain:main": "NIMIQ_RPC=https://rpc.nimiqwatch.com node s1-chain.mjs",
+    "stakers": "node s2-stakers.mjs",
+    "stakers:main": "NIMIQ_RPC=https://rpc.nimiqwatch.com node s2-stakers.mjs",
+    "s5": "node s5-verify.mjs",
+    "phone": "npx --yes serve@14.2.4 phone-test -l 5173"
+  },
+  "dependencies": {
+    "@nimiq/core": "2.22.0"
+  }
+}
