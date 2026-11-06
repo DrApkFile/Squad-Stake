@@ -5,7 +5,7 @@ import { calculateRelease } from '../../apps/web/src/server/core/release';
 import { deriveMemberStatus } from '../../apps/web/src/server/core/member-status';
 import { recorded } from '../support/rpc';
 
-test('Q04–Q07 live testnet RPC reads the spike staker and all seven allowed methods', {
+test('Q04–Q07 live testnet RPC reads the spike staker and all eight allowed methods', {
   skip: process.env.LIVE_RPC !== '1', timeout: 40_000,
 }, async () => {
   const rpc = createRpcClient({ url: 'https://rpc.testnet.nimiqwatch.com' });
@@ -29,7 +29,13 @@ test('Q04–Q07 live testnet RPC reads the spike staker and all seven allowed me
   const tx = await rpc.getTransactionByHash(recorded.transaction.response.result.data.hash);
   assert.ok(tx.ok, JSON.stringify(tx));
   assert.equal(typeof tx.data.executionResult, 'boolean');
+  const page = await rpc.getTransactionsByAddress(staker.address, 2);
+  assert.ok(page.ok, JSON.stringify(page));
+  assert.equal(page.metadata, null);
+  assert.ok(page.data.length > 0 && page.data.length <= 2);
+  assert.ok(page.data.every((entry) => entry.relatedAddresses.includes(staker.address)));
   console.log(JSON.stringify({ head: head.data, address: staker.address, readAt: result.readAt,
     validator: validator.data.address, jailedFrom: validator.data.jailedFrom,
-    releaseBlock: release.releaseBlock, transaction: tx.data.hash }));
+    releaseBlock: release.releaseBlock, transaction: tx.data.hash,
+    page: page.data.map((entry) => entry.hash) }));
 });

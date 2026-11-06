@@ -55,5 +55,24 @@ test('Q04 invalid address, hash and policy inputs never reach the network', asyn
   for (const result of await Promise.all([
     rpc.getStakerByAddress('bad'), rpc.getValidatorByAddress('bad'), rpc.getTransactionByHash('bad'),
     rpc.getElectionBlockAfter(-1), rpc.getBlockAfterReportingWindow(0.5), rpc.getBlockAfterJail(NaN),
+    // max is a u16 in blockchain.rs; a start hash is a Blake2b hash or an explicit null.
+    rpc.getTransactionsByAddress('bad', 1), rpc.getTransactionsByAddress(address, 0),
+    rpc.getTransactionsByAddress(address, 1.5), rpc.getTransactionsByAddress(address, 70_000),
+    rpc.getTransactionsByAddress(address, 1, 'bad'),
   ])) assert.deepEqual(result, { ok: false, code: 'INVALID_INPUT' });
+});
+
+test('Q04 a transaction page with an unknown field or a non-array body fails closed', async () => {
+  const original = recorded.transactions.response;
+  const [first, ...rest] = original.result.data;
+  assert.ok(first);
+  for (const data of [
+    [{ ...first, injected: true }, ...rest],
+    [{ ...first, executionResult: 'true' }],
+    first,
+  ]) {
+    const response = { ...original, result: { ...original.result, data } };
+    const rpc = createRpcClient({ url: 'https://rpc.invalid', fetch: fixtureFetch({ response }) });
+    assert.deepEqual(await rpc.getTransactionsByAddress(address, 2), { ok: false, code: 'INVALID_RESPONSE' });
+  }
 });

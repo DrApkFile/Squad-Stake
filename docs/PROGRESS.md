@@ -1,11 +1,13 @@
-# Progress handoff — 2026-10-23
+# Progress handoff — 2026-11-06
+
+Deadline **2026-11-11 23:59 UTC**. Day plan in `docs/PRD.md` §10 (full scope, nothing cut).
 
 ## Done and verified
 - Workspace, signature-based sign-in, chain reader and pure member status/release
   logic are implemented; complete P0 is not. No squad features were added.
 - Next.js web app, pure shared UI, self-hosted fonts, five sign-in scenes and eleven
   member-status fixture cases (all six statuses, pending/error/stale/unknown release).
-- Server-only RPC: seven typed methods, strict wire schemas, positional signatures,
+- Server-only RPC: eight typed methods, strict wire schemas, positional signatures,
   five-second abort, per-client/address 60 s staker/validator caches, `readAt`, fresh
   bypass, and original timestamps on `lastKnown` snapshots after refresh failures.
 - Validator fields/struct quoted from upstream `rpc-interface/src/types.rs` before
@@ -61,6 +63,49 @@
   reads an existing transaction; it does not prove tracking/finality or wallet actions.
 - No commit, squad routes, commitment persistence, wallet staking or tx tracking.
 
+## 2026-11-06 session
+- Schedule: every stale forward-looking date corrected to the real calendar. `docs/PRD.md`
+  §10 is now a Nov 6–10 day plan (it had "P0 by 2026-10-30"); `briefing/EVENT.md` real-usage
+  row now reads "live on mainnet Nov 8"; `docs/ROADMAP.md` moved pool-aware validators,
+  earned-since-joining, fiat estimates, languages and squad templates out of "not in the
+  build" into their scheduled days, because full scope is kept. Dated research/provenance
+  lines (2026-10-14 → 2026-10-23) were left alone: they record when work happened.
+- The chain reader, release math, member status, their Q04–Q07 tests, the fixtures and the
+  `MemberStatusBadge` scenes were already built and verified on 2026-10-23, and committed
+  in `9811b0a`. Re-checked against this request line by line: the typed server-only client,
+  positional params, 5 s timeout, `{ data, metadata }` unwrapping, strict Zod, the
+  "Internal error" → NOT_STAKING mapping, the 60 s per-address cache with `readAt`, the
+  absence of `getBlockAfterCollateralLockup`, release math, all six statuses, Q04–Q07,
+  the live test and a scene per status were already in place. The only gap was the
+  eighth RPC method, so nothing was rebuilt and no protected file changed.
+- Added `getTransactionsByAddress(address, max, startAt = null)`: positional
+  `[address, max, null]` with `start_at` always occupying its slot, `max` parsed as the
+  upstream `Option<u16>` (1–65,535), result parsed as an array of the existing strict
+  transaction schema, no chain metadata, and its own 60 s cache entry keyed by
+  address + max + start hash, since a different page is a different read.
+- `blockchain.rs` `get_transactions_by_address` signature quoted in `rpc-schemas.ts` with
+  its upstream URL and line range (read 2026-11-06), alongside the `Validator` struct quote.
+  Re-read `types.rs` today: `Validator` is still lines 956–967 with `inactivityFlag` and
+  `jailedFrom`, matching the existing comment and schema.
+- New tests: the eight-method envelope/positional test now covers the page; one unit test
+  proves the explicit `null`, per-page caching and `fresh`; two adversarial cases prove bad
+  `max`/start hash never reach the network and that an unknown field or a non-array body
+  fails closed. A real `transactions` envelope was recorded into
+  `tests/fixtures/rpc/testnet.json` with its own `recordedAt` (provenance in its README).
+- `pnpm gate` (log `.cache/chain-gate-2026-11-06.log`): typecheck, lint, **24 unit tests,
+  11 adversarial tests** (no skips), Next build (6/6 static pages, no warnings),
+  Q16 production-artifact guards, secret scan and 18 exact dependency pins all passed.
+  It **exited 1 at `check:tracked`** again, because these changes are uncommitted; the
+  human commits. Nothing else in the gate failed.
+- `LIVE_RPC=1 pnpm test:live`: passed first attempt, one test, zero skips, 2.59 s. All
+  eight methods plus the non-staker mapping ran against testnet. Observed head
+  16,013,916; staker `NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7`; validator
+  `NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S` with `jailedFrom: null`; release
+  16,078,411; transaction page returned two of the staker's real transactions.
+- Still unverified: an actually jailed validator, inactive/retired live stakers, mainnet
+  reads through this adapter, real-phone rendering, DB migration, wallet actions and
+  tx tracking. Nothing about execution or finality of a *new* transaction is proven.
+
 ## Environment and commands
 - Installs and the registry age check need network access.
 - `.npmrc` puts caches inside this project: `.npm-cache`, `.pnpm-cache`, `.pnpm-store`.
@@ -86,8 +131,9 @@
 - README now describes the implemented chain slice and removes the obsolete
   scaffolding/install limitation. DB migration and real-phone verification remain open.
 
-## Next slice
-- Squad/commitment persistence and Q03, when requested. Commit validation must use
+## Next slice (Nov 6 remainder, per PRD §10)
+- Squad/commitment persistence and Q03: create / join / commit for modes A and B.
+  Commit validation must use
   `getStakerByAddress(address, { fresh: true })` inside the member-lock transaction.
 - Reuse an RPC client in the server process to retain its address cache; these
   caches are ephemeral optimizations, never database truth.

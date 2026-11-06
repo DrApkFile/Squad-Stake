@@ -6,6 +6,11 @@ and positional params. The address is the S2 v3 spike staker specified for this
 slice. This extends the field-level results in `briefing/REALITY_SPIKES.md`; the
 old log did not contain raw response bodies.
 
+The `transactions` record was captured later (2026-11-06, its own `recordedAt`) when
+`getTransactionsByAddress` was added; its params are the working S2 v3 shape
+`[address, max, null]`. Its two transactions are the staker's real history and
+carry no chain metadata.
+
 The staker is active and its validator has `jailedFrom: null`. The jail policy
 was called with the recorded head as a hypothetical input, not an observed jail
 event. The transaction hash came from that staker's real transaction history.

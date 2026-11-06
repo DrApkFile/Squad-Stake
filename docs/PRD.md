@@ -107,12 +107,19 @@ failed by timeout; it is re-checked.
 · 10 Proof view (per member: last chain read, staker address link) · 11 Fiat estimates (P1)
 · 12 Earned since joining (P1, S4b)
 
-## 10. Priorities
-- **P0 (live on mainnet by 2026-10-30):** 7.1–7.6, 7.8, screens 0–10, error catalog, tx tracker,
-  planner incl. jail case, dev harness.
-- **P1 (by 2026-11-05):** 7.7 pool-aware choice, earned since joining, fiat estimates,
-  multi-squad warnings polish.
-- **P2:** extra languages (es, de, fr, pt), squad templates.
+## 10. Priorities — schedule (written 2026-11-06; deadline 2026-11-11 23:59 UTC)
+Full scope; nothing is cut. Days are UTC.
+- **Nov 6:** chain reader + member status (7.3–7.4 reads, screens 10); create / join / commit for
+  **both modes A and B** (7.1–7.3, screens 2–4, 6), commitment invariant, dev harness.
+- **Nov 7:** squad page (screen 5), goal-day planner incl. jail case + three leaving steps
+  (7.5, screens 7, 9), Mode A payments (7.6, 7.8, screen 8), error catalog, tx tracker.
+- **Nov 8:** **live on mainnet** (P0 complete); 7.7 pool-aware validator choice, earned since
+  joining, fiat estimates (screens 11–12), multi-squad warnings polish.
+- **Nov 9:** Remotion demo video, extra languages (es, de, fr, pt), squad templates, README.
+- **Nov 10:** submit — portal, Skool + X post. **Nov 11 23:59 UTC** is the hard deadline.
+- Old tags map onto these days: P0 → Nov 6–8, P1 → Nov 8, P2 → Nov 9. The real mainnet squad
+  of `briefing/PROOF_PLAN.md` runs from Nov 8, so §13 can be met before submitting.
+- If a day slips, the "Cut order" in `briefing/BUILD_CONTRACT.md` applies; invariants never do.
 
 ## 11. Security
 | Threat | Guard |

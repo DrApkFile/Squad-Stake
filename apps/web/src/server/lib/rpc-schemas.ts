@@ -46,7 +46,21 @@ export const transactionSchema = z.object({
   validityStartHeight: blockNumber, proof: hex, networkId: integer.max(255), executionResult: z.boolean(),
 }).strict();
 
+/* blockchain.rs (read 2026-11-06):
+ * https://github.com/nimiq/core-rs-albatross/blob/master/rpc-interface/src/blockchain.rs#L116-L121
+ * async fn get_transactions_by_address(
+ *     &self,
+ *     address: Address,
+ *     max: Option<u16>,
+ *     start_at: Option<Blake2bHash>,
+ * ) -> RPCResult<Vec<ExecutedTransaction>, (), Self::Error>;
+ * `max` is a u16 defaulting to 500; the result carries no chain metadata.
+ */
+export const transactionCount = z.number().int().min(1).max(0xffff);
+export const transactionsSchema = z.array(transactionSchema);
+
 export type Staker = z.infer<typeof stakerSchema>;
 export type Validator = z.infer<typeof validatorSchema>;
 export type ChainTransaction = z.infer<typeof transactionSchema>;
+export type ChainTransactions = z.infer<typeof transactionsSchema>;
 export type ChainMetadata = z.infer<typeof chainMetadataSchema>;

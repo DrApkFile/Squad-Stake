@@ -15,3 +15,4 @@
 | 2026-10-22 | Sign-in fixture states are synthetic and labelled; video remains an empty placeholder | no mainnet evidence exists yet; the requested scope is sign-in only | current build instruction; AGENTS.md never fabricate |
 | 2026-11-06 | Build tool switched from Codex to Claude Code (CLAUDE.md imports AGENTS.md) | builder choice | CLAUDE.md |
 | 2026-11-06 | Demo video uses hand-written sample data — a how-to walkthrough, not proof of usage | judges need to see how it works; usage proof is the mainnet run and evidence, not the video | PRD §13b; AGENTS.md "UI purity" 5 |
+| 2026-11-06 | Schedule corrected to real dates; full scope kept | the PRD still carried a 2026-10-30 P0 date that had passed; five days remain and nothing is cut | PRD §10; EVENT.md |

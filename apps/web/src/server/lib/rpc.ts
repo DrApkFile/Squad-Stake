@@ -1,6 +1,9 @@
 import 'server-only';
-import type { RpcResult, StakerState, Validator } from '../core/chain';
-import { addressSchema, blockNumber, hashSchema, stakerSchema, transactionSchema, validatorSchema } from './rpc-schemas';
+import type { ChainTransactions, RpcResult, StakerState, Validator } from '../core/chain';
+import {
+  addressSchema, blockNumber, hashSchema, stakerSchema, transactionCount,
+  transactionSchema, transactionsSchema, validatorSchema,
+} from './rpc-schemas';
 import { createAddressCache } from './rpc-cache';
 import { createRpcTransport, type RpcOptions } from './rpc-transport';
 
@@ -9,6 +12,7 @@ export function createRpcClient(options: RpcOptions) {
   const request = createRpcTransport(options);
   const stakers = createAddressCache<StakerState>(now);
   const validators = createAddressCache<Validator>(now);
+  const transactions = createAddressCache<ChainTransactions>(now);
   function canonicalAddress(value: string) {
     const compact = value.replace(/\s/g, '').toUpperCase();
     return addressSchema.safeParse(compact.replace(/(.{4})(?=.)/g, '$1 '));
@@ -51,10 +55,23 @@ export function createRpcClient(options: RpcOptions) {
     getTransactionByHash: (hash: string) => hashSchema.safeParse(hash).success
       ? request('getTransactionByHash', [hash], transactionSchema)
       : Promise.resolve({ ok: false as const, code: 'INVALID_INPUT' as const }),
+    async getTransactionsByAddress(
+      value: string, max: number, startAt: string | null = null, { fresh = false } = {},
+    ): Promise<RpcResult<ChainTransactions>> {
+      const address = canonicalAddress(value);
+      const count = transactionCount.safeParse(max);
+      if (!address.success || !count.success) return { ok: false, code: 'INVALID_INPUT' };
+      if (startAt !== null && !hashSchema.safeParse(startAt).success) return { ok: false, code: 'INVALID_INPUT' };
+      // S2 v3: this is the one method with optional arguments; `start_at` must occupy
+      // its slot as an explicit null. A different page is a different read, so max and
+      // start_at belong in the cache key. PRD §7.6 payment checks pass fresh: true.
+      return transactions(`${address.data}|${count.data}|${startAt ?? ''}`, fresh, () =>
+        request('getTransactionsByAddress', [address.data, count.data, startAt], transactionsSchema));
+    },
   };
 }
 
-// blockchain.rs/policy.rs: these seven methods have no optional arguments. Their
+// blockchain.rs/policy.rs: the other seven methods have no optional arguments. Their
 // entire positional signatures are [] / [address] / [hash] / [block]; no padding.
 // Future optional arguments must occupy their slot explicitly as null (S2 v3).
 export type NimiqRpc = ReturnType<typeof createRpcClient>;

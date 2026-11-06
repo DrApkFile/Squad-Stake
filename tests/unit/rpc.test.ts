@@ -4,7 +4,7 @@ import { createRpcClient } from '../../apps/web/src/server/lib/rpc';
 import { RPC_TIMEOUT_MS } from '../../apps/web/src/server/lib/rpc-transport';
 import { address, fixtureFetch, readAt, recorded } from '../support/rpc';
 
-test('Q04 Q06 Q07 all seven RPC methods parse recorded envelopes with exact positional signatures', async () => {
+test('Q04 Q06 Q07 all eight RPC methods parse recorded envelopes with exact positional signatures', async () => {
   const calls: unknown[] = [];
   const records = Object.values(recorded);
   const rpc = createRpcClient({ url: 'https://rpc.invalid', now: () => readAt, fetch: async (url, init) => {
@@ -35,7 +35,12 @@ test('Q04 Q06 Q07 all seven RPC methods parse recorded envelopes with exact posi
   const tx = await rpc.getTransactionByHash(recorded.transaction.params[0] ?? '');
   assert.ok(tx.ok);
   assert.deepEqual(tx.data, recorded.transaction.response.result.data);
-  assert.deepEqual(calls, ['head', 'staker', 'election', 'window', 'jail', 'validator', 'transaction'].map((name) => {
+  const [, max] = recorded.transactions.params;
+  const page = await rpc.getTransactionsByAddress(address, typeof max === 'number' ? max : 0);
+  assert.ok(page.ok);
+  assert.deepEqual(page.data, recorded.transactions.response.result.data);
+  assert.equal(page.metadata, null);
+  assert.deepEqual(calls, ['head', 'staker', 'election', 'window', 'jail', 'validator', 'transaction', 'transactions'].map((name) => {
     const record = recorded[name as keyof typeof recorded];
     return [record.method, record.params];
   }));
@@ -83,6 +88,28 @@ test('Q04 address caches expire at 60 seconds, normalize keys, and support fresh
   assert.equal(failed.lastKnown?.readAt, refreshed.readAt);
   await rpc.getStakerByAddress(address);
   assert.equal(count, 5); // A failure neither extends the TTL nor poisons the cache.
+});
+
+test('Q04 transaction pages send an explicit null start hash and cache per page, not per address', async () => {
+  const calls: unknown[] = [];
+  const hash = recorded.transaction.response.result.data.hash;
+  const rpc = createRpcClient({ url: 'https://rpc.invalid', now: () => readAt, fetch: async (url, init) => {
+    const request: unknown = JSON.parse(String(init?.body));
+    assert.ok(typeof request === 'object' && request !== null && 'params' in request);
+    calls.push(request.params);
+    return fixtureFetch(recorded.transactions)(url, init);
+  } });
+  const first = await rpc.getTransactionsByAddress(address, 2);
+  assert.ok(first.ok);
+  assert.equal(first.readAt, readAt);
+  assert.deepEqual(await rpc.getTransactionsByAddress(address, 2), first);
+  // A different page size or start hash is a different read and must not reuse the entry.
+  assert.ok((await rpc.getTransactionsByAddress(address, 3)).ok);
+  assert.ok((await rpc.getTransactionsByAddress(address, 2, hash)).ok);
+  assert.deepEqual(calls, [[address, 2, null], [address, 3, null], [address, 2, hash]]);
+  await rpc.getTransactionsByAddress(address, 2, null, { fresh: true });
+  assert.deepEqual(calls.at(-1), [address, 2, null]);
+  assert.equal(calls.length, 4);
 });
 
 test('Q04 caches are isolated by address and client endpoint', async () => {

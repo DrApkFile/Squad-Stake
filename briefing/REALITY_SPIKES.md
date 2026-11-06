@@ -75,3 +75,14 @@ Source: NimJar (Cycle 2), github.com/imprint-hash/nimjar, cloned and read.
 - Jail policy output is real, but its input was a hypothetical head block. An
   actually jailed validator and leaving balances remain fixture-derived cases.
   No new phone or mainnet execution evidence is claimed by this slice.
+
+## Eighth method added (2026-11-06)
+- `getTransactionsByAddress` added to the adapter with params `[address, max, null]`
+  (S2 v3 shape). Upstream signature `get_transactions_by_address(address, max:
+  Option<u16>, start_at: Option<Blake2bHash>)` read today in `rpc-interface/src/blockchain.rs`
+  (L116–L121); `types.rs` `Validator` re-read and unchanged (L956–L967).
+- A real response envelope is recorded in `tests/fixtures/rpc/testnet.json` under
+  `transactions` with its own `recordedAt`. The result carries `metadata: null`.
+- `LIVE_RPC=1 pnpm test:live` passed first attempt: all eight methods against testnet,
+  head 16,013,916, release 16,078,411, validator `jailedFrom: null`, two real
+  transactions for the spike staker. Still no jailed validator and no mainnet read.
