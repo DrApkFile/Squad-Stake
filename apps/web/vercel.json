@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm_config_store_dir=/tmp/pnpm-store npm_config_cache_dir=/tmp/pnpm-cache npm_config_cache=/tmp/npm-cache pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build"
+}

@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import postgres from 'postgres';
-import { z } from 'zod';
+import { migrationUrl, sslFor } from './lib/db-config';
 
 // CLI entrypoint, never imported by the app; migrations are an explicit operator action.
 const migrations = ['001-auth', '002-squads'] as const;
-const url = z.url().parse(process.env.DATABASE_URL);
-const sql = postgres(url, { max: 1 });
+// Prefers Neon's direct DATABASE_URL_UNPOOLED; `prepare: false` keeps this correct on the
+// fallback, which may be the pooled endpoint (db-config.ts).
+const url = migrationUrl(process.env);
+const sql = postgres(url, { max: 1, prepare: false, ssl: sslFor(url) });
 try {
   const applied: string[] = [];
   await sql.begin(async (tx) => {

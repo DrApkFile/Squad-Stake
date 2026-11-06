@@ -93,6 +93,8 @@ export const squadStore: SquadStore = {
     const outcome = await db().begin(async (tx) => {
       // FOR UPDATE on this member's active rows: a concurrent commit for the same member
       // waits here, so two requests cannot both read the same free balance (Q03).
+      // Survives Neon's PgBouncer in transaction mode: that mode pins one server connection
+      // for the whole BEGIN … COMMIT, so these row locks outlive each statement (db-config.ts).
       const locked = await tx`SELECT m.squad_id, m.committed_luna FROM memberships m
         JOIN squads s ON s.id = m.squad_id WHERE m.address = ${address} AND m.left_at IS NULL
           AND s.state = ANY(${[...ACTIVE_SQUAD_STATES]}) FOR UPDATE OF m`;

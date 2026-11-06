@@ -227,8 +227,56 @@ in-memory store. The squad page, planner, leaving steps and Mode A payments are 
 `cp apps/web/.env.example apps/web/.env.local`, set `DATABASE_URL=postgres://…?sslmode=require`
 (Neon), `APP_ORIGIN=http://localhost:3000` and `NEXT_PUBLIC_NIMIQ_NETWORK=testnet` (it must
 match Nimiq Pay's network). The migration CLI does not read `.env.local`, so export
-`DATABASE_URL` in the shell, then `pnpm db:migrate` (applies `001-auth` and `002-squads`)
+`DATABASE_URL_UNPOOLED` (preferred) or `DATABASE_URL` in the shell, then
+`pnpm db:migrate` (applies `001-auth` and `002-squads`)
 and `pnpm dev`. Until then the routes answer with the catalog's `UNAVAILABLE`.
+
+## Deploy slice — Vercel + Neon pooling, 2026-11-06
+
+Configuration only: **no Vercel build, no Neon database and no migration has run.**
+
+- `apps/web/src/server/lib/db-config.ts` (new, deliberately not `server-only` so the migration
+  CLI can import it) holds the three decisions and their reasons:
+  - `prepare: false` on the pooled request path. postgres.js names its prepared statements,
+    which live on one server connection; PgBouncer's transaction mode may hand the next
+    statement a different one.
+  - `ssl: 'verify-full'` for every non-loopback host, so TLS also authenticates Neon's
+    publicly trusted certificate instead of only encrypting, which is all the Marketplace's
+    `sslmode=require` asks for. A loopback dev database may stay plaintext. Explicit options
+    override `sslmode` from the URL in postgres.js (`parseOptions`, read in the installed 3.4.7).
+  - `migrationUrl()` prefers `DATABASE_URL_UNPOOLED`, falls back to `DATABASE_URL`, treats an
+    empty or blank variable as unset, and refuses anything that is not a `postgres(ql)://` URL.
+- Why the commitment rule survives the pooler (comment in `db-config.ts`, pointer in
+  `squad-store.ts`): transaction mode pins one server connection for a whole `BEGIN … COMMIT`,
+  so `SELECT … FOR UPDATE` keeps its row locks until the commit, and a second commit for the
+  same member still waits. Transaction pooling only breaks session-lifetime state — named
+  prepared statements, session advisory locks, `LISTEN`, `SET` — and the commit path (Q03)
+  uses none: one transaction, `FOR UPDATE`, a fresh staker read, then the update.
+  The migration CLI's `pg_advisory_xact_lock` is transaction-scoped too, and it now runs on
+  the direct endpoint anyway, with `prepare: false` in case of the fallback.
+- `db.ts` reads the URL once and passes `poolOptions(url)`; pool size, idle and connect
+  timeouts are unchanged (3 / 20 s / 5 s).
+- Vercel: `apps/web/vercel.json` (framework, install and build commands),
+  `outputFileTracingRoot` set to the repository root in `next.config.ts` so the workspace's
+  linked packages are traced, and `DATABASE_URL_UNPOOLED` added to `apps/web/.env.example`.
+  The install command prefixes `npm_config_store_dir`, `npm_config_cache_dir` and
+  `npm_config_cache` because the tracked `.npmrc` pins pnpm's caches to absolute paths inside
+  this checkout, which do not exist on a build machine. The README's new "Deploy" section
+  lists the exact settings (root directory `apps/web`, "include source files outside of the
+  Root Directory" enabled, both commands, Node 22.x) and all four environment variables.
+- New tests: `tests/unit/db-config.test.ts` (4) — `prepare: false` and the unchanged pool
+  bounds, verified TLS for remote hosts with plaintext only on loopback, the migration URL
+  preference and its blank-variable handling, and failing closed on a missing or
+  non-postgres URL.
+- `pnpm gate` (log `.cache/deploy-gate-2026-11-06.log`): typecheck, lint, **50 unit tests,
+  16 adversarial tests** (no skips), Next build (compiled clean, 8/8 static pages,
+  no warnings), Q16 production-artifact guards, secret scan and 18 exact dependency pins all
+  passed. It **exited 1 only at `check:tracked`**, because these changes are uncommitted; the
+  human commits. Nothing else in the gate failed.
+- Not verified: no connection has been opened to Neon or to any Postgres, pooled or direct;
+  no migration has been applied; no Vercel project has been built or deployed. The pooler
+  reasoning above is from Postgres/PgBouncer semantics and the postgres.js source, plus the
+  unit assertions on the options — not from an observed pooled transaction.
 
 ## Environment and commands
 - Installs and the registry age check need network access.
@@ -267,7 +315,9 @@ and `pnpm dev`. Until then the routes answer with the catalog's `UNAVAILABLE`.
 - Mount `LeaveConfirm` on the squad page (built, with scenes, but not yet reachable) and
   wire `/api/squads/[id]/leave` to it.
 - Migrate a database and exercise create → join → commit for real; nothing in the squad
-  slice has touched Postgres yet.
+  slice has touched Postgres yet. The client and `pnpm db:migrate` are now configured for
+  Neon through Vercel (pooled vs. unpooled; see the deploy slice), so the first real run
+  also tests that configuration: confirm a concurrent-commit refusal through the pooler.
 - Reuse an RPC client in the server process to retain its address cache; these
   caches are ephemeral optimizations, never database truth.
 - `calculateRelease` accepts an inactivation **inclusion block**; staker

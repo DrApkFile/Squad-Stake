@@ -114,3 +114,9 @@ outputs MP4. Same components, same tokens, same fonts as production.
 ## Vercel notes
 Route handlers are short-lived: no background loops; everything is computed on request with
 bounded RPC calls (5 s timeout each). Scheduled jobs are not relied on.
+Project root directory `apps/web` (pnpm workspace; `apps/web/vercel.json` holds the commands).
+Neon via the Vercel Marketplace: the request path uses the pooled `DATABASE_URL` with
+`prepare: false` (PgBouncer transaction mode) and verified TLS; `pnpm db:migrate` uses
+`DATABASE_URL_UNPOOLED`. Transaction pooling keeps `FOR UPDATE` row locks for a whole
+`BEGIN … COMMIT`, so the commitment invariant's member lock is unaffected
+(`apps/web/src/server/lib/db-config.ts`). Settings are listed in the README's "Deploy" section.
