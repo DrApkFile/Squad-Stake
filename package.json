@@ -12,6 +12,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "node --import ./tests/register.mjs --import tsx --test tests/unit/*.test.*",
     "test:adversarial": "node --import ./tests/register.mjs --import tsx --test tests/adversarial/*.test.ts",
+    "test:live": "node --import ./tests/register.mjs --import tsx --test tests/live/*.test.ts",
     "build": "pnpm --filter @squad-stake/web build",
     "test:production": "node scripts/check-production.mjs",
     "secrets": "node scripts/secret-scan.mjs",

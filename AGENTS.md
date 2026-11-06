@@ -64,8 +64,10 @@ is normal. `init()` plain Error = not in Nimiq Pay. Every user-visible error is 
 4. Safe areas come from CSS variables (`--safe-top`, `--safe-bottom`) defaulting to
    `env(safe-area-inset-*)`; the video's phone frame sets them explicitly.
 5. Every screen has a **fixture scene** in `packages/ui/scenes/` (props for each state: empty,
-   loading, backed, short, unstaking with countdown, releasable, paid, every error). Fixture data
-   for the demo is generated from `evidence/mainnet-squad.json` — never invented.
+   loading, backed, short, unstaking with countdown, releasable, paid, every error). Demo fixtures
+   are **hand-written, realistic sample data** in `packages/ui/scenes/demo/` — the video is a
+   how-to walkthrough, so sample squads and amounts are written by hand and labelled as samples.
+   Never show invented usage statistics or traction numbers as if real.
 6. Animations are driven by a `progress` (0–1) or `now` prop, never by timers inside components,
    so Remotion can render each frame deterministically.
 7. Canonical viewport: **390 × 844**. Every scene must look right there in light and dark.

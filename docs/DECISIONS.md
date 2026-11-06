@@ -13,3 +13,5 @@
 | 2026-10-22 | First sign-in binds a nonce to the browser; the verified signature identifies its wallet | `sign()` reveals its public key only after approval; pre-binding a client-claimed wallet would not establish identity | PRD §7.1, §11; S5; reference accounts/signing semantics |
 | 2026-10-22 | Atomic challenge consume + session insert; 256-bit session tokens hashed with SHA-256; sessions expire in seven days | replay protection must survive concurrent serverless requests and storage failure | Q01, Q02; FAILURE_MODES concurrent updates |
 | 2026-10-22 | Sign-in fixture states are synthetic and labelled; video remains an empty placeholder | no mainnet evidence exists yet; the requested scope is sign-in only | current build instruction; AGENTS.md never fabricate |
+| 2026-11-06 | Build tool switched from Codex to Claude Code (CLAUDE.md imports AGENTS.md) | builder choice | CLAUDE.md |
+| 2026-11-06 | Demo video uses hand-written sample data — a how-to walkthrough, not proof of usage | judges need to see how it works; usage proof is the mainnet run and evidence, not the video | PRD §13b; AGENTS.md "UI purity" 5 |

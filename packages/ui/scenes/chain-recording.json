@@ -1,0 +1,6 @@
+{
+  "source": "tests/fixtures/rpc/testnet.json",
+  "recordedAt": "2026-10-23T05:54:11.251Z",
+  "headBlock": 14819507,
+  "releaseBlock": 14868811
+}

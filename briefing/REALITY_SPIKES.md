@@ -60,3 +60,18 @@ Source: NimJar (Cycle 2), github.com/imprint-hash/nimjar, cloned and read.
 ## Remaining
 - Smoke test during the build: sign in + create staker in the real app on testnet (5 min).
 - S4b: pool payout addresses for "earned so far" (NimJar reads "what your pool has added to your stake"; check its code for the method).
+
+## Chain reader build verification (2026-10-23)
+- Captured raw testnet JSON-RPC envelopes in `tests/fixtures/rpc/testnet.json`, with
+  method, positional params, endpoint and recording time. This supplements the
+  field-level S2/S3 results above; earlier terminal response bodies were not saved.
+- Spike staker: `NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7`. Validator:
+  `NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S`. Upstream `types.rs` and the
+  recorded response agree on `inactivityFlag` and `jailedFrom` (both null here).
+- `LIVE_RPC=1 npx pnpm@10.18.3 test:live` passed one test exercising all seven
+  adapter methods plus the non-staker error mapping. Head 14,820,452 → release
+  14,868,811. Two earlier first-call timeouts were observed; five seconds remains
+  the adapter's timeout. No automatic request or wallet retries were added.
+- Jail policy output is real, but its input was a hypothetical head block. An
+  actually jailed validator and leaving balances remain fixture-derived cases.
+  No new phone or mainnet execution evidence is claimed by this slice.

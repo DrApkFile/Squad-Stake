@@ -5,7 +5,7 @@
   "exports": {
     ".": "./index.ts",
     "./styles.css": "./styles.css",
-    "./scenes": "./scenes/sign-in.ts"
+    "./scenes": "./scenes/index.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" },
   "peerDependencies": { "react": "19.2.8" },

@@ -149,9 +149,11 @@ payment verified (`PROOF_PLAN.md`); `pnpm gate` passes from a clean clone; READM
 + video first; every P0 screen checked at 390 px; Skool + X post.
 
 ## 13b. Demo video (≈ 90 s)
-Rendered with Remotion from the **same `packages/ui` components** as the app, inside a phone frame
-at 390 × 844, with fixtures generated from the real mainnet run (`evidence/`). Nimiq Pay approval
-moments: neutral "Approve in Nimiq Pay" step or real phone footage (never a recreation of their UI).
+A **how-to walkthrough for judges**, rendered with Remotion from the **same `packages/ui`
+components** as the app, inside a phone frame at 390 × 844, with **hand-written sample-data
+fixtures** (`packages/ui/scenes/demo/`). It does not depend on the mainnet run, so it can be built
+as soon as its screens exist. Nimiq Pay approval moments: neutral "Approve in Nimiq Pay" step or
+real phone footage (never a recreation of their UI).
 Script: problem (10 s) → create a trip squad, share link (20 s) → friends join, ring fills,
 "verified on-chain" (25 s) → leave-by banner, three leaving steps (20 s) → shares paid, squad
 complete (15 s). Acceptance: Q17 every demo scene renders from a fixture with no network access.

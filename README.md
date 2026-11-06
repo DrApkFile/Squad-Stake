@@ -2,7 +2,8 @@
 Save together for anything. Nobody holds the pot, every share is proven on the Nimiq chain,
 and the money earns while you wait. A Nimiq Pay Mini App (Cycle 3, Save).
 
-Implemented scope: workspace and signature-based sign-in only. There is no live
+Implemented scope: workspace, signature-based sign-in, server chain reader and pure
+member-status/release logic with a shared status badge. There is no live
 deployment or demo video yet. Start with `AGENTS.md`.
 
 Requires Node ≥22.15, pnpm 10.18.3 and Postgres (Neon is supported).
@@ -36,24 +37,38 @@ is discovered from the verified public key, never `listAccounts()` or a claimed
 address. Session cookies are HttpOnly, SameSite=Strict and Secure over HTTPS; only
 their SHA-256 hashes are stored. Failed persistence cannot report success.
 
-For local fixtures, run `DEV_HARNESS=1 pnpm dev`. `/scenes` shows all five sign-in
-states in light and dark at 390 × 844. `/?as=alice`, `/?as=bob` and `/?as=carol`
+For local fixtures, run `DEV_HARNESS=1 pnpm dev`. `/scenes` shows five sign-in
+states and eleven member-status cases in light and dark at 390 × 844. `/?as=alice`, `/?as=bob` and `/?as=carol`
 select reproducible Ed25519 test identities; tap the sign-in button to use the same
 challenge/verification/session flow. The server derives and uses these keys only
 in development. They are public test identities: never fund them. The central
 gate refuses identities, mock switches and `/scenes` in production artifacts,
 even if development flags are supplied at runtime. No mock chain provider is
-implemented in this sign-in slice.
+implemented yet.
 
-`packages/ui` owns the screen, styles, tokens, bundled fonts and synthetic fixture
+`createRpcClient({ url })` in `apps/web/src/server/lib/rpc.ts` exposes seven typed,
+strictly parsed read methods with a five-second timeout. Staker and validator
+reads cache per address for 60 seconds within that client instance; reuse the
+client within the server process. `{ fresh: true }` bypasses the cache for future
+commit transactions. Reads return `readAt` in Unix milliseconds. Refresh failures
+return an error and any `lastKnown` snapshot with its original timestamp.
+No squad route or database balance/status persistence is implemented.
+
+`pnpm test:live` skips its single test unless explicitly enabled with
+`LIVE_RPC=1 pnpm test:live`. It reads the known spike staker on testnet and exercises
+all seven methods plus the non-staker mapping; it signs and sends nothing. Unit
+and adversarial tests use the raw recording in `tests/fixtures/rpc/testnet.json`.
+`node scripts/build-chain-scenes.mjs` refreshes the UI projection of that recording.
+Leaving-state fixtures are labelled synthetic cases, not observed mainnet proof.
+
+`packages/ui` owns the screens, badge, styles, tokens, bundled fonts and synthetic fixture
 states. Fixtures are explicitly labelled and contain no invented mainnet proof.
 `apps/video` is an empty placeholder with no Remotion dependency.
 
-Not built: privacy notice, squads, commitments, chain reads, staking, payments,
-transaction tracking, planner, mainnet evidence, evidence-derived demo fixtures,
+Not built: privacy notice, squads, commitment persistence/guards, wallet staking, payments,
+transaction tracking/finality checks, goal-day planner UI, mainnet evidence, evidence-derived demo fixtures,
 Remotion, deployment and real-phone verification. This is not the complete P0 app.
 
-Environment limitation during scaffolding: npm DNS was unavailable and pnpm was
-not preinstalled. A registry install, generated lockfile, full gate and database
-migration still need to be completed in a network-enabled environment. No lockfile
-or passing gate result has been fabricated.
+Pinned dependencies, the lockfile and the preceding sign-in slice's full gate
+were verified (see `docs/PROGRESS.md`). Database migration and real-phone
+verification remain open. Use `npx pnpm@10.18.3` if the installed pnpm differs.

@@ -1,4 +1,5 @@
 export const errors = {
+  CHAIN_UNAVAILABLE: { code: 'CHAIN_UNAVAILABLE', message: 'Refresh unavailable', retryable: true, nextAction: 'Try refreshing shortly.', changedAnything: false },
   DECLINED: { code: 'DECLINED', message: 'Sign-in declined. Nothing changed.', retryable: true, nextAction: 'Try again when you’re ready.', changedAnything: false },
   OUTSIDE_HOST: { code: 'OUTSIDE_HOST', message: 'Open Squad Stake in Nimiq Pay to sign in.', retryable: false, nextAction: 'Open in Nimiq Pay.', changedAnything: false },
   WRONG_NETWORK: { code: 'WRONG_NETWORK', message: 'Nimiq Pay is on a different network.', retryable: true, nextAction: 'Switch to the app’s network in Nimiq Pay.', changedAnything: false },

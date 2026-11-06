@@ -1,0 +1,166 @@
+{
+  "endpoint": "https://rpc.testnet.nimiqwatch.com",
+  "recordedAt": "2026-10-23T05:54:11.251Z",
+  "source": "REALITY_SPIKES S2/S3 v3 response shapes; fresh recording for the spike staker. Jail policy input is the head, not an observed jailing.",
+  "records": {
+    "head": {
+      "method": "getBlockNumber",
+      "params": [],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": 14819507,
+          "metadata": null
+        },
+        "id": 1
+      }
+    },
+    "staker": {
+      "method": "getStakerByAddress",
+      "params": [
+        "NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7"
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": {
+            "address": "NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7",
+            "balance": 83838359551,
+            "delegation": "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S",
+            "inactiveBalance": 0,
+            "inactiveFrom": null,
+            "retiredBalance": 0
+          },
+          "metadata": {
+            "blockNumber": 14819507,
+            "blockHash": "8d87b47ad5552c6374a0c2ee4754ab8cb1ab11aabf91023c507440cc38073f31"
+          }
+        },
+        "id": 2
+      }
+    },
+    "notStaking": {
+      "method": "getStakerByAddress",
+      "params": [
+        "NQ77 0000 0000 0000 0000 0000 0000 0000 0001"
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32603,
+          "message": "Internal error",
+          "data": "No staker with address: NQ77 0000 0000 0000 0000 0000 0000 0000 0001"
+        },
+        "id": 3
+      }
+    },
+    "election": {
+      "method": "getElectionBlockAfter",
+      "params": [
+        14819507
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": 14825610,
+          "metadata": null
+        },
+        "id": 4
+      }
+    },
+    "window": {
+      "method": "getBlockAfterReportingWindow",
+      "params": [
+        14825610
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": 14868811,
+          "metadata": null
+        },
+        "id": 5
+      }
+    },
+    "jail": {
+      "method": "getBlockAfterJail",
+      "params": [
+        14819507
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": 15165108,
+          "metadata": null
+        },
+        "id": 6
+      }
+    },
+    "validator": {
+      "method": "getValidatorByAddress",
+      "params": [
+        "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S"
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": {
+            "address": "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S",
+            "signingKey": "e91e254ecc9b93768fa2916388103ce466869c3cb960c4d38fdc3dd15bc2b0d4",
+            "votingKey": "431937799ed9cfa7b5d792c7f12e84d9ccdb7858bf90922b9130f206f9f891530f35639f3328a4c9f6dcb8ef8257cc641c31daed793024b52de2ca61a23e8831f93061d874b40d83aa53080f9dc65a2843244c347a54a5f2bd5cf9b0b9090159c96945fcc11e1032b71531e412cb51f258297a94b7b6139b5f16352b393dca7165f40f15f726cd12b51f4285abd938e6533c2bda224154ab4d2ccc19426e88bd2cfe1fc17b601cf5bb5d5c9b05974b810c95a7652915b30cb7732c891d00fad01cc5e54b0010f2727c370b511fee3167d44fe9d28a70607a98bd12a85738f3dbe3472ca3f5cddf98047db109ca3c992b42de340209643f721e165438a3c93797ea991a39b780a5babb0503ad7fb1ba7a354345ef62643cd9fa02789f00",
+            "rewardAddress": "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S",
+            "signalData": null,
+            "balance": 1772761879776,
+            "numStakers": 24,
+            "inactivityFlag": null,
+            "retired": false,
+            "jailedFrom": null
+          },
+          "metadata": {
+            "blockNumber": 14819508,
+            "blockHash": "6bab03d6481692799948da36560c014a822791224135b9b8f734e0eefed9ad97"
+          }
+        },
+        "id": 7
+      }
+    },
+    "transaction": {
+      "method": "getTransactionByHash",
+      "params": [
+        "5edc92bd79fb26dbfccb0eda9e23e89de9d5b770b904247cb67f3c9cba02ce8f"
+      ],
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": {
+            "hash": "5edc92bd79fb26dbfccb0eda9e23e89de9d5b770b904247cb67f3c9cba02ce8f",
+            "blockNumber": 3140555,
+            "timestamp": 1781230274804,
+            "confirmations": 11678954,
+            "size": 286,
+            "relatedAddresses": [
+              "NQ77 0000 0000 0000 0000 0000 0000 0000 0001",
+              "NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7",
+              "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S"
+            ],
+            "from": "NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7",
+            "fromType": 0,
+            "to": "NQ77 0000 0000 0000 0000 0000 0000 0000 0001",
+            "toType": 3,
+            "value": 55000000000,
+            "fee": 0,
+            "senderData": "",
+            "recipientData": "0501fbd6f768feca6fa19b24085f01c70ffd138b505a007796f46f71f2617dc2b230dc38279872b1c9e16c4e393407a4bf18e54996bdd80074d8808b9337604b0df4af536c411ffa871e07c84481302f8c32a0a7400c22f4f88094e906fdec8d5cee7d0351feff272c786eb10ace2df42ebacda23dad6302",
+            "flags": 0,
+            "validityStartHeight": 3140542,
+            "proof": "007796f46f71f2617dc2b230dc38279872b1c9e16c4e393407a4bf18e54996bdd800d907192df5ad4e081f266ce302adc978afad4a24dec812d64635940bfdfc4b7894ced0f913d6068b9a7949ca8e0a84bf1812154cf7e5a2dd1ba5ec463729e805",
+            "networkId": 5,
+            "executionResult": true
+          },
+          "metadata": null
+        },
+        "id": 9
+      }
+    }
+  }
+}

@@ -107,9 +107,9 @@ Positional params, explicit `null` for optional ones. Allowed and used: `getBloc
 `getStakersByValidatorAddress`, `getBlockAfterCollateralLockup` (not allowed on public RPC).
 
 ## Video pipeline
-`evidence/mainnet-squad.json` → `pnpm scenes:build` converts it into typed fixtures in
-`packages/ui/scenes/demo/` → `apps/video` composes them on a timeline inside a phone frame →
-`pnpm video:render` outputs MP4. Same components, same tokens, same fonts as production.
+Hand-written typed fixtures in `packages/ui/scenes/demo/` (realistic sample data, no generation
+step) → `apps/video` composes them on a timeline inside a phone frame → `pnpm video:render`
+outputs MP4. Same components, same tokens, same fonts as production.
 
 ## Vercel notes
 Route handlers are short-lived: no background loops; everything is computed on request with
