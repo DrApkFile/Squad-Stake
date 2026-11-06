@@ -2,6 +2,7 @@
 
 import { challengeResponse, verifyResponse } from '../core/auth-contract';
 import type { ErrorCode } from '../core/errors/catalog';
+import { hostGuard } from './network';
 
 type SignInResult = { ok: true; address: string } | { ok: false; code: ErrorCode };
 export async function signIn(devIdentity: string | null): Promise<SignInResult> {
@@ -14,10 +15,8 @@ export async function signIn(devIdentity: string | null): Promise<SignInResult> 
     }
     // SDK touches window: even this client module loads it only after a user tap.
     const { init, NimiqProviderError } = await import('@nimiq/mini-app-sdk');
-    if (typeof window.nimiqPay === 'undefined') return { ok: false, code: 'OUTSIDE_HOST' };
-    const network = process.env.NEXT_PUBLIC_NIMIQ_NETWORK ?? 'mainnet';
-    // AGENTS.md host guard: an absent host network is also a mismatch.
-    if (window.nimiqPay.network !== network) return { ok: false, code: 'WRONG_NETWORK' };
+    const host = hostGuard();
+    if (!host.ok) return host;
     let provider: Awaited<ReturnType<typeof init>>;
     try { provider = await init({ timeout: 10_000 }); }
     catch { return { ok: false, code: 'OUTSIDE_HOST' }; }

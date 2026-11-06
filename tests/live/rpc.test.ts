@@ -3,9 +3,10 @@ import { test } from 'node:test';
 import { createRpcClient } from '../../apps/web/src/server/lib/rpc';
 import { calculateRelease } from '../../apps/web/src/server/core/release';
 import { deriveMemberStatus } from '../../apps/web/src/server/core/member-status';
+import { chooseValidator } from '../../apps/web/src/server/core/validator-choice';
 import { recorded } from '../support/rpc';
 
-test('Q04–Q07 live testnet RPC reads the spike staker and all eight allowed methods', {
+test('Q04–Q07 live testnet RPC reads the spike staker and all nine allowed methods', {
   skip: process.env.LIVE_RPC !== '1', timeout: 40_000,
 }, async () => {
   const rpc = createRpcClient({ url: 'https://rpc.testnet.nimiqwatch.com' });
@@ -34,8 +35,14 @@ test('Q04–Q07 live testnet RPC reads the spike staker and all eight allowed me
   assert.equal(page.metadata, null);
   assert.ok(page.data.length > 0 && page.data.length <= 2);
   assert.ok(page.data.every((entry) => entry.relatedAddresses.includes(staker.address)));
+  const validators = await rpc.getActiveValidators();
+  assert.ok(validators.ok, JSON.stringify(validators));
+  assert.ok(validators.data.length > 0);
+  const chosen = chooseValidator(validators.data, new Map());
+  assert.ok(chosen, 'at least one active validator must be eligible');
   console.log(JSON.stringify({ head: head.data, address: staker.address, readAt: result.readAt,
     validator: validator.data.address, jailedFrom: validator.data.jailedFrom,
     releaseBlock: release.releaseBlock, transaction: tx.data.hash,
-    page: page.data.map((entry) => entry.hash) }));
+    page: page.data.map((entry) => entry.hash),
+    activeValidators: validators.data.length, chosenValidator: chosen }));
 });

@@ -59,8 +59,15 @@ export const transactionSchema = z.object({
 export const transactionCount = z.number().int().min(1).max(0xffff);
 export const transactionsSchema = z.array(transactionSchema);
 
+/* blockchain.rs: get_active_validators() -> RPCResult<Vec<Validator>, (), Self::Error>.
+ * Verified against rpc.testnet.nimiqwatch.com on 2026-11-06: allowed on the public node,
+ * returns the same Validator objects, metadata null.
+ */
+export const validatorsSchema = z.array(validatorSchema);
+
 export type Staker = z.infer<typeof stakerSchema>;
 export type Validator = z.infer<typeof validatorSchema>;
 export type ChainTransaction = z.infer<typeof transactionSchema>;
 export type ChainTransactions = z.infer<typeof transactionsSchema>;
+export type Validators = z.infer<typeof validatorsSchema>;
 export type ChainMetadata = z.infer<typeof chainMetadataSchema>;

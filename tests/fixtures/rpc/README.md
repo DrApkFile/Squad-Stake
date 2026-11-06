@@ -11,6 +11,11 @@ The `transactions` record was captured later (2026-11-06, its own `recordedAt`) 
 `[address, max, null]`. Its two transactions are the staker's real history and
 carry no chain metadata.
 
+The `validators` record (`getActiveValidators`, empty params) was captured on
+2026-11-06 with its own `recordedAt`. It is the whole active testnet set as returned,
+twelve validators, and unlike the transaction page it carries chain metadata
+(`{ blockNumber, blockHash }`).
+
 The staker is active and its validator has `jailedFrom: null`. The jail policy
 was called with the recorded head as a hypothetical input, not an observed jail
 event. The transaction hash came from that staker's real transaction history.

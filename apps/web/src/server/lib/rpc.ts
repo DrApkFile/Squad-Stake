@@ -1,8 +1,8 @@
 import 'server-only';
-import type { ChainTransactions, RpcResult, StakerState, Validator } from '../core/chain';
+import type { ChainTransactions, RpcResult, StakerState, Validator, Validators } from '../core/chain';
 import {
   addressSchema, blockNumber, hashSchema, stakerSchema, transactionCount,
-  transactionSchema, transactionsSchema, validatorSchema,
+  transactionSchema, transactionsSchema, validatorSchema, validatorsSchema,
 } from './rpc-schemas';
 import { createAddressCache } from './rpc-cache';
 import { createRpcTransport, type RpcOptions } from './rpc-transport';
@@ -24,6 +24,11 @@ export function createRpcClient(options: RpcOptions) {
   }
   return {
     getBlockNumber: () => request('getBlockNumber', [], blockNumber),
+    // §7.7 reads the whole active set; it is not per-address, so it is not cached here.
+    // It answers with chain metadata (verified live on testnet 2026-11-06: result.metadata =
+    // { blockNumber, blockHash }), unlike getTransactionsByAddress, whose metadata is null.
+    getActiveValidators: (): Promise<RpcResult<Validators>> =>
+      request('getActiveValidators', [], validatorsSchema, true),
     getElectionBlockAfter: (block: number) => policy('getElectionBlockAfter', block),
     getBlockAfterReportingWindow: (block: number) => policy('getBlockAfterReportingWindow', block),
     getBlockAfterJail: (block: number) => policy('getBlockAfterJail', block),
@@ -71,7 +76,7 @@ export function createRpcClient(options: RpcOptions) {
   };
 }
 
-// blockchain.rs/policy.rs: the other seven methods have no optional arguments. Their
+// blockchain.rs/policy.rs: the other eight methods have no optional arguments. Their
 // entire positional signatures are [] / [address] / [hash] / [block]; no padding.
 // Future optional arguments must occupy their slot explicitly as null (S2 v3).
 export type NimiqRpc = ReturnType<typeof createRpcClient>;

@@ -21,8 +21,8 @@ guide pasted by the builder; Cycle 2 scoring post on Skool (found via search, 20
 
 | Criterion | Max | Full marks looks like | Our planned proof |
 |---|---|---|---|
-| Functionality, reliability, usefulness | **45** | core promise works first time; errors explained; fast; no dead ends; finished; real need; obvious audience; original; repeat value | P0 flow on mainnet; error catalog; proof tiers; "pay any Lightning address" |
-| Nimiq Pay + Nimiq integration | 25 | NIM central to the experience, not a logo | NIM pays Lightning; NIM-to-NIM jolts; proof read from the Nimiq chain |
+| Functionality, reliability, usefulness | **45** | core promise works first time; errors explained; fast; no dead ends; finished; real need; obvious audience; original; repeat value | P0 flow on mainnet; chain-verified member status with the age of every read; goal-day planner incl. the jail case; error catalog with a next action for every outcome; no dead ends |
+| Nimiq Pay + Nimiq integration | 25 | NIM central to the experience, not a logo | NIM never leaves the member's wallet: sign-in by signature, the 6 staking calls through Nimiq Pay, Mode A payments verified on-chain, every status derived from Nimiq RPC reads |
 | Real usage | 15 | Cycle 2: unique Nimiq wallets that opened the app in the measurement window | live on mainnet Nov 8 (schedule: PRD §10); Skool + Sip & Ship |
 | Design and UX | 10 | polished mobile UI | 390 px checks, states for every outcome |
 | Builder promotion | 5 | Cycle 2: Skool post (2) + public social post (3) | both before Nov 10 |

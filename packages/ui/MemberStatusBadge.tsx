@@ -1,3 +1,5 @@
+import { formatLuna } from './format';
+
 export type MemberStatusView =
   | { status: 'BACKED' | 'RELEASABLE' | 'RETIRED' | 'NOT_STAKING' }
   | { status: 'SHORT'; shortBy: number }
@@ -9,12 +11,6 @@ export interface MemberStatusBadgeProps {
   now: number;
   estimatedReleaseAt?: number | null;
   refreshError?: { message: string; nextAction: string };
-}
-
-function formatLuna(luna: number) {
-  const whole = Math.floor(luna / 100_000).toLocaleString('en-US');
-  const fraction = String(luna % 100_000).padStart(5, '0').replace(/0+$/, '');
-  return `${whole}${fraction ? `.${fraction}` : ''} NIM`;
 }
 
 function ageText(readAt: number | null, now: number) {

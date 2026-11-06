@@ -38,7 +38,8 @@ address. Session cookies are HttpOnly, SameSite=Strict and Secure over HTTPS; on
 their SHA-256 hashes are stored. Failed persistence cannot report success.
 
 For local fixtures, run `DEV_HARNESS=1 pnpm dev`. `/scenes` shows five sign-in
-states and eleven member-status cases in light and dark at 390 × 844. `/?as=alice`, `/?as=bob` and `/?as=carol`
+states, eleven member-status cases and twenty-three create/join/commit/leave states
+in light and dark at 390 × 844. `/?as=alice`, `/?as=bob` and `/?as=carol`
 select reproducible Ed25519 test identities; tap the sign-in button to use the same
 challenge/verification/session flow. The server derives and uses these keys only
 in development. They are public test identities: never fund them. The central
@@ -46,17 +47,29 @@ gate refuses identities, mock switches and `/scenes` in production artifacts,
 even if development flags are supplied at runtime. No mock chain provider is
 implemented yet.
 
-`createRpcClient({ url })` in `apps/web/src/server/lib/rpc.ts` exposes seven typed,
+`createRpcClient({ url })` in `apps/web/src/server/lib/rpc.ts` exposes nine typed,
 strictly parsed read methods with a five-second timeout. Staker and validator
 reads cache per address for 60 seconds within that client instance; reuse the
 client within the server process. `{ fresh: true }` bypasses the cache for future
 commit transactions. Reads return `readAt` in Unix milliseconds. Refresh failures
 return an error and any `lastKnown` snapshot with its original timestamp.
-No squad route or database balance/status persistence is implemented.
+No balance or member status is ever stored; every one is derived from a read.
+
+Squad create, join by invite link, commit and leave exist as route handlers under
+`apps/web/app/api/` over a store interface, with migration `002-squads.sql` for
+`squads`, `memberships` and `tracked_txs`. Only the hash of an invite token is
+stored. A commitment is written inside one member-locked transaction that re-reads
+the staker with `{ fresh: true }` and refuses when the sum of commitments across
+active squads would exceed the active balance; when the member first needs a
+create-staker or add-stake transaction, the commitment is saved only after that
+transaction is `INCLUDED_OK` (executed and final). **None of this has run against a
+database or a wallet yet** — `DATABASE_URL` is unset, so the invariant is proven
+only against an in-memory store that serialises locks the way `SELECT … FOR UPDATE`
+does, and no staking transaction has been signed or sent.
 
 `pnpm test:live` skips its single test unless explicitly enabled with
 `LIVE_RPC=1 pnpm test:live`. It reads the known spike staker on testnet and exercises
-all seven methods plus the non-staker mapping; it signs and sends nothing. Unit
+all nine methods plus the non-staker mapping; it signs and sends nothing. Unit
 and adversarial tests use the raw recording in `tests/fixtures/rpc/testnet.json`.
 `node scripts/build-chain-scenes.mjs` refreshes the UI projection of that recording.
 Leaving-state fixtures are labelled synthetic cases, not observed mainnet proof.
@@ -65,10 +78,12 @@ Leaving-state fixtures are labelled synthetic cases, not observed mainnet proof.
 states. Fixtures are explicitly labelled and contain no invented mainnet proof.
 `apps/video` is an empty placeholder with no Remotion dependency.
 
-Not built: privacy notice, squads, commitment persistence/guards, wallet staking, payments,
-transaction tracking/finality checks, goal-day planner UI, mainnet evidence, evidence-derived demo fixtures,
-Remotion, deployment and real-phone verification. This is not the complete P0 app.
+Not built: the squad page and member list, the goal-day planner and leaving steps,
+Mode A payments and their on-chain check, pool-aware validator choice, fiat and
+earned-so-far figures, mainnet evidence, Remotion, deployment and real-phone
+verification. This is not the complete P0 app.
 
-Pinned dependencies, the lockfile and the preceding sign-in slice's full gate
-were verified (see `docs/PROGRESS.md`). Database migration and real-phone
-verification remain open. Use `npx pnpm@10.18.3` if the installed pnpm differs.
+Not yet verified, even where the code exists: no database has been migrated or
+written to, no staking or payment transaction has been signed, sent or tracked on
+any network, and nothing has run on a real phone inside Nimiq Pay. Pinned
+dependencies, the lockfile and the full gate were verified (see `docs/PROGRESS.md`).

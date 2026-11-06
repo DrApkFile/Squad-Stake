@@ -4,7 +4,7 @@ import { createRpcClient } from '../../apps/web/src/server/lib/rpc';
 import { RPC_TIMEOUT_MS } from '../../apps/web/src/server/lib/rpc-transport';
 import { address, fixtureFetch, readAt, recorded } from '../support/rpc';
 
-test('Q04 Q06 Q07 all eight RPC methods parse recorded envelopes with exact positional signatures', async () => {
+test('Q04 Q06 Q07 all nine RPC methods parse recorded envelopes with exact positional signatures', async () => {
   const calls: unknown[] = [];
   const records = Object.values(recorded);
   const rpc = createRpcClient({ url: 'https://rpc.invalid', now: () => readAt, fetch: async (url, init) => {
@@ -40,7 +40,13 @@ test('Q04 Q06 Q07 all eight RPC methods parse recorded envelopes with exact posi
   assert.ok(page.ok);
   assert.deepEqual(page.data, recorded.transactions.response.result.data);
   assert.equal(page.metadata, null);
-  assert.deepEqual(calls, ['head', 'staker', 'election', 'window', 'jail', 'validator', 'transaction', 'transactions'].map((name) => {
+  // §7.7: the active set comes back with chain metadata, so a null-metadata envelope
+  // would be refused — the live testnet read proved this on 2026-11-06.
+  const validators = await rpc.getActiveValidators();
+  assert.ok(validators.ok);
+  assert.deepEqual(validators.data, recorded.validators.response.result.data);
+  assert.deepEqual(validators.metadata, recorded.validators.response.result.metadata);
+  assert.deepEqual(calls, ['head', 'staker', 'election', 'window', 'jail', 'validator', 'transaction', 'transactions', 'validators'].map((name) => {
     const record = recorded[name as keyof typeof recorded];
     return [record.method, record.params];
   }));

@@ -1,6 +1,6 @@
 import type { ChainMetadata, Staker } from '../lib/rpc-schemas';
 
-export type { Staker, Validator, ChainTransaction, ChainTransactions } from '../lib/rpc-schemas';
+export type { Staker, Validator, Validators, ChainTransaction, ChainTransactions } from '../lib/rpc-schemas';
 export type RpcFailureCode = 'TIMEOUT' | 'NETWORK_ERROR' | 'HTTP_ERROR' | 'INVALID_RESPONSE' | 'RPC_ERROR' | 'INVALID_INPUT';
 export interface RpcSnapshot<T> { data: T; metadata: ChainMetadata | null; readAt: number }
 export interface RpcFailure {

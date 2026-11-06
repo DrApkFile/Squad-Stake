@@ -228,6 +228,167 @@
         },
         "id": 9
       }
+    },
+    "validators": {
+      "method": "getActiveValidators",
+      "params": [],
+      "recordedAt": "2026-11-06T07:17:03.766539Z",
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": [
+            {
+              "address": "NQ28 14BK PQR5 2EB3 L744 LT46 AV6G H1PJ N6X0",
+              "signingKey": "0960e8a15ecbdcdccd80380a0e9ba32a3f67933fc9caab6789d6a9a3bc2d561a",
+              "votingKey": "3376e7c46a7638eee959dfcfb4f1848473c841703da1cb7f77778a3d3e6594b54280a8d1ddade960a7dfac788e74fe83f4f23c69f17d560ebe727f732dbac6cfdb64b480ac379c6748fbc36aabaff468c2a7686e455e6b0d63a5a718357900c6c4c146500d0b6dc5c470aa53158503d38440caeb79db036205f255ef03cf812fc69e650baf38acede9d96dd64bad1e27e17f22d2beea6c3725225e2fef5cf7e661f0d8c300fcde7d202dffcb0d379da1c530d12490e5be7915ff3a75e300ddfc77f0457f91738405e7bf1b50f85e69f2fc904da03a5ca36f90c0ca04731ab661de3ebc7239d1b7262d5b6e7baa06e1f13ec7af57bea2728dfcac57d720a7d43bf654924dfa03b00094c6a0f52a3783a03866eec6a4bb8c8af68b37f800",
+              "rewardAddress": "NQ28 14BK PQR5 2EB3 L744 LT46 AV6G H1PJ N6X0",
+              "signalData": null,
+              "balance": 11008999500,
+              "numStakers": 2,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ57 2F6C X3GB Y9B7 04U5 2BVA 4BVC M2T0 ELRL",
+              "signingKey": "5868f0c2730b2023e8c38cd9abfcbee8d3445e9cb27297bffb11a47dad0399fe",
+              "votingKey": "a014ab7e962d8a81b0e93e2de43fc58d8ba2919733d837bd420a19e6077efe6cc21fa20906166aad0813100fa184ffba96dfb9955afac4433c965c60b3f0b12dad9363cbf1d5169b032ff02e729e904d44d0ff13614c34d701f7085f157701567355d5522f7e58a60a1fa038046b26d6e6c3f64f5d0294085d890f32ac231a8e2e7aae93810233a23232626623bc7c9655d6aecdec5705bf98e81dbb96303285310f7e1ddfa747c1e1de3bcb54ec413fff51ddbafd873f642fd0b4e152004dfd6c360bc305c230dea9b0537c7abb8a10da2e6c67bb3898cbcfe646f7178653efce6b7ede9eb1fcb13e89218da70c4b2f6fe33a50263812dd34f68a36bc33cf115b3f020a8655f39d03a40d863ca43671fa325e9968cf50057c5debed80",
+              "rewardAddress": "NQ57 2F6C X3GB Y9B7 04U5 2BVA 4BVC M2T0 ELRL",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15506350325526,
+              "numStakers": 16,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ30 59XY X0DY SVHB 9L27 XQTN M68R HR26 RTSL",
+              "signingKey": "b5db2a383de57ec27bc8aab45c3bd46b4d2b2dbca07a89194d11db9c029947b9",
+              "votingKey": "de1a12424c23fecff189d6f788a6143a6a8a5f3371f61988fd4cca601909689092cfa0691e8de4efff2af1379a1f0dd8a6e7ab7689be620b649a2ca6aade3877f7f5ccec3655241154c32f57094d022f2d42205ab36c76b377388f2fde3300ab03ef477cf83a37d3fb740fbe6f1cbff85c1c42735e43e2d9b0dcfc9621ff0c919086a6a5b29ff62c669edf3989894353a95bba06715e3c92a3c0f6f69d4144453536beec6bb8de90d02185967b78d46211eb7b978fd47d0d4bf97ce77c0078b75613e12cc10759ee3aa385d70274534e46706385e9352353702497e1f0d1c324de3b6d1a902384c681443efa4efd92bc5ca7ea440bb02819c9b5fe64570a857b583481220b6326785f7a77bf396b3bd0e924cb41de908d420f3b410100",
+              "rewardAddress": "NQ30 59XY X0DY SVHB 9L27 XQTN M68R HR26 RTSL",
+              "signalData": null,
+              "balance": 109000000000,
+              "numStakers": 5,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ82 BHPS UR9K 07X1 X6QH 3DY3 J325 UCSP UHV3",
+              "signingKey": "e774ab73488fd177e250cb9f60cb23ed3f41b98922ac77b80cf3d61f145c879d",
+              "votingKey": "c53d5a68e60fc916cf70d7402c26b4a726a57b4920f5344669b8c2051d0b871e8161fb9549801c6f14034d8d496246ba08f979ef1f65cb655e23ce6a96827bc963a8df7bab2bbd9927abcb2b1b8186908d6c31f5cc469dc02c06c938c3ef00e5fbd89d77e7590d9f7aa3bd9705e1fb96162c75f3c90593d39e974093c98c30a74276c4682389ddf7f789533f28ed5d10001f287e208362c5ddc13904c819593c634a719fc6ed003b43dd2fbf413aad24fdf4c6e1ca21b3b268deaedaf40006428fddb31c7559876bea3647a37464d4ce13e8ffb15be0ff68de6a9b5042a72fea8c244ee5682d66e95509514f4c5c89634c2ca72c85be8e5ef8ecd23d36509f56bab0064d5b04a5b4e6ace95256ad5937c800e1ccb2ba0565c7df36fc00",
+              "rewardAddress": "NQ82 BHPS UR9K 07X1 X6QH 3DY3 J325 UCSP UHV3",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15608602586057,
+              "numStakers": 11,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ71 CK94 3V7U H62Y 4L0F GUUK DPA4 6SA6 DKKM",
+              "signingKey": "759dcadfeb734270a196657b5e182504b0bd822803b28710225f2f80c2ea2cae",
+              "votingKey": "2604e5236aabd8df25e37ac6ece65b2f0b37537fd5e1ce224e04b3cf1dcaa35e43d60db27f26cbe87e118baf407f349bdff91110afee28878e91278666e06f1f5d3a2f97ee7529bd70853ad27ed721ddae991fe825414bcd5684c759d25d01b1df7cea998296339596ca26932f9be3c32e6ea79a4998f30804b041c4f3e6e47ec2041f55f6974c387a6eaa5b0f8048eb1fa388015f57699e7bfc952b183f9cab3a3bb78fdc2ff538a7c0bf4d2f32b1eeac9a399c2b7ab68f9f14cfc92700dbe10d3d7d788cdc8cb5bb41002f22031d7c15e2c187abd02908254bae6517ce479be4a6084d4562e28e6f2bc08014333b9a6e66bd242926733d9d530034cab3646ba58f2134bd3f416f7e72624bacca9fef370fab50c34aadcd39f0973601",
+              "rewardAddress": "NQ71 CK94 3V7U H62Y 4L0F GUUK DPA4 6SA6 DKKM",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15329104384259,
+              "numStakers": 11,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ24 DJE3 KX3U HG5X 1BXP 8XQ3 SK7S X364 N7G7",
+              "signingKey": "6945d8b5fb3b350b0b70bee7326df6a8475ded93448343f762b509880e8e1d1b",
+              "votingKey": "f5c7f82014e73b18fd076565315e10614b419a48b4ea2afa2f2933342c73356fe852fc599e04eb66b6452c6594dd59a8c825487f7a45ed6678f639076b30c2d975bea1c8a60a40001f505c96b878031b2f63c4d43466db526e9955aaafed00e35ed66adc9ffacd6a2d923b6cb4512c3e3a13e2918965622d4fc474526c87f9d2daa8054620d6e803e0237c118936ea898feb9989d8b94ae8dee7897d84bc27aa77c28a1b13e72ea2ef2308131ddab4f89d1e871cc129e90f8d1500239c01b576b423a03fbbc3bc95a5dcce4cf97b8e8ad6a052d63bccfe800d3cfbf938036fc538b065772e89666e334b8cad5ae28dede53cdfa9738cbdb0bf235bea590da8bb6e737c606c7ff1de94f5be5557be1e958caecf51ad539aebb8348b0301",
+              "rewardAddress": "NQ24 DJE3 KX3U HG5X 1BXP 8XQ3 SK7S X364 N7G7",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 10070033669578,
+              "numStakers": 9,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ87 FEGQ 01TF M29N T03J 3YCB JB5M X5VM XP8Q",
+              "signingKey": "5b057615da3adb3c7c8db102b537553e01626ea02d5ee2d09568c2dfa0bd8d42",
+              "votingKey": "bb34d20d3668a1e15c0db307901c33ab1a6ec7b36b6ff04fcf7e61df3fc34953998a10895175e5719e84d74aa911f63356644c452cb5146b0eaca58508c704be51ee05d40c3a302c2b5979911ded6e27e3e0733b6bfce8bf0500a6287f24009278a0a36d4c1f6ad05493d4cad4f378bcf0d980e7ed2a0f3e232e8385ad2f32fc8e70d9d3ed93a78d513035018f8710cacee8bc73a75450413784e98f034e890a283bd05dca36234cdf3c7fb3e47a40edb4f03bc0afac802d9a74196947004a19e0ca7b90f4a8adb6d8d49c5dff80c285798a3c16276804a882cc3af905a879bd29dcd059c1899ca47f26b3fe647c2c0efd772099e72086afdd4126397599ec8870c66efe70ff93cb1fb92e397003171f0a6202d74fcdeb497a251b6480",
+              "rewardAddress": "NQ87 FEGQ 01TF M29N T03J 3YCB JB5M X5VM XP8Q",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15438435520612,
+              "numStakers": 9,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ42 FN9R 22NA GDDJ 1B2H DJ8X QR7L L6U0 VGKV",
+              "signingKey": "c0faf39090c190091e062cf35cebcb9b0891eb13c9c4e1c2118e0b391aebd735",
+              "votingKey": "568f1cb468bcb91f84600e08f3dbf54199e67024fbd544b11276394eaacd990924e49ca026771c80c18555d5f66849d2844d0d5b01e998cb590fea15061193e5e6e3cf2cca5be70475d07458a67bd077b8c76203d90c43bbe349bce156e900953e84f6f8142d34a68382a0449d96881c1c6c459e872af71cf010cc27c125188081380d17399b85a426d76c0cffbbf0799eb8f21a9361ea37f26a7652acab68a509530a1f7e8e668817a73c730bb664dda092b67a282fd4a044b6788ee80009142fb41ffee446d43e3a8b13cc39604a59ec91cc5e7fc3d22cdeb09fed8d6bb59c7ab78a542647caec25b86d47574664e09426598036ad5f820800113ddad932f935cf609bf9f29817fc141a3b06c33c7cf7325f63b8bab3b2efea97f100",
+              "rewardAddress": "NQ42 FN9R 22NA GDDJ 1B2H DJ8X QR7L L6U0 VGKV",
+              "signalData": null,
+              "balance": 43976400000,
+              "numStakers": 4,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ08 N4RH FQDL TE7S 8C66 65LT KYDU Q382 YG7U",
+              "signingKey": "60c951e6c1a1b4744174261efc0c69b66db9437abdc74308fcbc17da354ccdc5",
+              "votingKey": "dbf7be93089cbc26153d07ea76280efa88833fa03191dd1061d3dacf30bb438f5a446e7031b404e81831c90dd4eaf7901a9dba5517be6424281e2624e5e3388091581e134d5bd6a90d95986753fc7b0068f3fd94f92986bbf9ab30cce259002fa15b295383e2b9f756db23e9c78c7525f418764162a2ebfec2bc4f73b7b7b39d83781fd5beaee1d12cb159b5d9de5657917017769f90a835a5fa44d34c90d8fda37dcde55996c35e166695efa06112d8e52d256593ccaa133d7a8a192c00e2e733823dacc5ec540e78e90db5d055f4add00eef80bd1e81f80ec0b4e47c0fb8f657ed7294091cacf4ff8421ee33e3923e2f0be5ec2b6d188d8a9434ca622cebf70335bef45739fbcc4bf858c977f2ee33fd7e53a56a8f95c68e67554a00",
+              "rewardAddress": "NQ08 N4RH FQDL TE7S 8C66 65LT KYDU Q382 YG7U",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15385206591718,
+              "numStakers": 11,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ57 UQJL 5A3H N45M 1FHS 2454 C7L5 BTE6 KEU1",
+              "signingKey": "7cd3fb3d38e1918fa44758ffcc9faf9a13056f7d94bd423264211d8ce1a78007",
+              "votingKey": "ecda18b65f86ad64d72dc9202b08d07afd214e5d65d515fe1241a56664523f84e577e25abdc43073fca1a00f932420b87f4f61f3a918510da233fd17e8c03235ab444803b021cfa513db3d9dd3228a97cfa676a9453e3674f82d94e5a960014dec07de14a114a42e7ba400258997eb4803457e64de5ba4c1e1b1c26c8d3a18036d95ac237ad108ceef22bce33bd715d7550105c26b21d6e559191206f9c7aaa6c00b889ea86306210bba5cd4d639bbfd109e2a7e2f846a8aa2375a148900dbfc0c416e02c1c7a0a5e08716824f006eb611ae4fe8473818c9b442bd7aec8cb29195b9ab47c879a6256fece33775745bb54e93ac973f08bb604751879b34c87f53a3aab67d756c1f3357ec9340cf7f4b6087c721c4b9e4c5394fb2415481",
+              "rewardAddress": "NQ57 UQJL 5A3H N45M 1FHS 2454 C7L5 BTE6 KEU1",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15448907082676,
+              "numStakers": 5,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S",
+              "signingKey": "e91e254ecc9b93768fa2916388103ce466869c3cb960c4d38fdc3dd15bc2b0d4",
+              "votingKey": "431937799ed9cfa7b5d792c7f12e84d9ccdb7858bf90922b9130f206f9f891530f35639f3328a4c9f6dcb8ef8257cc641c31daed793024b52de2ca61a23e8831f93061d874b40d83aa53080f9dc65a2843244c347a54a5f2bd5cf9b0b9090159c96945fcc11e1032b71531e412cb51f258297a94b7b6139b5f16352b393dca7165f40f15f726cd12b51f4285abd938e6533c2bda224154ab4d2ccc19426e88bd2cfe1fc17b601cf5bb5d5c9b05974b810c95a7652915b30cb7732c891d00fad01cc5e54b0010f2727c370b511fee3167d44fe9d28a70607a98bd12a85738f3dbe3472ca3f5cddf98047db109ca3c992b42de340209643f721e165438a3c93797ea991a39b780a5babb0503ad7fb1ba7a354345ef62643cd9fa02789f00",
+              "rewardAddress": "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S",
+              "signalData": null,
+              "balance": 1826852481863,
+              "numStakers": 26,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            },
+            {
+              "address": "NQ38 YX2J GTMX 5XAU LKFU H0GS A4AA U26L MDA3",
+              "signingKey": "51028659874301c8e2fe1281aef1707eecb3a1678c9d6c6063912b9df089dca9",
+              "votingKey": "e2a9f1f3b07ecb7f2b9b6623a204c200bcb385087f07160917d8d8d27439ff2374a84678253db16093f770a18a7dc7dd72f2760a3cef6425ce073b28ac2fddd773ab74039040c097b56531c0205e83ad2cf0061808a8ae1fed48feac6c1901c0ccc7985e2a9ab413b49f6a17d6a76ce4c794ab339630ceb24fd4790b9d25fba8ee2a2e1fc874e5493796c510c12e19f6dd10e114567c831fa87a021b172eb9184878b2530f2464a51dadf8b8b045dd5c1adc55fb77dfe80fde98aa0401012ecafe7faf40deb1ecfb839dad65f63b3214f61639a3290aaa6a9784f79604137bb6d5c2b408e3d750953926430141345126bb191e164b329306eb9d4ad886255adac2fe5e07be6b09d29b911e373986ea9e749467992365c28d7ce1c56a80",
+              "rewardAddress": "NQ38 YX2J GTMX 5XAU LKFU H0GS A4AA U26L MDA3",
+              "signalData": "0002000000000000000000000000000000000000000000000000000000000000",
+              "balance": 15481812200979,
+              "numStakers": 14,
+              "inactivityFlag": null,
+              "retired": false,
+              "jailedFrom": null
+            }
+          ],
+          "metadata": {
+            "blockNumber": 16032894,
+            "blockHash": "717b189592e4c07290cdb14d86f2a42ef789b6ecb22354f1405430cfdbd820b6"
+          }
+        },
+        "id": 1
+      }
     }
   }
 }
