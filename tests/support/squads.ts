@@ -3,7 +3,10 @@ import { createSquadService, type Commitment, type Membership, type Squad, type 
   from '../../apps/web/src/server/core/squads';
 import { createTxTracker } from '../../apps/web/src/server/core/tx-tracker';
 import type { CommitRpc } from '../../apps/web/src/server/core/commitments';
-import type { ChainTransaction, RpcResult, Staker, StakerState } from '../../apps/web/src/server/core/chain';
+import type { ChainTransaction, RpcResult, Staker, StakerState, Validator }
+  from '../../apps/web/src/server/core/chain';
+import type { PlanRpc } from '../../apps/web/src/server/core/leave-plan';
+import { recorded } from './rpc';
 
 export const ADDRESSES = {
   alice: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V',
@@ -85,7 +88,9 @@ export function memoryStore() {
         .filter((membership) => membership.address === address && membership.leftAt === null);
       return mine.flatMap((membership) => {
         const squad = squads.get(membership.squadId);
-        if (!squad) return [];
+        // Mirrors LISTED_SQUAD_STATES in the SQL: a COMPLETED squad still shows, a CANCELLED
+        // one does not.
+        if (!squad || !['OPEN', 'SAVING', 'LEAVING', 'SETTLING', 'COMPLETED'].includes(squad.state)) return [];
         const roster = [...memberships.values()]
           .filter((other) => other.squadId === squad.id && other.leftAt === null);
         return [{
@@ -101,6 +106,31 @@ export function memoryStore() {
         && tracked.address === address && (tracked.state === 'SUBMITTED' || tracked.state === 'UNKNOWN'));
       const last = open.at(-1);
       return last ? { ...last } : null;
+    },
+    async listTrackedTxs(squadId, address) {
+      // Insertion order stands in for `ORDER BY created_at`: the planner reads the last of
+      // each kind, so the order is part of the behaviour being tested.
+      return [...trackedTxs.values()]
+        .filter((tracked) => tracked.squadId === squadId && tracked.address === address)
+        .map((tracked) => ({ ...tracked }));
+    },
+    async listSquadTrackedTxs(squadId, kind) {
+      return [...trackedTxs.values()]
+        .filter((tracked) => tracked.squadId === squadId && tracked.kind === kind)
+        .map((tracked) => ({ ...tracked }));
+    },
+    async namedCommitments(address) {
+      return [...memberships.values()]
+        .filter((membership) => membership.address === address && membership.leftAt === null
+          && ['OPEN', 'SAVING', 'LEAVING', 'SETTLING'].includes(squads.get(membership.squadId)?.state ?? ''))
+        .map((membership) => ({ squadId: membership.squadId,
+          name: squads.get(membership.squadId)?.name ?? '', committedLuna: membership.committedLuna }));
+    },
+    async setSquadState(squadId, from, to) {
+      const squad = squads.get(squadId);
+      if (!squad || squad.state !== from) return false;
+      squads.set(squadId, { ...squad, state: to });
+      return true;
     },
     async countActiveMembers(squadId) {
       return [...memberships.values()]
@@ -200,6 +230,7 @@ export function detailHarness(options: { head?: number | null } = {}) {
   const balances = new Map<string, number | null>();
   const unreadable = new Set<string>();
   const readAt = new Map<string, number>();
+  const transactions = new Map<string, ChainTransaction>();
   let stakerReads = 0;
 
   const rpc = {
@@ -209,6 +240,15 @@ export function detailHarness(options: { head?: number | null } = {}) {
           rpcError: { code: -32603, message: 'Internal error' } };
       }
       return { ok: true as const, data: head, metadata: null, readAt: now };
+    },
+    async getTransactionByHash(hash: string): Promise<RpcResult<ChainTransaction>> {
+      const found = transactions.get(hash);
+      // Mirrors the public node's answer for a hash it does not know (S2 v3).
+      if (!found) {
+        return { ok: false as const, code: 'RPC_ERROR' as const,
+          rpcError: { code: -32603, message: 'Internal error' } };
+      }
+      return { ok: true as const, data: found, metadata: null, readAt: now };
     },
     async getStakerByAddress(address: string): Promise<RpcResult<StakerState>> {
       stakerReads++;
@@ -234,8 +274,104 @@ export function detailHarness(options: { head?: number | null } = {}) {
     setBalance: (address: string, balance: number | null) => { balances.set(address, balance); },
     setReadAt: (address: string, at: number) => { readAt.set(address, at); },
     breakRead: (address: string) => { unreadable.add(address); },
+    setTransaction: (tx: ChainTransaction) => { transactions.set(tx.hash, tx); },
     setHead: (value: number | null) => { head = value; },
     stakerReads: () => stakerReads,
     at: () => now,
+  };
+}
+
+/**
+ * A squad, one member's stake and the chain reads the goal-day planner makes (PRD §7.5). The
+ * election, window and jail answers are the **recorded testnet** ones from
+ * `tests/fixtures/rpc/testnet.json`, so the release arithmetic under test is the arithmetic a
+ * real node produced, not a number invented here.
+ */
+export function planHarness(options: { headBlock?: number } = {}) {
+  const memory = memoryStore();
+  const now = Date.parse('2026-12-01T10:00:00Z');
+  let headBlock = options.headBlock ?? recorded.head.response.result.data;
+  let stakerRecord: Staker | null = null;
+  let validatorRecord: Validator | null = recorded.validator.response.result.data as Validator;
+  let validatorReadable = true;
+  const transactions = new Map<string, ChainTransaction>();
+  const calls: string[] = [];
+
+  const rpc: PlanRpc = {
+    async getBlockNumber() {
+      calls.push('head');
+      return { ok: true, data: headBlock, metadata: null, readAt: now };
+    },
+    async getStakerByAddress(_address, parameters) {
+      calls.push(parameters?.fresh ? 'staker:fresh' : 'staker:cached');
+      if (stakerRecord === null) {
+        return { ok: true, data: { status: 'NOT_STAKING' }, metadata: null, readAt: now };
+      }
+      return { ok: true, data: { status: 'STAKING', staker: stakerRecord }, metadata: null, readAt: now };
+    },
+    async getValidatorByAddress() {
+      calls.push('validator');
+      if (!validatorReadable || validatorRecord === null) return { ok: false, code: 'TIMEOUT' };
+      return { ok: true, data: validatorRecord, metadata: null, readAt: now };
+    },
+    async getTransactionByHash(hash) {
+      calls.push('tx');
+      const found = transactions.get(hash);
+      // The public node answers an unknown hash with -32603 (S2 v3).
+      if (!found) {
+        return { ok: false, code: 'RPC_ERROR', rpcError: { code: -32603, message: 'Internal error' } };
+      }
+      return { ok: true, data: found, metadata: null, readAt: now };
+    },
+    async getElectionBlockAfter(block) {
+      calls.push(`election:${block}`);
+      return { ok: true, data: recorded.election.response.result.data, metadata: null, readAt: now };
+    },
+    async getBlockAfterReportingWindow(block) {
+      calls.push(`window:${block}`);
+      return { ok: true, data: recorded.window.response.result.data, metadata: null, readAt: now };
+    },
+    async getBlockAfterJail(block) {
+      calls.push(`jail:${block}`);
+      return { ok: true, data: recorded.jail.response.result.data, metadata: null, readAt: now };
+    },
+  };
+  return {
+    ...memory,
+    rpc,
+    deps: { store: memory.store, rpc, now: () => now },
+    settleDeps: { store: memory.store, rpc },
+    squads: createSquadService({ store: memory.store, now: () => now, uuid: randomUUID,
+      shortId: () => 'k3m9p2qr', inviteToken: () => 'f'.repeat(32),
+      hash: (value: string) => createHash('sha256').update(value).digest('hex') }),
+    blocks: {
+      head: recorded.head.response.result.data,
+      election: recorded.election.response.result.data,
+      window: recorded.window.response.result.data,
+      jail: recorded.jail.response.result.data,
+    },
+    calls,
+    at: () => now,
+    /** Writes one membership row directly, so a plan test does not have to walk the invite
+     * flow to put a second member with a commitment in a squad. */
+    commit: (squadId: string, address: string, committedLuna: number) => {
+      const existing = memory.memberships.get(`${squadId}|${address}`);
+      memory.memberships.set(`${squadId}|${address}`, {
+        squadId, address, personalTargetLuna: existing?.personalTargetLuna ?? null,
+        leftAt: existing?.leftAt ?? null, committedLuna });
+    },
+    leave: (squadId: string, address: string, at: number) => {
+      const existing = memory.memberships.get(`${squadId}|${address}`);
+      if (existing) {
+        memory.memberships.set(`${squadId}|${address}`,
+          { ...existing, leftAt: at, committedLuna: 0 });
+      }
+    },
+    track: (tracked: TrackedTx) => { memory.trackedTxs.set(tracked.hash, tracked); },
+    setStaker: (value: Staker | null) => { stakerRecord = value; },
+    setValidator: (value: Validator | null) => { validatorRecord = value; },
+    breakValidatorRead: () => { validatorReadable = false; },
+    setHead: (value: number) => { headBlock = value; },
+    setTransaction: (tx: ChainTransaction) => { transactions.set(tx.hash, tx); },
   };
 }

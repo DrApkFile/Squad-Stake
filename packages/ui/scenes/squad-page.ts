@@ -1,5 +1,8 @@
 import {
   demoBackedTotal,
+  demoHashes,
+  demoRecipient,
+  demoTzOffsetMinutes,
   demoCommittedTotal,
   demoGoalAt,
   demoInviteUrl,
@@ -84,8 +87,26 @@ const squadBase = {
   inviteUrl: demoInviteUrl,
   proofUrl: demoProofUrl,
   commitUrl: '/s/4f1c8a7b2d9e0315a6c4b8d7e2f10934',
+  leavingUrl: '/squads/sample-squad-1/leaving',
+  tzOffsetMinutes: demoTzOffsetMinutes,
   back: { label: 'Squads', href: '/squads' },
-} satisfies Partial<SquadScreenProps> & Omit<SquadScreenProps, 't' | 'loading' | 'error' | 'shared' | 'demoLabel'>;
+} satisfies Partial<SquadScreenProps>
+  & Omit<SquadScreenProps, 't' | 'loading' | 'error' | 'shared' | 'demoLabel' | 'payments' | 'state' | 'payUrl'>;
+
+/** Mode A settlement as the squad sees it: three of four paid, one not counted yet, and every
+ * hash on screen so a reader can check it (PRD §7.6, PROOF_PLAN "Verify it yourself"). */
+const partialPayments = {
+  recipient: demoRecipient,
+  owing: 4,
+  paid: 2,
+  rows: [
+    { address: demoRoster[0]?.fullAddress ?? '', hash: demoHashes.pay, verified: true, code: null },
+    { address: demoRoster[1]?.fullAddress ?? '', hash: demoHashes.payOther, verified: true, code: null },
+    { address: demoRoster[2]?.fullAddress ?? '', hash: null, verified: false, code: null },
+    { address: demoRoster[3]?.fullAddress ?? '', hash: demoHashes.remove, verified: false,
+      code: 'PAYMENT_SHORT' },
+  ],
+};
 
 /** A pending tracked transaction on the second member: a hash is never success, so the row says
  * pending until the chain confirms it (PRD Q10). */
@@ -122,6 +143,22 @@ export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[]
     },
   },
   {
+    id: 'squad-page-payments-partial',
+    props: { ...squadBase, payments: partialPayments, payUrl: '/squads/sample-squad-1/pay', t: 4 },
+  },
+  {
+    id: 'squad-page-completed',
+    props: {
+      ...squadBase,
+      state: 'COMPLETED',
+      members: demoRoster.map((member) => ({ ...member, status: { status: 'PAID' as const } })),
+      backedLuna: 0,
+      payments: { ...partialPayments, paid: 4, rows: partialPayments.rows.map((row) => ({
+        ...row, hash: row.hash ?? demoHashes.pay, verified: true, code: null })) },
+      t: 4,
+    },
+  },
+  {
     id: 'squad-page-together-mode',
     props: {
       ...squadBase,
@@ -145,6 +182,21 @@ export const proofScenes: readonly { id: string; props: ProofScreenProps }[] = [
       network: 'testnet',
       verify: { endpoint: 'https://rpc.testnet.nimiqwatch.com', method: 'getStakerByAddress' },
       apiUrl: 'https://squad.example/api/proof/q7m2bt4h',
+    },
+  },
+  {
+    id: 'proof-view-payments',
+    props: {
+      squad: demoSquadPage,
+      members: demoRoster.map((member) => ({ ...member, isYou: false })),
+      backedLuna: demoBackedTotal,
+      committedLuna: demoCommittedTotal,
+      now: demoNow,
+      readAt: demoReadAt,
+      network: 'testnet',
+      verify: { endpoint: 'https://rpc.testnet.nimiqwatch.com', method: 'getStakerByAddress' },
+      apiUrl: 'https://squad.example/api/proof/q7m2bt4h',
+      payments: partialPayments,
     },
   },
   {

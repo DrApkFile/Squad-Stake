@@ -1,0 +1,164 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { LeavingSteps, type LeavingStepsProps } from '@squad-stake/ui';
+import { LUNA_PER_NIM, STAKING_FEES_LUNA } from '../config/constants';
+import { catalogError } from '../core/errors/catalog';
+import { planResponse, trackedTxResponse, type PlanWire, type TxKind } from '../core/squad-contract';
+import { planLeaving, planRemove, planRetire, type LeavingStep } from '../core/staking-actions';
+import { useSceneTime } from '../hooks/use-scene-time';
+import { useTxPoll } from '../hooks/use-tx-poll';
+import { sendLeavingAction } from '../wallet/staking';
+
+type CatalogError = { message: string; nextAction: string };
+const toLuna = (nim: string) => /^\d{1,9}(\.\d{1,5})?$/.test(nim.trim())
+  ? Math.round(Number(nim) * LUNA_PER_NIM) : null;
+const nim = (luna: number) => String(luna / LUNA_PER_NIM);
+
+/**
+ * Screen 7 (PRD §7.5). Three taps, each one its own wallet approval, and before every one of
+ * them the plan is read again from the chain — so the amount that goes to Nimiq Pay is the
+ * balance the chain has *now*, not the one this page loaded with (Q12).
+ */
+export function LeavingContainer({ initial, now, explorerBase, demoLabel }: {
+  initial: PlanWire;
+  /** From the server, so the first render matches the markup it hydrates. */
+  now: number;
+  explorerBase: string | null;
+  demoLabel?: string | undefined;
+}) {
+  const t = useSceneTime();
+  const poll = useTxPoll();
+  const [plan, setPlan] = useState(initial);
+  const [amountNim, setAmountNim] = useState(() => nim(initial.shareLuna));
+  const [ticked, setTicked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<CatalogError | null>(
+    initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE') : null,
+  );
+  // The member's own zone, read once after mount. The server cannot know it, so the first
+  // paint says UTC and then corrects itself; the label always names the zone it is showing,
+  // so neither frame can be misread (packages/ui/format.ts).
+  const [tzOffsetMinutes, setTz] = useState(0);
+  useEffect(() => { setTz(-new Date().getTimezoneOffset()); }, []);
+
+  const fail = (code: string) => setError(catalogError(code));
+
+  const loadPlan = useCallback(async (): Promise<PlanWire | null> => {
+    const response = await fetch(`/api/plan/${plan.squadId}`, {
+      headers: { accept: 'application/json' },
+    });
+    const parsed = planResponse.parse(await response.json());
+    if (!parsed.ok) {
+      fail(parsed.code);
+      return null;
+    }
+    setPlan(parsed.plan);
+    setError(parsed.plan.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE') : null);
+    return parsed.plan;
+  }, [plan.squadId]);
+
+  /** The pure planner decides every wallet argument from one fresh plan (never from state). */
+  function decide(kind: TxKind, fresh: PlanWire): LeavingStep {
+    if (kind === 'unstake') {
+      return planLeaving({
+        activeBalanceLuna: fresh.stake?.activeLuna ?? null,
+        commitments: fresh.commitments,
+        squadId: fresh.squadId,
+        amountLuna: toLuna(amountNim) ?? 0,
+      });
+    }
+    if (kind === 'retire') {
+      return planRetire({
+        inactiveBalanceLuna: fresh.stake?.inactiveLuna ?? 0,
+        headBlock: fresh.headBlock ?? 0,
+        releaseBlock: fresh.release?.releaseBlock ?? null,
+      });
+    }
+    return planRemove({ retiredBalanceLuna: fresh.stake?.retiredLuna ?? 0 });
+  }
+
+  const valueOf = (action: LeavingStep) => {
+    switch (action.kind) {
+      // What the wallet was asked for, recorded as the audit trail beside the hash. For an
+      // inactivation that is the resulting active balance, which is the figure sent.
+      case 'set-active-stake': return Math.max(1, action.newActiveBalanceLuna);
+      case 'retire-stake': return action.retireStakeLuna;
+      case 'remove-stake': return action.valueLuna;
+      default: return 1;
+    }
+  };
+
+  async function act(kind: TxKind) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const fresh = await loadPlan();
+      if (fresh === null) return;
+      const action = decide(kind, fresh);
+      if (action.kind === 'blocked') return fail(action.reason);
+      const sent = await sendLeavingAction(action);
+      if (!sent.ok) return fail(sent.code);
+      const recorded = trackedTxResponse.parse(await (await fetch('/api/tx', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hash: sent.hash, squadId: fresh.squadId, kind,
+          valueLuna: valueOf(action) }),
+      })).json());
+      if (!recorded.ok) return fail(recorded.code);
+      // The shared bounded poll: five seconds × 24, then it stops. It reads the chain and
+      // never the wallet, so nothing is ever resent (FAILURE_MODES).
+      const verdict = await poll.follow(sent.hash, () => undefined);
+      if (verdict?.state === 'INCLUDED_FAILED') fail('TX_FAILED');
+      await loadPlan();
+    } catch {
+      fail('NETWORK_ERROR');
+    } finally {
+      setBusy(false);
+      setTicked(false);
+    }
+  }
+
+  // What step one would do to this member's other squads, from the same pure function that
+  // will build the transaction. Falls back to their share so the warning is visible before
+  // anything is typed.
+  const preview = planLeaving({
+    activeBalanceLuna: plan.stake?.activeLuna ?? null,
+    commitments: plan.commitments,
+    squadId: plan.squadId,
+    amountLuna: toLuna(amountNim) ?? plan.shareLuna,
+  });
+  const props: LeavingStepsProps = {
+    squad: plan.squad,
+    leaveBy: plan.leaveBy,
+    now,
+    tzOffsetMinutes,
+    stake: plan.stake,
+    shareLuna: plan.shareLuna,
+    amountNim,
+    steps: plan.steps,
+    release: plan.release,
+    headBlock: plan.headBlock,
+    affected: preview.kind === 'set-active-stake' ? preview.affected : [],
+    shortfallLuna: preview.kind === 'set-active-stake' ? preview.shortfallLuna : 0,
+    confirmTicked: ticked,
+    readAt: plan.stake?.readAt ?? null,
+    retireFeeLuna: STAKING_FEES_LUNA.retire,
+    unstakeFeeLuna: STAKING_FEES_LUNA.unstake,
+    busy,
+    stalled: poll.stalled,
+    t,
+    explorerBase,
+    payUrl: plan.squad.mode === 'A' ? `/squads/${plan.squadId}/pay` : null,
+    onAmountChange: setAmountNim,
+    onConfirmTick: setTicked,
+    onStartLeaving: () => void act('unstake'),
+    onRetire: () => void act('retire'),
+    onWithdraw: () => void act('remove'),
+    onRefresh: () => void loadPlan(),
+    back: { label: 'Squad', href: `/squads/${plan.squadId}` },
+    demoLabel,
+    ...(error ? { error } : {}),
+  };
+  return <LeavingSteps {...props} />;
+}

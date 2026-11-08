@@ -46,6 +46,7 @@ export default async function ProofPage({ params }: { params: Promise<{ id: stri
       network={env.NIMIQ_NETWORK}
       verify={{ endpoint: ENDPOINTS[env.NIMIQ_NETWORK], method: 'getStakerByAddress' }}
       apiUrl={`${env.APP_ORIGIN}/api/proof/${view.squad.shortId}`}
+      payments={view.payments}
     />
   );
 }

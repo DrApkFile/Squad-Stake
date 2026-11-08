@@ -440,3 +440,179 @@ member statuses came from real testnet reads of addresses that are not stakers (
 and from scripted harness reads for the other five statuses. Mode A settlement (§7.6), the three
 leaving wallet steps (§7.5), `GET /api/plan/:id`, the mock chain provider and Remotion remain the
 next slice.
+
+## Phone run on testnet — 2026-11-08 (first wallet run of this build)
+
+**Reported by the human operator, not observed by the agent session that wrote this entry.**
+On 2026-11-08, on **testnet**, from a real phone inside Nimiq Pay:
+
+1. Sign-in: one wallet approval, session established, address derived from the verified key.
+2. Create squad — **Together goals** (mode B, personal target, no recipient).
+3. Commit needed stake, so the sheet offered **Create staker**; it was approved in Nimiq Pay
+   and the provider returned a hash.
+4. The hash was recorded in `tracked_txs` and polled through `GET /api/tx/:hash` until
+   **`INCLUDED_OK`** — execution plus 60 confirmations, not a hash alone.
+5. The squad page then showed that member as **BACKED**, derived from `getStakerByAddress`
+   on the testnet node, with the age of the read beside it.
+
+What this proves: the sign-in → create → create-staker → track → chain-derived-status path
+works end to end against a real wallet and a real chain. `briefing/PROOF_PLAN.md`'s claim
+"progress verified on-chain" is therefore **PROVEN on testnet**; **mainnet stays unproven**,
+and so do the planner timing, the leaving steps and Mode A payments (none of them existed when
+this run happened).
+
+Identifiers (tx hash, staker address, squad short id, inclusion block) were **not captured in
+this session**, so none are recorded here rather than invented; the run is not reproducible
+from the repository. When the operator supplies them they go in verbatim, and the hash can be
+re-read with `getTransactionByHash` to confirm the stated `executionResult`.
+
+## Goal-day planner, leaving steps and Mode A payments — 2026-11-08
+
+Plan: `~/.claude/plans/eager-purring-lagoon.md` (approved). This slice closes PRD §7.5 and
+§7.6 and the screens §9.7–9.9. Of the protected critical path only `rpc.ts` was touched
+(a per-hash cache, below); `member-status.ts`, `release.ts`, `commitments.ts`, `tx-tracker.ts`
+and `rpc-schemas.ts` are byte-for-byte unchanged — `git status` was filtered to prove it.
+
+### Mode audit (asked for first): already correct, nothing was swapped
+Checked end to end against PRD §4: `createSquadInput` (discriminated on `mode`), the two
+`CHECK` constraints in `migrations/002-squads.sql`, `createSquadService.create`,
+`containers/create-squad.tsx` and `CreateSquadScreen.tsx`. **A = Shared goal** (one
+`targetLuna` + a `recipient`), **B = Together goals** (a personal target, no recipient) in
+every layer. No fix was needed, so none was made; `tests/unit/modes.test.ts` (3 tests) now
+pins the contract, the service and the form's own words so a later edit cannot swap them
+silently.
+
+### Built
+- `src/core/staking-actions.ts` (append-only) — `planLeaving` (active − amount, the shortfall
+  against **all** commitments, and the other squads it would show short), `planRetire` (Q11),
+  `planRemove` (Q12: fresh `retiredBalance`, fee 0), `paymentData` / `planPayment`.
+- `src/core/leave-by.ts` — `leaveByShowFrom = leaveBy − 3 days`. Note this is three days before
+  the **deadline**, so the banner opens a little over four days before goal day: earlier than
+  "three days before the goal", deliberately the safe direction.
+- `src/server/core/payment-check.ts` (Q15) — recipient, `value ≥ share`, `recipientData` equal
+  to hex `sq:<short_id>`, `executionResult`, `confirmations ≥ 60`. **The sender is never read.**
+- `src/server/core/leave-steps.ts` — the four-step machine with no I/O, so Q11 is decided by a
+  pure function. `src/server/core/leave-plan.ts` — the plan: head, a **fresh** staker read, the
+  release from the tracked inactivation's **inclusion block** (never `inactiveFrom`), the §7.6
+  verdict and the roster. `src/server/core/settle.ts` — `paidRoster` and `settlePayment`, whose
+  only write is a conditional `OPEN → COMPLETED` once every committed member is verified.
+- Store/routes: `listTrackedTxs`, `listSquadTrackedTxs`, `namedCommitments`, `setSquadState`,
+  `LISTED_SQUAD_STATES` (a completed squad stays on "My squads" but binds no stake),
+  `GET /api/plan/[id]` (members only) and `POST /api/squads/[id]/pay`.
+- Wallet: one `withProvider` helper behind the single module-level pending guard (Q13) now
+  serves all six calls; `sendLeavingAction` and `sendPayment` added. No retries.
+- UI (pure): `LeavingSteps`, `PayShareSheet`, `TxStatus`, WITHDRAWN/PAID in `status.ts`, the
+  leave-by banner and payments roster on `SquadScreen`, payment hashes on `ProofScreen`,
+  `formatMoment`/`countdown`/`zoneLabel` in `format.ts`, and 39 new scenes
+  (22 leaving, 13 pay, 4 tx-status) plus three squad-page/proof ones.
+- Containers `leaving.tsx` and `pay-share.tsx` re-read the plan before **every** tap, so the
+  amount the wallet is handed is the balance the chain has now. Polling is `useTxPoll`
+  (5 s × 24 → stop → manual re-check, never a resend). The time zone is read after mount and
+  passed in as a prop, so `packages/ui` stays pure.
+
+### `getTransactionByHash` now caches, but defaults to fresh
+`rpc.ts` gained a per-hash cache so the paid roster (one read per payer, per page load) and the
+planner's inclusion-block read stop re-asking for transactions that cannot change. Its `fresh`
+defaults to **true**, unlike every other cached method: the tracker polls this every five
+seconds and a 60 s cache would hand it the same answer twelve times. The display paths opt in
+with `fresh: false`.
+
+### What ran
+- `pnpm gate` (log `.cache/leaving-gate-2026-11-08.log`): typecheck, lint, **100 unit tests,
+  29 adversarial tests** (no skips), Next build (compiled clean in 27.5 s, 8/8 static pages, no
+  warnings, **24 routes**), Q16 production-artifact guards, secret scan and 19 exact dependency
+  pins across 5 manifests all passed. It **exited 1 only at `check:tracked`**, because these
+  changes are uncommitted; the human commits. Nothing else in the gate failed.
+- New tests: `modes` (3), `leaving-actions` (6: Q08 in four zones, `planLeaving`, Q11, Q12,
+  §7.6), `payment-check` (3: Q15 accepted with three different senders, the six refusals, the
+  mempool case), `leave-plan` (7, on the **recorded testnet** election/window/jail answers),
+  `settle` (6), `ui-leaving` (7), `ui-screens` extended to 72 scenes; adversarial
+  `payments` (4) and `leaving` (5).
+- `LIVE_RPC=1 pnpm test:live` (log `.cache/live-2026-11-08-leaving.log`): passed first attempt,
+  one test, zero skips, 6.8 s. Head 16,246,702; staker `NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD
+  83R7`; validator `NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S`, `jailedFrom: null`;
+  11 active validators, §7.7 picked `NQ08 N4RH FQDL TE7S 8C66 65LT KYDU Q382 YG7U`. New in this
+  slice: the release was derived from a **real inclusion block** (3,140,555 → 3,204,811), and
+  `checkPayment` ran against a real wire envelope and refused it with `PAYMENT_DATA_MISMATCH`.
+  It still signs and sends nothing.
+- `pnpm check:scenes` (record `.cache/scene-measurements.json`, `measuredAt
+  2026-11-08T18:25:06Z`): **106 scenes × 2 themes × {390, 375} = 424 frames, 0 failures** — no
+  element crossing the frame, no horizontal scroll, every tap target ≥ 44 px. Screenshots of
+  seven of the new scenes are in `.cache/scenes/`; of those I looked at the countdown, the paid
+  sheet and the partial roster (light and dark). The rest are measured, not inspected.
+- **Fixture bug found by looking at a frame**: the countdown scene read "About any moment now
+  to go" beside a release block the chain had not reached, because `demoRelease`'s estimate is
+  anchored to `demoNow` (the squad page's clock) while the leaving scenes run on their own.
+  The scene now re-anchors the estimate; it reads "About 12 h 59 min to go".
+- **Second local-Postgres run** (a throwaway PostgreSQL 18.6 cluster on port 55432, now
+  stopped), through `pnpm dev` against **live testnet** reads, as dev identities alice/bob:
+  migrations 001–003 applied; squad created (Shared goal); bob joined by token; a commit was
+  refused `NOT_STAKING` with `shortfallLuna 200000000` from a real staker read (head
+  16,246,426); `GET /api/plan/:id` returned a real `headBlock` for a member, `NOT_A_MEMBER` for
+  a non-member and `AUTH_REFUSED` signed out; a **real testnet transaction** tracked as a `pay`
+  was refused `WRONG_RECIPIENT`, and a second real transfer — to the squad's own recipient, for
+  far more than the share, executed and final — was refused **only** on the missing marker
+  (`PAYMENT_DATA_MISMATCH`), with its unrelated sender never looked at. Bob borrowing alice's
+  hash got `NOT_TRACKED`. The squad page, the public `/proof/<shortId>` and the plan all showed
+  "0 of 1 paid" with the hash and the refusal code. `/squads/[id]/leaving` and
+  `/squads/[id]/pay` rendered. The first settle attempt returned `CHAIN_UNAVAILABLE` on the
+  cold five-second read and the retry returned the verdict — a failed read is never a
+  settlement.
+
+### Known rough edge
+A `pay` transaction whose §7.6 verdict is already a definite refusal still shows as *pending*
+until the tracker's own poll marks it `INCLUDED_OK`, because `deriveLeavingSteps` takes the
+verdict as a boolean and checks the tracked state first. The sheet says "Checking the chain",
+never "paid", and corrects itself on the next poll — but a mismatched marker is final the
+moment the transaction executes, and the step could say so sooner.
+
+### Not verified by this slice
+No wallet, no Nimiq Pay approval sheet, and **no leaving or payment transaction has ever been
+signed, sent, included or tracked** on any network. Every step of the exit above was exercised
+with real chain *reads* and real HTTP and SQL, never with a real `setActiveStake`,
+`retireStake`, `removeStake` or payment. So: no observed countdown against a real inactivation,
+no retire at the real release block, no verified settlement, no squad has ever reached
+COMPLETED outside a test, and mainnet remains untouched. The database is still a local
+throwaway cluster, not Neon, so the pooled concurrent-commit refusal is still unproven.
+
+### Phone click path — testing leaving and paying on testnet
+Set `NEXT_PUBLIC_NIMIQ_NETWORK=testnet` (it must match the network Nimiq Pay is on) and have a
+second testnet address to use as the recipient. On the phone, inside Nimiq Pay:
+1. Open the mini app, **Sign in** — one approval.
+2. **Create squad** → *Shared goal* (mode A). Put the second address in **Recipient**, and set
+   goal day **two or three days out**, so the leave-by banner is already on.
+3. **Commit** your share. Not a staker yet → the sheet offers **Create staker**; approve, then
+   watch the status sheet until `INCLUDED_OK` (execution plus 60 confirmations, not the hash).
+   The squad page should then show you **Backed**, with the age of the read beside it.
+4. On the squad page the banner reads "Start leaving by …" in your own time zone. Tap
+   **Start leaving** (`/squads/<id>/leaving`).
+5. **Step 1 — Start leaving.** The field is pre-filled with your share. If you are in other
+   squads, read the "This will show you short by …" warning first: it names them. Tap
+   *Start leaving in Nimiq Pay* and approve (`sendSetActiveStakeTransaction`, the **remaining**
+   active balance, fee 0.003 NIM).
+6. **Step 2 — the wait.** The countdown comes from the chain: the reporting-window block after
+   the election block after your inactivation's inclusion block. On testnet that is roughly
+   half a day; the screen shows the release block and the head beside it, and *Confirm
+   withdrawal* stays off until head ≥ release block. If your validator is jailed it says so and
+   the date moves out. Leave the page and come back — nothing is lost.
+7. **Step 2 again, once it opens.** Tick *I understand this cannot be undone*, then
+   *Confirm withdrawal in Nimiq Pay* (`sendRetireStakeTransaction`, fee 0.003 NIM).
+8. **Step 3 — Withdraw.** Approve (`sendRemoveStakeTransaction`, value = the **fresh** retired
+   balance, fee 0 — the contract takes the fee out of it). The NIM is back in your wallet.
+9. **Step 4 — Pay my share** (mode A only) → `/squads/<id>/pay`. Approve the basic transaction
+   with data `sq:<short_id>`. The server then re-reads it and checks recipient, value, marker,
+   execution and finality — it never matches the sender. The roster moves to "1 of N paid"; when
+   every committed member is verified the squad reads COMPLETED.
+10. Open `/proof/<short_id>` **signed out** (or from another phone) and check the payment hash
+    on `test.nimiq.watch` yourself.
+Things worth attacking while you are there: decline an approval (nothing changes), force a
+retire before the release block (it comes back failed, nothing lost), pay one luna less than
+your share (refused, and the sheet says the NIM did leave), and pay with no marker from a
+wallet directly (not counted).
+
+### Next
+- The three leaving steps and a Mode A payment **on a real phone on testnet**, then mainnet.
+- Neon through the pooler, including the concurrent-commit refusal.
+- The mock chain provider (`?chain=mock`) and Remotion; §9.11–12 fiat and earned (P1).
+- Consider passing the §7.6 refusal code (not a boolean) into `deriveLeavingSteps`, per the
+  rough edge above.

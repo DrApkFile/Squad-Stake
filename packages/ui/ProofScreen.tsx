@@ -21,6 +21,12 @@ export interface ProofScreenProps {
    * nobody can re-run is not a proof (briefing/PROOF_PLAN.md). */
   verify: { endpoint: string; method: string };
   apiUrl: string;
+  /** PRD §7.6 / PROOF_PLAN "Verify it yourself": every settlement, with its hash, so a reader
+   * with no account can re-check each one on an explorer. Null for Mode B. */
+  payments?: {
+    recipient: string; owing: number; paid: number;
+    rows: readonly { address: string; hash: string | null; verified: boolean; code: string | null }[];
+  } | null | undefined;
   demoLabel?: string | undefined;
 }
 
@@ -35,6 +41,7 @@ export function ProofScreen({
   network,
   verify,
   apiUrl,
+  payments = null,
   demoLabel,
 }: ProofScreenProps) {
   return (
@@ -61,6 +68,34 @@ export function ProofScreen({
 
         <h2 className="section-title">Members</h2>
         <MemberList members={members} now={now} showFullAddress />
+
+        {payments !== null && (
+          <>
+            <h2 className="section-title">Payments</h2>
+            <p className="member-status-age">
+              {payments.paid} of {payments.owing} paid to{' '}
+              <span className="mono">{payments.recipient}</span>
+            </p>
+            <ul className="payment-list">
+              {payments.rows.map((row) => (
+                <li className="payment-row" key={row.address} data-verified={row.verified ? 'yes' : 'no'}>
+                  <span className="payment-who mono">{row.address}</span>
+                  <span className="payment-state">
+                    {row.verified ? 'Paid · verified on-chain'
+                      : row.hash === null ? 'Not paid yet' : 'Payment not counted yet'}
+                  </span>
+                  {row.hash !== null && <span className="payment-hash mono">{row.hash}</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="field-hint">
+              A payment counts when the recipient, an amount of at least the member’s share, the
+              reference <span className="mono">sq:{squad.shortId}</span>, the execution result
+              and finality all check out. The sender is deliberately not matched: Nimiq Pay pays
+              from a cosigned HTLC, so the sending address is not the member’s own.
+            </p>
+          </>
+        )}
 
         <h2 className="section-title">Check it yourself</h2>
         <dl className="notice-list">

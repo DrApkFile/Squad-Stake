@@ -57,6 +57,9 @@ function detailDeps(): DetailDeps {
     rpc: {
       getBlockNumber: () => rpc.getBlockNumber(),
       getStakerByAddress: (address) => rpc.getStakerByAddress(address),
+      // The paid roster reads one transaction per payer, so it asks for the 60 s cache
+      // (rpc.ts explains why this method's default is the other way round).
+      getTransactionByHash: (hash, options) => rpc.getTransactionByHash(hash, options),
     },
     now: Date.now,
   };

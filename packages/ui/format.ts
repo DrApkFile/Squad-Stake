@@ -47,3 +47,52 @@ export function shortAddress(address: string) {
   if (parts.length < 4 || last === undefined) return address;
   return `${parts[0]} ${parts[1]} … ${last}`;
 }
+
+/**
+ * A deadline is a moment, not a day, so the planner shows the time too — and in the member's
+ * own zone, because "start leaving by 22:00" is only actionable in local time (PRD §7.5, Q08).
+ *
+ * The offset arrives as a **prop**, never from the environment: a component that read the
+ * machine's zone would render differently in the app, in the Remotion render and in a test
+ * (AGENTS.md "UI purity" 1). `formatDay` stays UTC for everything that is genuinely a UTC day.
+ */
+const pad = (value: number) => String(value).padStart(2, '0');
+
+export function formatDayIn(milliseconds: number, offsetMinutes: number) {
+  return formatDay(milliseconds + offsetMinutes * 60_000);
+}
+
+export function formatTimeIn(milliseconds: number, offsetMinutes: number) {
+  const shifted = new Date(milliseconds + offsetMinutes * 60_000);
+  return `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`;
+}
+
+/** `UTC`, `UTC+1`, `UTC-5:30` — named beside every local time, so a screenshot of the screen
+ * is still unambiguous. */
+export function zoneLabel(offsetMinutes: number) {
+  if (offsetMinutes === 0) return 'UTC';
+  const absolute = Math.abs(offsetMinutes);
+  const minutes = absolute % 60;
+  return `UTC${offsetMinutes > 0 ? '+' : '-'}${Math.floor(absolute / 60)}${minutes === 0 ? '' : `:${pad(minutes)}`}`;
+}
+
+export function formatMoment(milliseconds: number, offsetMinutes: number) {
+  return `${formatDayIn(milliseconds, offsetMinutes)}, ${formatTimeIn(milliseconds, offsetMinutes)} ${zoneLabel(offsetMinutes)}`;
+}
+
+/**
+ * How long is left, in the coarsest unit that is still useful. Never negative: a countdown
+ * that has run out says so, because the permission it was counting to is the chain's to give
+ * and only a chain read can confirm it (Q11).
+ */
+export function countdown(remainingMs: number) {
+  if (remainingMs <= 0) return 'any moment now';
+  const totalMinutes = Math.floor(remainingMs / 60_000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days} d ${hours} h`;
+  if (hours > 0) return `${hours} h ${minutes} min`;
+  if (minutes > 0) return `${minutes} min`;
+  return 'under a minute';
+}

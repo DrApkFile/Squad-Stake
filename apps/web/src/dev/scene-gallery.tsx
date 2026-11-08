@@ -2,12 +2,13 @@
 
 import type { ReactNode } from 'react';
 import {
-  CreateSquadScreen, JoinCommitSheet, LeaveConfirm, MemberStatusScene, MySquadsScreen, OrbitScene,
-  PrivacyNotice, ProofScreen, SignInScreen, SquadScreen,
+  CreateSquadScreen, JoinCommitSheet, LeaveConfirm, LeavingSteps, MemberStatusScene, MySquadsScreen,
+  OrbitScene, PayShareSheet, PrivacyNotice, ProofScreen, SignInScreen, SquadScreen, TxStatusScene,
 } from '@squad-stake/ui';
 import {
-  createSquadScenes, DEMO_LABEL, joinCommitScenes, leaveScenes, memberStatusScenes, mySquadsScenes,
-  orbitScenes, privacyScenes, proofScenes, signInScenes, squadPageScenes,
+  createSquadScenes, DEMO_LABEL, joinCommitScenes, leaveScenes, leavingScenes, memberStatusScenes,
+  mySquadsScenes, orbitScenes, payShareScenes, privacyScenes, proofScenes, signInScenes,
+  squadPageScenes, txStatusScenes,
 } from '@squad-stake/ui/scenes';
 
 const SYNTHETIC = 'SYNTHETIC UI FIXTURE';
@@ -33,6 +34,9 @@ function registry(): readonly { id: string; node: ReactNode }[] {
     ...from(createSquadScenes, (props) => <CreateSquadScreen {...props} demoLabel={DEMO_LABEL} />),
     ...from(joinCommitScenes, (props) => <JoinCommitSheet {...props} demoLabel={DEMO_LABEL} />),
     ...from(leaveScenes, (props) => <LeaveConfirm {...props} demoLabel={DEMO_LABEL} />),
+    ...from(leavingScenes, (props) => <LeavingSteps {...props} demoLabel={DEMO_LABEL} />),
+    ...from(payShareScenes, (props) => <PayShareSheet {...props} demoLabel={DEMO_LABEL} />),
+    ...from(txStatusScenes, (props) => <TxStatusScene {...props} demoLabel={SYNTHETIC} />),
   ];
 }
 

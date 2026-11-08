@@ -1,5 +1,7 @@
 import 'server-only';
-import type { ChainTransactions, RpcResult, StakerState, Validator, Validators } from '../core/chain';
+import type {
+  ChainTransaction, ChainTransactions, RpcResult, StakerState, Validator, Validators,
+} from '../core/chain';
 import {
   addressSchema, blockNumber, hashSchema, stakerSchema, transactionCount,
   transactionSchema, transactionsSchema, validatorSchema, validatorsSchema,
@@ -13,6 +15,7 @@ export function createRpcClient(options: RpcOptions) {
   const stakers = createAddressCache<StakerState>(now);
   const validators = createAddressCache<Validator>(now);
   const transactions = createAddressCache<ChainTransactions>(now);
+  const byHash = createAddressCache<ChainTransaction>(now);
   function canonicalAddress(value: string) {
     const compact = value.replace(/\s/g, '').toUpperCase();
     return addressSchema.safeParse(compact.replace(/(.{4})(?=.)/g, '$1 '));
@@ -57,9 +60,19 @@ export function createRpcClient(options: RpcOptions) {
         return result;
       });
     },
-    getTransactionByHash: (hash: string) => hashSchema.safeParse(hash).success
-      ? request('getTransactionByHash', [hash], transactionSchema)
-      : Promise.resolve({ ok: false as const, code: 'INVALID_INPUT' as const }),
+    /**
+     * `fresh` defaults to **true** here, unlike the other cached methods: the tracker polls
+     * this every five seconds to watch confirmations climb (Q10), and a 60 s cache would hand
+     * it the same answer twelve times. The cache exists for the display paths that read a
+     * transaction they already know is final — the paid roster and the planner's inclusion
+     * block — which pass `fresh: false` explicitly.
+     */
+    getTransactionByHash(hash: string, { fresh = true } = {}): Promise<RpcResult<ChainTransaction>> {
+      if (!hashSchema.safeParse(hash).success) {
+        return Promise.resolve({ ok: false as const, code: 'INVALID_INPUT' as const });
+      }
+      return byHash(hash, fresh, () => request('getTransactionByHash', [hash], transactionSchema));
+    },
     async getTransactionsByAddress(
       value: string, max: number, startAt: string | null = null, { fresh = false } = {},
     ): Promise<RpcResult<ChainTransactions>> {

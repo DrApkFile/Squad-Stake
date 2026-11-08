@@ -4,6 +4,12 @@ import { createSquadInput, joinSquadInput, type TxKind, type TxState } from '../
 export type SquadState = 'OPEN' | 'SAVING' | 'LEAVING' | 'SETTLING' | 'COMPLETED' | 'CANCELLED';
 /** States in which a commitment still counts against the member's stake (PRD §8). */
 export const ACTIVE_SQUAD_STATES = ['OPEN', 'SAVING', 'LEAVING', 'SETTLING'] as const;
+/**
+ * States a squad is still shown on "My squads" in. A COMPLETED squad binds no stake any more
+ * (§7.6: everyone paid), but it is the end of the story the member came for, so it stays on
+ * their list instead of vanishing the moment it succeeds.
+ */
+export const LISTED_SQUAD_STATES = [...ACTIVE_SQUAD_STATES, 'COMPLETED'] as const;
 
 export interface Squad {
   id: string; shortId: string; name: string; mode: 'A' | 'B';
@@ -18,9 +24,19 @@ export interface Membership {
   committedLuna: number; leftAt: number | null;
 }
 export interface NewMembership { squadId: string; address: string; personalTargetLuna: number | null }
+/**
+ * `expected` is what the wallet was *asked* for: an audit trail, never an input to a decision.
+ * The column can also carry a recipient and the `sq:<short_id>` marker (ARCHITECTURE:
+ * "expected jsonb — recipient/value/data for checks"), but nothing reads them: the tracker
+ * records `valueLuna` alone, and the §7.6 verdict compares the chain's own copy of the
+ * transaction against the squad row's recipient and short id, from a fresh read every time.
+ */
+export interface TxExpectation {
+  valueLuna: number; recipient?: string | undefined; data?: string | undefined;
+}
 export interface TrackedTx {
   hash: string; address: string; squadId: string; kind: TxKind;
-  expected: { valueLuna: number }; state: TxState; checkedAt: number | null;
+  expected: TxExpectation; state: TxState; checkedAt: number | null;
 }
 export interface Commitment { squadId: string; committedLuna: number }
 /** One row of "My squads": the squad, what the viewer committed, and the squad's own totals.
@@ -57,6 +73,16 @@ export interface SquadStore {
   /** This member's most recent transaction for this squad that has no verdict yet, so the
    * roster can say "pending" instead of implying the commitment is settled (Q10). */
   latestOpenTrackedTx(squadId: string, address: string): Promise<TrackedTx | null>;
+  /** One member's tracked transactions for one squad, oldest first: the planner reads the
+   * last of each kind to decide which leaving step they are on (§7.5). */
+  listTrackedTxs(squadId: string, address: string): Promise<readonly TrackedTx[]>;
+  /** Every member's transactions of one kind in a squad, for the paid roster (§7.6). */
+  listSquadTrackedTxs(squadId: string, kind: TxKind): Promise<readonly TrackedTx[]>;
+  /** The viewer's commitments in squads that still bind their stake, with squad names, so the
+   * leaving screen can name the squads that would go short. */
+  namedCommitments(address: string): Promise<readonly { squadId: string; name: string; committedLuna: number }[]>;
+  /** Conditional, like every other state move: 0 rows means someone else got there first. */
+  setSquadState(squadId: string, from: SquadState, to: SquadState): Promise<boolean>;
   withMemberLock<T>(address: string, run: (locked: LockedMember) => Promise<T>): Promise<T>;
   insertTrackedTx(tx: TrackedTx): Promise<boolean>;
   getTrackedTx(hash: string): Promise<TrackedTx | null>;

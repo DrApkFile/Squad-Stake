@@ -1,0 +1,9 @@
+import { json } from '../../../../../src/server/lib/auth-http';
+import { squadHandlers } from '../../../../../src/server/lib/squads';
+
+export const runtime = 'nodejs';
+/** PRD §7.6: verify one member's payment on-chain and complete the squad if it was the last. */
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { return await squadHandlers().pay(request, (await params).id); }
+  catch { return json({ ok: false, code: 'UNAVAILABLE' }, 503); }
+}

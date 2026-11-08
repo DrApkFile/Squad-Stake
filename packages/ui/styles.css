@@ -580,6 +580,103 @@ button { font: inherit; }
 .mode-title { font-weight: var(--weight-bold); font-size: var(--font-sm); }
 .mode-detail { grid-column: 2; font-size: var(--font-xs); line-height: var(--leading-body); color: var(--muted); }
 
+/* --- Leaving steps, tx status and payments (screens 7, 8, 9) ------------ */
+.banner[data-tone='BACKED'] { background: rgba(33, 188, 165, 0.12); }
+.banner-action { margin-top: var(--space-3) !important; }
+
+.step {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+/* A step nobody can act on yet recedes, but stays readable: the member needs to see the whole
+ * path, not only the next tap (Nimiq Pay DESIGN.md, "show the way out"). */
+.step[data-state='locked'] { box-shadow: none; background: var(--wash); }
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--font-md);
+  font-weight: var(--weight-bold);
+}
+.step-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--wash-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+}
+.step-chip {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--wash);
+  font-size: var(--font-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.step-chip[data-state='available'] { color: var(--emphasis); background: var(--wash-strong); }
+.step-chip[data-state='done'] { color: var(--status-backed); }
+.step-chip[data-state='failed'] { color: var(--status-danger); }
+.step-body { font-size: var(--font-sm); line-height: var(--leading-body); color: var(--muted); }
+.step-body p { margin: var(--space-2) 0 var(--space-3); }
+.step-body .field { margin: var(--space-3) 0; }
+.step-body .banner { margin: var(--space-3) 0; }
+
+.affected-list { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
+.affected-list li { margin-bottom: var(--space-1); }
+
+/* The irreversible step asks for a deliberate tick before its button turns on (PRD "Design":
+ * the irreversible step needs a confirm tick). The 20 px box sits inside a 44 px row. */
+.confirm-tick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  margin: var(--space-3) 0;
+  font-size: var(--font-sm);
+  color: var(--ink);
+}
+.confirm-tick input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--money-bg); }
+
+.tx-status {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--wash);
+  font-size: var(--font-sm);
+  line-height: var(--leading-body);
+  color: var(--muted);
+}
+.tx-status p { margin: 0 0 var(--space-2); }
+.tx-status-hash { font-size: var(--font-xs); overflow-wrap: anywhere; color: var(--faint); }
+.back-link-inline { display: inline-flex; padding: var(--space-2) 0; min-height: 44px; }
+
+.payment-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
+.payment-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--wash);
+  font-size: var(--font-sm);
+}
+.payment-row:last-child { border-bottom: 0; }
+.payment-who { font-size: var(--font-xs); overflow-wrap: anywhere; }
+.payment-state { color: var(--muted); font-size: var(--font-xs); }
+.payment-row[data-verified='yes'] .payment-state { color: var(--status-backed); }
+.payment-hash { font-size: var(--font-xs); color: var(--faint); overflow-wrap: anywhere; }
+
 /* --- Dev scene gallery -------------------------------------------------- */
 .scene-gallery { padding: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-5); }
 .scene-gallery h1 { width: 100%; font-size: var(--font-lg); }

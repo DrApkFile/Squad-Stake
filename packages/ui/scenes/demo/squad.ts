@@ -117,3 +117,55 @@ export const demoSquadPage = {
 
 export const demoInviteUrl = 'https://squad.example/s/4f1c8a7b2d9e0315a6c4b8d7e2f10934';
 export const demoProofUrl = 'https://squad.example/proof/q7m2bt4h';
+
+// --- Leaving steps and Mode A settlement (screens 7, 8, 9) ----------------
+// Still hand-written sample data. The hashes below are invented from a fixed pattern, not
+// taken from any chain: they are here so the screens can show what a hash looks like beside a
+// status, never as evidence of a transaction (AGENTS.md "Never fabricate").
+
+/** UTC+1: the deadline is shown in a member's own zone, and a fixture must pick one so the
+ * frame is identical in every render (packages/ui/format.ts). */
+export const demoTzOffsetMinutes = 60;
+
+/** A 64-character hex string built from a fixed nibble pattern — obviously synthetic. */
+export function sampleHash(nibble: string) {
+  return nibble.repeat(64).slice(0, 64);
+}
+export const demoHashes = {
+  unstake: sampleHash('7a3f'),
+  retire: sampleHash('b16c'),
+  remove: sampleHash('2d84'),
+  pay: sampleHash('c0f5'),
+  payOther: sampleHash('91ab'),
+} as const;
+
+/** A plausible testnet head and the release that follows an inactivation near it. One block is
+ * about a second, so this release is a little over half a day away. */
+export const demoHeadBlock = 16_181_845;
+export const demoReleaseBlock = demoHeadBlock + 46_800;
+export const demoRelease = {
+  releaseBlock: demoReleaseBlock,
+  remainingBlocks: demoReleaseBlock - demoHeadBlock,
+  estimatedReleaseAt: demoNow + (demoReleaseBlock - demoHeadBlock) * 1000,
+  jailed: false,
+};
+
+/** The member's own stake through the exit: active, then unstaking, then withdrawable. */
+export const demoStake = {
+  staking: { activeLuna: 350_000_000, inactiveLuna: 0, retiredLuna: 0 },
+  unstaking: { activeLuna: 150_000_000, inactiveLuna: 200_000_000, retiredLuna: 0 },
+  retired: { activeLuna: 150_000_000, inactiveLuna: 0, retiredLuna: 200_000_000 },
+  withdrawn: { activeLuna: 150_000_000, inactiveLuna: 0, retiredLuna: 0 },
+} as const;
+
+/** The member is also in two other sample squads, so step one can show what it costs them. */
+export const demoCommitments = [
+  { squadId: '11111111-1111-4111-8111-111111111111', name: demoSharedSquad.name,
+    committedLuna: demoCommitmentLuna },
+  { squadId: '22222222-2222-4222-8222-222222222222', name: 'Winter buffers',
+    committedLuna: 150_000_000 },
+  { squadId: '33333333-3333-4333-8333-333333333333', name: 'Studio deposit',
+    committedLuna: 120_000_000 },
+];
+
+export const demoRecipient = demoSquadPage.recipient;

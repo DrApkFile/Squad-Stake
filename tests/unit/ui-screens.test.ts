@@ -2,14 +2,19 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { LeavingSteps } from '../../packages/ui/LeavingSteps';
 import { MySquadsScreen } from '../../packages/ui/MySquadsScreen';
 import { OrbitScene } from '../../packages/ui/OrbitSquad';
 import { ProofScreen } from '../../packages/ui/ProofScreen';
 import { SignInScreen } from '../../packages/ui/SignInScreen';
+import { PayShareSheet } from '../../packages/ui/PayShareSheet';
 import { SquadScreen } from '../../packages/ui/SquadScreen';
+import { TxStatusScene } from '../../packages/ui/TxStatus';
 import { REDUCED_MOTION_T, typedChars } from '../../packages/ui/motion';
 import { mySquadsScenes, proofScenes, squadPageScenes } from '../../packages/ui/scenes/squad-page';
 import { orbitScenes } from '../../packages/ui/scenes/orbit';
+import { leavingScenes } from '../../packages/ui/scenes/leaving';
+import { payShareScenes, txStatusScenes } from '../../packages/ui/scenes/payment';
 import { signInScenes } from '../../packages/ui/scenes/sign-in';
 import { DEMO_LABEL } from '../../packages/ui/scenes/demo/squad';
 
@@ -23,6 +28,9 @@ test('Q17 every new scene renders twice to the same bytes from props alone', () 
     { component: SquadScreen, scenes: squadPageScenes },
     { component: ProofScreen, scenes: proofScenes },
     { component: SignInScreen, scenes: signInScenes },
+    { component: LeavingSteps, scenes: leavingScenes },
+    { component: PayShareSheet, scenes: payShareScenes },
+    { component: TxStatusScene, scenes: txStatusScenes },
   ] as const;
   let rendered = 0;
   for (const { component, scenes } of groups) {
@@ -35,7 +43,8 @@ test('Q17 every new scene renders twice to the same bytes from props alone', () 
       rendered++;
     }
   }
-  assert.equal(rendered, 7 + 5 + 8 + 2 + 8);
+  // orbit + my squads + squad page + proof + sign-in + leaving + pay + tx status.
+  assert.equal(rendered, 7 + 5 + 10 + 3 + 8 + 22 + 13 + 4);
 });
 
 test('Q17 the same t always renders the same frame, and a different t renders a different one', () => {

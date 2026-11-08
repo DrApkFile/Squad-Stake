@@ -64,7 +64,10 @@ export const trackedTxResponse = z.discriminatedUnion('ok', [
 
 // --- Read responses (screens 3, 5 and 10) ---------------------------------
 const memberStatusBody = z.union([
-  z.object({ status: z.enum(['BACKED', 'RELEASABLE', 'RETIRED', 'NOT_STAKING', 'LEFT']) }).strict(),
+  z.object({ status: z.enum(['BACKED', 'RELEASABLE', 'RETIRED', 'NOT_STAKING', 'LEFT',
+    // §7.4 also lists these two; they are composed above the chain status in squad-detail.ts
+    // from a tracked `remove` and a verified §7.6 payment.
+    'WITHDRAWN', 'PAID']) }).strict(),
   z.object({ status: z.literal('SHORT'), shortBy: z.number().int().nullable() }).strict(),
   z.object({ status: z.literal('UNSTAKING'), releaseBlock: z.number().int().nullable() }).strict(),
 ]);
@@ -95,6 +98,16 @@ const squadViewBody = z.object({
   chainUnavailable: z.boolean(),
   inviteToken: inviteTokenInput.nullable(),
   youAreMember: z.boolean(),
+  state: z.enum(['OPEN', 'SAVING', 'LEAVING', 'SETTLING', 'COMPLETED', 'CANCELLED']),
+  payments: z.object({
+    recipient: addressInput,
+    owing: z.number().int().nonnegative(),
+    paid: z.number().int().nonnegative(),
+    rows: z.array(z.object({
+      address: addressInput, hash: hashInput.nullable(),
+      verified: z.boolean(), code: z.string().nullable(),
+    }).strict()),
+  }).strict().nullable(),
 }).strict();
 
 export const squadDetailResponse = z.discriminatedUnion('ok', [
@@ -122,3 +135,60 @@ export const mySquadsResponse = z.discriminatedUnion('ok', [
   }).strict(),
   failure,
 ]);
+
+// --- Goal-day planner and Mode A payment (PRD §7.5, §7.6) ------------------
+
+export const stepState = z.discriminatedUnion('state', [
+  z.object({ state: z.enum(['locked', 'available', 'waiting']) }).strict(),
+  z.object({ state: z.enum(['pending', 'failed']), hash: hashInput }).strict(),
+  z.object({ state: z.literal('done'), hash: hashInput.nullable() }).strict(),
+]);
+const planBody = z.object({
+  squadId: z.uuid(),
+  squad: z.object({
+    name: z.string(), shortId: z.string(), mode: z.enum(['A', 'B']),
+    recipient: addressInput.nullable(), goalAt: z.number().int(),
+  }).strict(),
+  leaveBy: z.number().int(),
+  showFrom: z.number().int(),
+  // The viewer's own balances. Nobody else's reach any client (FAILURE_MODES "Privacy").
+  stake: z.object({
+    activeLuna: z.number().int().nonnegative(), inactiveLuna: z.number().int().nonnegative(),
+    retiredLuna: z.number().int().nonnegative(), delegation: addressInput.nullable(),
+    readAt: z.number().int(),
+  }).strict().nullable(),
+  shareLuna: z.number().int().nonnegative(),
+  headBlock: z.number().int().nullable(),
+  release: z.object({
+    releaseBlock: z.number().int(), remainingBlocks: z.number().int(),
+    estimatedReleaseAt: z.number().int(), jailed: z.boolean(),
+  }).strict().nullable(),
+  steps: z.object({
+    start: stepState, retire: stepState, withdraw: stepState, pay: stepState.nullable(),
+  }).strict(),
+  // Readonly so the server's own LeavePlanView can be handed straight to the client
+  // component that renders it, with no copy and no widening.
+  commitments: z.array(z.object({
+    squadId: z.uuid(), name: z.string(), committedLuna: z.number().int().nonnegative(),
+  }).strict()).readonly(),
+  payment: z.object({ hash: hashInput, verified: z.boolean(), code: z.string().nullable() })
+    .strict().nullable(),
+  roster: z.object({ paid: z.number().int().nonnegative(), owing: z.number().int().nonnegative() })
+    .strict().nullable(),
+  chainUnavailable: z.boolean(),
+}).strict();
+
+export const planResponse = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), plan: planBody }).strict(), failure,
+]);
+
+/** The payer sends only the hash: the recipient, the share and the marker are the server's,
+ * read from the squad and the membership, never from the client (PRD §11 "fake payment"). */
+export const payInput = z.object({ hash: hashInput }).strict();
+export const payResponse = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), paid: z.number().int().nonnegative(),
+    owing: z.number().int().nonnegative(), completed: z.boolean() }).strict(),
+  failure,
+]);
+export type StepStateWire = z.infer<typeof stepState>;
+export type PlanWire = z.infer<typeof planBody>;

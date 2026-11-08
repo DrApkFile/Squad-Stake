@@ -1,7 +1,11 @@
 import 'server-only';
 import { z } from 'zod';
 import { txKind, txState } from '../../core/squad-contract';
-import { ACTIVE_SQUAD_STATES, type Commitment, type Membership, type Squad, type SquadStore } from '../core/squads';
+import {
+  ACTIVE_SQUAD_STATES, LISTED_SQUAD_STATES,
+  type Commitment, type Membership, type Squad, type SquadStore, type TrackedTx,
+  type TxExpectation,
+} from '../core/squads';
 import { db } from './db';
 
 // postgres.js returns bigint columns as strings; luna must survive as a safe integer.
@@ -21,7 +25,11 @@ const membershipRow = z.object({
 }).strict();
 const trackedRow = z.object({
   hash: z.string(), address: z.string(), squad_id: z.uuid(), kind: txKind,
-  expected: z.object({ valueLuna: luna }).strict(), state: txState, checked_at: z.date().nullable(),
+  // A `pay` row also carries the recipient and the `sq:<short_id>` marker it was sent with
+  // (ARCHITECTURE "expected jsonb"); the §7.6 verdict still comes from a fresh chain read.
+  expected: z.object({ valueLuna: luna, recipient: z.string().optional(), data: z.string().optional() })
+    .strict(),
+  state: txState, checked_at: z.date().nullable(),
 }).strict();
 const commitmentRow = z.object({ squad_id: z.uuid(), committed_luna: luna }).strict();
 const summaryRow = squadRow.extend({
@@ -33,6 +41,20 @@ const toSquad = (row: unknown): Squad => {
   return { id: parsed.id, shortId: parsed.short_id, name: parsed.name, mode: parsed.mode,
     targetLuna: parsed.target_luna, recipient: parsed.recipient, goalAt: parsed.goal_at.getTime(),
     organiser: parsed.organiser, state: parsed.state, inviteToken: parsed.invite_token };
+};
+const toTracked = (row: unknown): TrackedTx => {
+  const parsed = trackedRow.parse(row);
+  return { hash: parsed.hash, address: parsed.address, squadId: parsed.squad_id,
+    kind: parsed.kind, expected: parsed.expected, state: parsed.state,
+    checkedAt: parsed.checked_at?.getTime() ?? null };
+};
+/** `expected` goes to jsonb as a flat object of primitives; an absent key is simply absent,
+ * rather than a stored null that would read as "no recipient was asked for". */
+const expectedJson = (expected: TxExpectation): Record<string, string | number> => {
+  const json: Record<string, string | number> = { valueLuna: expected.valueLuna };
+  if (expected.recipient !== undefined) json.recipient = expected.recipient;
+  if (expected.data !== undefined) json.data = expected.data;
+  return json;
 };
 const toMembership = (row: unknown): Membership => {
   const parsed = membershipRow.parse(row);
@@ -118,7 +140,7 @@ export const squadStore: SquadStore = {
            WHERE a.squad_id = s.id AND a.left_at IS NULL) AS squad_committed_luna
       FROM memberships m JOIN squads s ON s.id = m.squad_id
       WHERE m.address = ${address} AND m.left_at IS NULL
-        AND s.state = ANY(${[...ACTIVE_SQUAD_STATES]})
+        AND s.state = ANY(${[...LISTED_SQUAD_STATES]})
       ORDER BY s.goal_at ASC, s.id ASC`;
     return rows.map((row) => {
       const parsed = summaryRow.parse(row);
@@ -139,10 +161,37 @@ export const squadStore: SquadStore = {
     const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at
       FROM tracked_txs WHERE squad_id = ${squadId} AND address = ${address}
         AND state IN ('SUBMITTED', 'UNKNOWN') ORDER BY created_at DESC LIMIT 1`;
-    if (!rows[0]) return null;
-    const parsed = trackedRow.parse(rows[0]);
-    return { hash: parsed.hash, address: parsed.address, squadId: parsed.squad_id, kind: parsed.kind,
-      expected: parsed.expected, state: parsed.state, checkedAt: parsed.checked_at?.getTime() ?? null };
+    return rows[0] ? toTracked(rows[0]) : null;
+  },
+  async listTrackedTxs(squadId, address) {
+    // Oldest first: the planner takes the last of each kind as the current attempt (§7.5).
+    const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at
+      FROM tracked_txs WHERE squad_id = ${squadId} AND address = ${address}
+      ORDER BY created_at ASC, hash ASC`;
+    return rows.map(toTracked);
+  },
+  async listSquadTrackedTxs(squadId, kind) {
+    const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at
+      FROM tracked_txs WHERE squad_id = ${squadId} AND kind = ${kind}
+      ORDER BY created_at ASC, hash ASC`;
+    return rows.map(toTracked);
+  },
+  async namedCommitments(address) {
+    const rows = await db()`SELECT m.squad_id, s.name, m.committed_luna FROM memberships m
+      JOIN squads s ON s.id = m.squad_id WHERE m.address = ${address} AND m.left_at IS NULL
+        AND s.state = ANY(${[...ACTIVE_SQUAD_STATES]})
+      ORDER BY s.goal_at ASC, s.id ASC`;
+    const schema = z.object({ squad_id: z.uuid(), name: z.string(), committed_luna: luna }).strict();
+    return rows.map((row) => {
+      const parsed = schema.parse(row);
+      return { squadId: parsed.squad_id, name: parsed.name, committedLuna: parsed.committed_luna };
+    });
+  },
+  async setSquadState(squadId, from, to) {
+    // Conditional like every other state move: 0 rows means someone else moved it first.
+    const rows = await db()`UPDATE squads SET state = ${to}
+      WHERE id = ${squadId} AND state = ${from} RETURNING id`;
+    return rows.length === 1;
   },
   async withMemberLock(address, run) {
     // Wrapped in an object because postgres.js unwraps an array result from begin().
@@ -172,17 +221,14 @@ export const squadStore: SquadStore = {
   async insertTrackedTx(transaction) {
     const rows = await db()`INSERT INTO tracked_txs (hash, address, squad_id, kind, expected, state)
       VALUES (${transaction.hash}, ${transaction.address}, ${transaction.squadId}, ${transaction.kind},
-        ${db().json(transaction.expected)}, ${transaction.state})
+        ${db().json(expectedJson(transaction.expected))}, ${transaction.state})
       ON CONFLICT (hash) DO NOTHING RETURNING hash`;
     return rows.length === 1;
   },
   async getTrackedTx(hash) {
     const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at
       FROM tracked_txs WHERE hash = ${hash}`;
-    if (!rows[0]) return null;
-    const parsed = trackedRow.parse(rows[0]);
-    return { hash: parsed.hash, address: parsed.address, squadId: parsed.squad_id, kind: parsed.kind,
-      expected: parsed.expected, state: parsed.state, checkedAt: parsed.checked_at?.getTime() ?? null };
+    return rows[0] ? toTracked(rows[0]) : null;
   },
   async setTrackedTxState(hash, from, to, checkedAt) {
     // Conditional update: 0 rows means someone else moved it first (FAILURE_MODES).

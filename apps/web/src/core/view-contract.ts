@@ -15,7 +15,7 @@ export interface JoinView {
  * backed-or-short, not balances (briefing/FAILURE_MODES.md, "Privacy").
  */
 export type MemberStatusWire =
-  | { status: 'BACKED' | 'RELEASABLE' | 'RETIRED' | 'NOT_STAKING' | 'LEFT' }
+  | { status: 'BACKED' | 'RELEASABLE' | 'RETIRED' | 'NOT_STAKING' | 'LEFT' | 'WITHDRAWN' | 'PAID' }
   | { status: 'SHORT'; shortBy: number | null }
   | { status: 'UNSTAKING'; releaseBlock: number | null };
 
@@ -54,4 +54,14 @@ export interface SquadView {
   inviteToken: string | null;
   /** True when the viewer is a current member. */
   youAreMember: boolean;
+  /** PRD §8: COMPLETED once everyone who committed has paid (Mode A). */
+  state: string;
+  /** Mode A only (null for Mode B): the settlement roster, "4 of 6 paid". Every hash is public
+   * so a reader can re-check it on an explorer (briefing/PROOF_PLAN.md). */
+  payments: {
+    recipient: string;
+    owing: number;
+    paid: number;
+    rows: readonly { address: string; hash: string | null; verified: boolean; code: string | null }[];
+  } | null;
 }

@@ -37,6 +37,23 @@ export const errors = {
   // Reads behind the squad page and the proof view (PRD §7.4, §9.5, §9.10).
   STALE_READ: { code: 'STALE_READ', message: 'This is an older chain read.', retryable: true, nextAction: 'Refresh to read the chain again.', changedAnything: false },
   LEAVE_BLOCKED: { code: 'LEAVE_BLOCKED', message: 'This squad could not release you.', retryable: true, nextAction: 'Refresh the squad and try again. Your stake is untouched.', changedAnything: false },
+
+  // Leaving steps (PRD §7.5). Every one of these is a refusal to *offer* a tap, so nothing
+  // has been sent and nothing has changed.
+  NOT_RELEASABLE: { code: 'NOT_RELEASABLE', message: 'This stake is not released yet.', retryable: true, nextAction: 'Wait for the countdown to finish, then confirm.', changedAnything: false },
+  NOTHING_TO_RETIRE: { code: 'NOTHING_TO_RETIRE', message: 'There is no unstaking balance to confirm.', retryable: false, nextAction: 'Start leaving first.', changedAnything: false },
+  NOTHING_TO_WITHDRAW: { code: 'NOTHING_TO_WITHDRAW', message: 'There is nothing withdrawn to collect.', retryable: false, nextAction: 'Confirm the withdrawal first.', changedAnything: false },
+  INVALID_AMOUNT: { code: 'INVALID_AMOUNT', message: 'That is not an amount of NIM.', retryable: true, nextAction: 'Enter the NIM you want to free up.', changedAnything: false },
+  AMOUNT_EXCEEDS_STAKE: { code: 'AMOUNT_EXCEEDS_STAKE', message: 'That is more than your active stake.', retryable: true, nextAction: 'Leave at most what you have staked.', changedAnything: false },
+
+  // Mode A settlement (PRD §7.6, Q15). A payment that fails these checks is still on the
+  // chain: the NIM moved, it just did not settle this share, so `changedAnything` is true.
+  NO_RECIPIENT: { code: 'NO_RECIPIENT', message: 'This squad has no recipient.', retryable: false, nextAction: 'Together-goals squads never pay anybody.', changedAnything: false },
+  NOT_MODE_A: { code: 'NOT_MODE_A', message: 'There is nothing to pay in this squad.', retryable: false, nextAction: 'Together goals means nobody pays anybody.', changedAnything: false },
+  WRONG_RECIPIENT: { code: 'WRONG_RECIPIENT', message: 'That payment went somewhere else.', retryable: true, nextAction: 'Pay the recipient shown on the squad page.', changedAnything: true },
+  PAYMENT_SHORT: { code: 'PAYMENT_SHORT', message: 'That payment is less than your share.', retryable: true, nextAction: 'Pay the rest of your share to count it.', changedAnything: true },
+  PAYMENT_DATA_MISMATCH: { code: 'PAYMENT_DATA_MISMATCH', message: 'That payment carries no squad marker.', retryable: true, nextAction: 'Use “Pay my share” so the squad reference is attached.', changedAnything: true },
+  PAYMENT_NOT_VERIFIED: { code: 'PAYMENT_NOT_VERIFIED', message: 'That payment has not been verified yet.', retryable: true, nextAction: 'The chain is still confirming it. Check again shortly.', changedAnything: true },
 } as const;
 export type ErrorCode = keyof typeof errors;
 export function catalogError(code: string) {

@@ -30,8 +30,10 @@ payment's tx hash; anyone can re-check the hashes on a Nimiq explorer.
 | Claim | Status |
 |---|---|
 | Members' shares never leave their wallets | PROVEN by design (no custody code) — re-check at audit |
-| Progress verified on-chain | NOT PROVEN until the app runs (S2 shows the read works) |
+| Progress verified on-chain | **PROVEN on testnet** 2026-11-08 — real phone in Nimiq Pay: sign-in → create squad (Together goals) → Create staker approved → hash tracked to `INCLUDED_OK` → the squad page showed BACKED derived from a chain read. **Mainnet NOT PROVEN** (see `docs/PROGRESS.md`, "Phone run on testnet") |
 | Planner timing matches the chain | NOT PROVEN until one real cycle (S3 math confirmed) |
 | Works first time on mainnet | NOT PROVEN |
 | Real usage | NOT PROVEN |
-README, UI and submission may repeat only PROVEN claims.
+README, UI and submission may repeat only PROVEN claims. A claim proven on **testnet** must be
+repeated with the word testnet in it; "verified on-chain" with no network named reads as mainnet
+and is not yet earned.

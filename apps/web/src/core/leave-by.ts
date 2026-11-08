@@ -17,3 +17,11 @@ export function leaveBy(goalAt: number) {
 export function leaveByIsNear(goalAt: number, now: number) {
   return leaveBy(goalAt) - now <= LEAVE_BY_WARNING_MS;
 }
+
+/** The instant the banner starts showing: three days before the deadline (PRD §7.5). Returned
+ * as a value, not a boolean, so a screen can say *when* the notice began rather than only that
+ * it is on. Because the deadline is itself 26 h before the goal, this is a little over four
+ * days before goal day — earlier than "three days before the goal", deliberately. */
+export function leaveByShowFrom(goalAt: number) {
+  return leaveBy(goalAt) - LEAVE_BY_WARNING_MS;
+}

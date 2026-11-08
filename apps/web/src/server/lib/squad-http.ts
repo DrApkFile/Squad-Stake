@@ -1,10 +1,11 @@
 import 'server-only';
 import { z } from 'zod';
-import { hashInput, leaveInput } from '../../core/squad-contract';
+import { hashInput, leaveInput, payInput } from '../../core/squad-contract';
 import { setCommitment, type CommitDeps } from '../core/commitments';
 import type { SquadService } from '../core/squads';
 import type { TxTracker } from '../core/tx-tracker';
 import { json, parseBody, validOrigin } from './auth-http';
+import { leavePlanView, settleMemberPayment } from './plan-view';
 import { mySquadsView, proofView, squadDetailView } from './squad-view';
 
 export interface SquadHandlerDeps {
@@ -22,6 +23,8 @@ const STATUS: Record<string, number> = {
   INVITE_INVALID: 404, SQUAD_NOT_FOUND: 404, NOT_TRACKED: 404,
   SQUAD_CLOSED: 409, NOT_A_MEMBER: 409, DUPLICATE_HASH: 409,
   OVER_COMMITTED: 409, NOT_STAKING: 409, TX_NOT_CONFIRMED: 409, TX_FAILED: 409,
+  // §7.6 refusals: the payment exists but does not settle this member's share.
+  NOT_MODE_A: 409, WRONG_RECIPIENT: 409, PAYMENT_SHORT: 409, PAYMENT_DATA_MISMATCH: 409,
   CHAIN_UNAVAILABLE: 503, UNAVAILABLE: 503,
 };
 const uuid = z.uuid();
@@ -89,8 +92,24 @@ export function createSquadHandlers(deps: SquadHandlerDeps) {
       return send(await deps.tracker.check(hash));
     }, false),
 
+    /** §7.6: the payer sends a hash they had tracked; everything it is checked against comes
+     * from the squad and their membership, so a client cannot assert a settlement. */
+    pay: wrap(async (address, request, squadId: string) => {
+      if (!withSquadId(squadId)) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
+      const body = payInput.safeParse(await parseBody(request));
+      if (!body.success) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
+      return send(await settleMemberPayment(address, squadId, body.data.hash));
+    }),
+
     // Reads: GETs, so no Origin requirement (browsers omit it on same-origin GETs).
     list: wrap(async (address) => json({ ok: true, squads: await mySquadsView(address) }), false),
+
+    /** §7.5 screen 7: the member's own exit. Members only — it carries their balances. */
+    plan: wrap(async (address, _request, squadId: string) => {
+      if (!withSquadId(squadId)) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
+      const result = await leavePlanView(squadId, address);
+      return result.ok ? json({ ok: true, plan: result.view }, 200) : send(result);
+    }, false),
 
     detail: wrap(async (address, _request, squadId: string) => {
       if (!withSquadId(squadId)) return json({ ok: false, code: 'INVALID_INPUT' }, 400);

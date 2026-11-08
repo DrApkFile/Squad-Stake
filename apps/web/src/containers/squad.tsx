@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   LeaveConfirm,
   SquadScreen,
@@ -38,6 +38,11 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
   const [leaveError, setLeaveError] = useState<CatalogError | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The leave-by deadline is a moment, so it is shown in the member's own zone. The server
+  // cannot know it: the first paint says UTC and then corrects itself, and the label always
+  // names the zone (packages/ui/format.ts).
+  const [tzOffsetMinutes, setTz] = useState(0);
+  useEffect(() => { setTz(-new Date().getTimezoneOffset()); }, []);
 
   const refresh = useCallback(async () => {
     if (busy) return;
@@ -134,10 +139,15 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
     committedLuna: view.committedLuna,
     leaveBy: view.leaveBy,
     now,
+    tzOffsetMinutes,
     readAt: view.readAt,
     inviteUrl,
     proofUrl,
     commitUrl: inviteUrl ?? `/squads/${view.squadId}`,
+    leavingUrl: `/squads/${view.squadId}/leaving`,
+    payments: view.payments,
+    state: view.state,
+    payUrl: view.squad.mode === 'A' ? `/squads/${view.squadId}/pay` : null,
     shared,
     onShare: share,
     onLeave: () => setConfirmLeave(true),
