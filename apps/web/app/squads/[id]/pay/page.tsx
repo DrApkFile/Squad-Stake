@@ -1,15 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { PayShareContainer } from '../../../../src/containers/pay-share';
+import { networkConfig } from '../../../../src/config/network';
+import { currentLang } from '../../../../src/i18n/server';
 import { serverEnv } from '../../../../src/server/lib/env';
 import { leavePlanView } from '../../../../src/server/lib/plan-view';
 import { currentAddress } from '../../../../src/server/lib/session-page';
 
 export const dynamic = 'force-dynamic';
-
-const EXPLORERS = {
-  mainnet: 'https://nimiq.watch/#',
-  testnet: 'https://test.nimiq.watch/#',
-} as const;
 
 /**
  * Screen 8 (PRD §7.6). Mode A only: a Together-goals squad has no recipient, so there is
@@ -28,5 +25,6 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
     redirect(`/squads/${id}`);
   }
   return <PayShareContainer initial={result.view} now={Date.now()}
-    explorerBase={EXPLORERS[serverEnv().NIMIQ_NETWORK]} />;
+    explorerBase={networkConfig(serverEnv().NIMIQ_NETWORK).explorerBase}
+    initialLang={await currentLang()} />;
 }

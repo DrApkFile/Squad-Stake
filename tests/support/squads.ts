@@ -33,7 +33,7 @@ export function transaction(rest: Partial<ChainTransaction> = {}): ChainTransact
  * Postgres `SELECT … FOR UPDATE` behaves for the invariant: two commits for the same
  * member run one after the other, so Q03 can be attacked concurrently in a unit test.
  */
-export function memoryStore() {
+export function memoryStore(clock: () => number = () => Date.parse('2026-11-06T10:00:00Z')) {
   const squads = new Map<string, Squad & { inviteTokenHash: string }>();
   const memberships = new Map<string, Membership>();
   const trackedTxs = new Map<string, TrackedTx>();
@@ -45,7 +45,7 @@ export function memoryStore() {
     async insertSquad(squad, organiser) {
       squads.set(squad.id, squad);
       memberships.set(key(organiser.squadId, organiser.address), {
-        ...organiser, committedLuna: 0, leftAt: null });
+        ...organiser, committedLuna: 0, joinedAt: clock(), leftAt: null });
     },
     async getSquad(id) {
       const squad = squads.get(id);
@@ -63,7 +63,7 @@ export function memoryStore() {
       const existing = memberships.get(key(membership.squadId, membership.address));
       if (existing && existing.leftAt === null) return false;
       memberships.set(key(membership.squadId, membership.address), {
-        ...membership, committedLuna: 0, leftAt: null });
+        ...membership, committedLuna: 0, joinedAt: clock(), leftAt: null });
       return true;
     },
     async markLeft(squadId, address, at) {
@@ -118,6 +118,17 @@ export function memoryStore() {
       return [...trackedTxs.values()]
         .filter((tracked) => tracked.squadId === squadId && tracked.kind === kind)
         .map((tracked) => ({ ...tracked }));
+    },
+    async trackedTxsForAddress(address) {
+      return [...trackedTxs.values()]
+        .filter((tracked) => tracked.address === address)
+        .map((tracked) => ({ ...tracked }));
+    },
+    async activeMemberAddresses(limit) {
+      const addresses = [...new Set([...memberships.values()]
+        .filter((membership) => membership.leftAt === null)
+        .map((membership) => membership.address))];
+      return addresses.sort().slice(0, limit);
     },
     async namedCommitments(address) {
       return [...memberships.values()]
@@ -231,6 +242,7 @@ export function detailHarness(options: { head?: number | null } = {}) {
   const unreadable = new Set<string>();
   const readAt = new Map<string, number>();
   const transactions = new Map<string, ChainTransaction>();
+  const delegations = new Map<string, string | null>();
   let stakerReads = 0;
 
   const rpc = {
@@ -261,7 +273,8 @@ export function detailHarness(options: { head?: number | null } = {}) {
         return { ok: true as const, data: { status: 'NOT_STAKING' }, metadata: null, readAt: at };
       }
       return { ok: true as const,
-        data: { status: 'STAKING', staker: staker(balance, { address }) },
+        data: { status: 'STAKING',
+          staker: staker(balance, { address, delegation: delegations.get(address) ?? null }) },
         metadata: null, readAt: at };
     },
   };
@@ -272,7 +285,18 @@ export function detailHarness(options: { head?: number | null } = {}) {
       shortId: () => 'k3m9p2qr', inviteToken: () => 'f'.repeat(32),
       hash: (value: string) => createHash('sha256').update(value).digest('hex') }),
     setBalance: (address: string, balance: number | null) => { balances.set(address, balance); },
+    setDelegation: (address: string, validator: string | null) => {
+      delegations.set(address, validator);
+    },
     setReadAt: (address: string, at: number) => { readAt.set(address, at); },
+    /** Writes one membership row directly, like planHarness's: a detail test should not have
+     * to walk the invite flow to put a second member with a commitment in a squad. */
+    commit: (squadId: string, address: string, committedLuna: number) => {
+      const existing = memory.memberships.get(`${squadId}|${address}`);
+      memory.memberships.set(`${squadId}|${address}`, {
+        squadId, address, personalTargetLuna: existing?.personalTargetLuna ?? null,
+        joinedAt: existing?.joinedAt ?? now, leftAt: existing?.leftAt ?? null, committedLuna });
+    },
     breakRead: (address: string) => { unreadable.add(address); },
     setTransaction: (tx: ChainTransaction) => { transactions.set(tx.hash, tx); },
     setHead: (value: number | null) => { head = value; },
@@ -358,7 +382,7 @@ export function planHarness(options: { headBlock?: number } = {}) {
       const existing = memory.memberships.get(`${squadId}|${address}`);
       memory.memberships.set(`${squadId}|${address}`, {
         squadId, address, personalTargetLuna: existing?.personalTargetLuna ?? null,
-        leftAt: existing?.leftAt ?? null, committedLuna });
+        joinedAt: existing?.joinedAt ?? now, leftAt: existing?.leftAt ?? null, committedLuna });
     },
     leave: (squadId: string, address: string, at: number) => {
       const existing = memory.memberships.get(`${squadId}|${address}`);

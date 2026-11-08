@@ -2,6 +2,7 @@ import { FINALITY_CONFIRMATIONS } from '../../config/constants';
 import { leaveBy } from '../../core/leave-by';
 import type { MemberStatusWire, SquadMemberWire, SquadView } from '../../core/view-contract';
 import type { RpcResult, StakerState } from './chain';
+import { memberEarned, type EarnedDeps } from './member-earned';
 import { deriveMemberStatus } from './member-status';
 import type { MemberStatus } from './member-status';
 import { paidRoster, type PaidRoster, type RosterStore, type SettleRpc } from './settle';
@@ -29,6 +30,12 @@ export interface DetailDeps {
   store: DetailStore;
   rpc: DetailRpc;
   now(): number;
+  /**
+   * PRD §9.12, optional: when present, the row of the member looking at the page carries what
+   * their stake has earned since joining. Nobody else's row does — earned growth plus the
+   * deposits it was measured against is their active balance (see `member-earned.ts`).
+   */
+  earned?: EarnedDeps | undefined;
 }
 
 export type DetailFailure = 'SQUAD_NOT_FOUND' | 'NOT_A_MEMBER';
@@ -53,7 +60,8 @@ async function memberRow(
   deps: DetailDeps,
 ): Promise<SquadMemberWire> {
   const isYou = viewer !== null && membership.address === viewer;
-  const base = { address: membership.address, committedLuna: membership.committedLuna, isYou };
+  const base = { address: membership.address, committedLuna: membership.committedLuna, isYou,
+    earned: null };
   // A member who left keeps no commitment and needs no chain read (PRD §7.4 lists LEFT).
   if (membership.leftAt !== null) {
     return { ...base, status: { status: 'LEFT' }, readAt: membership.leftAt, pending: null };
@@ -69,7 +77,18 @@ async function memberRow(
   const pending = openTx === null
     ? null
     : { confirmations: null, requiredConfirmations: FINALITY_CONFIRMATIONS };
-  if (!staker.ok) return { ...base, status: null, readAt: null, pending };
+  const earned = isYou && deps.earned !== undefined
+    ? await memberEarned({
+      address: membership.address,
+      joinedAt: membership.joinedAt,
+      stake: staker.ok && staker.data.status === 'STAKING'
+        ? { activeLuna: staker.data.staker.balance,
+          delegation: staker.data.staker.delegation }
+        : null,
+      chainRead: staker.ok,
+    }, deps.earned)
+    : null;
+  if (!staker.ok) return { ...base, earned, status: null, readAt: null, pending };
 
   const status = deriveMemberStatus({
     staker: staker.data.status === 'STAKING' ? staker.data.staker : null,
@@ -81,7 +100,7 @@ async function memberRow(
     // 2026-11-06). The planner (PRD §7.5) computes it from the inactivation transaction.
     releaseBlock: null,
   });
-  return { ...base, status: overlay(status, isYou, txs, paid, membership.address),
+  return { ...base, earned, status: overlay(status, isYou, txs, paid, membership.address),
     readAt: staker.readAt, pending };
 }
 

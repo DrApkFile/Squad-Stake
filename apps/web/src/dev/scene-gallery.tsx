@@ -6,7 +6,8 @@ import {
   OrbitScene, PayShareSheet, PrivacyNotice, ProofScreen, SignInScreen, SquadScreen, TxStatusScene,
 } from '@squad-stake/ui';
 import {
-  createSquadScenes, DEMO_LABEL, joinCommitScenes, leaveScenes, leavingScenes, memberStatusScenes,
+  createSquadScenes, DEMO_LABEL, featureCommitScenes, featureCreateScenes, featureMySquadsScenes,
+  featureSquadScenes, joinCommitScenes, leaveScenes, leavingScenes, memberStatusScenes,
   mySquadsScenes, orbitScenes, payShareScenes, privacyScenes, proofScenes, signInScenes,
   squadPageScenes, txStatusScenes,
 } from '@squad-stake/ui/scenes';
@@ -37,6 +38,11 @@ function registry(): readonly { id: string; node: ReactNode }[] {
     ...from(leavingScenes, (props) => <LeavingSteps {...props} demoLabel={DEMO_LABEL} />),
     ...from(payShareScenes, (props) => <PayShareSheet {...props} demoLabel={DEMO_LABEL} />),
     ...from(txStatusScenes, (props) => <TxStatusScene {...props} demoLabel={SYNTHETIC} />),
+    // PRD §7.7, §9.11, §9.12, §10 and every language at 375 px (scenes/features.ts).
+    ...from(featureCommitScenes, (props) => <JoinCommitSheet {...props} demoLabel={DEMO_LABEL} />),
+    ...from(featureSquadScenes, (props) => <SquadScreen {...props} demoLabel={DEMO_LABEL} />),
+    ...from(featureMySquadsScenes, (props) => <MySquadsScreen {...props} demoLabel={DEMO_LABEL} />),
+    ...from(featureCreateScenes, (props) => <CreateSquadScreen {...props} demoLabel={DEMO_LABEL} />),
   ];
 }
 

@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { SquadContainer } from '../../../src/containers/squad';
 import { identiconsFor } from '../../../src/server/lib/identicon';
+import { currentLang } from '../../../src/i18n/server';
 import { serverEnv } from '../../../src/server/lib/env';
 import { currentAddress } from '../../../src/server/lib/session-page';
 import { squadDetailView } from '../../../src/server/lib/squad-view';
@@ -20,5 +21,6 @@ export default async function SquadPage({ params }: { params: Promise<{ id: stri
   }
   const identicons = await identiconsFor(result.view.members.map((member) => member.address));
   return <SquadContainer initial={result.view} identicons={identicons}
-    inviteBase={serverEnv().APP_ORIGIN} now={Date.now()} />;
+    inviteBase={serverEnv().APP_ORIGIN} now={Date.now()}
+    initialLang={await currentLang()} />;
 }

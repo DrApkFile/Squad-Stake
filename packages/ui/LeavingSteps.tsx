@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { ScreenHeader } from './ScreenHeader';
 import { TxStatus } from './TxStatus';
-import { countdown, formatLuna, formatMoment, readAge } from './format';
+import { countdown, formatCount, formatLuna, formatMoment, readAge } from './format';
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 
 export type LeavingStepState =
   | { state: 'locked' }
@@ -55,22 +56,27 @@ export interface LeavingStepsProps {
   onRefresh?: (() => void) | undefined;
   back?: { label: string; href: string } | undefined;
   demoLabel?: string | undefined;
+  lang?: Lang | undefined;
 }
 
-const CHIPS: Record<LeavingStepState['state'], string> = {
-  locked: 'Not yet', available: 'Your turn', waiting: 'Waiting for the chain',
-  pending: 'Sent', failed: 'Failed', done: 'Done',
-};
+function chip(state: LeavingStepState['state'], lang: Lang) {
+  const s = strings(lang).leaving;
+  const chips: Record<LeavingStepState['state'], string> = {
+    locked: s.chipLocked, available: s.chipAvailable, waiting: s.chipWaiting,
+    pending: s.chipPending, failed: s.chipFailed, done: s.chipDone,
+  };
+  return chips[state];
+}
 
-function Step({ index, title, state, children }: {
-  index: number; title: string; state: LeavingStepState; children?: ReactNode;
+function Step({ index, title, state, lang, children }: {
+  index: number; title: string; state: LeavingStepState; lang: Lang; children?: ReactNode;
 }) {
   return (
     <section className="step" data-state={state.state}>
       <h2 className="step-title">
         <span className="step-index" aria-hidden="true">{index}</span>
         {title}
-        <span className="step-chip" data-state={state.state}>{CHIPS[state.state]}</span>
+        <span className="step-chip" data-state={state.state}>{chip(state.state, lang)}</span>
       </h2>
       <div className="step-body">{children}</div>
     </section>
@@ -87,7 +93,9 @@ export function LeavingSteps(props: LeavingStepsProps) {
     affected, shortfallLuna, confirmTicked, readAt, retireFeeLuna, unstakeFeeLuna, busy = false,
     stalled = false, error, explorerBase = null, payUrl = null, t = 0, onAmountChange,
     onStartLeaving, onConfirmTick, onRetire, onWithdraw, onRefresh, back, demoLabel,
+    lang = DEFAULT_LANG,
   } = props;
+  const s = strings(lang);
   // The one moving value on the screen. `t` is seconds since the screen appeared, so the
   // countdown ticks in the app and renders frame by frame in the video.
   const instant = now + Math.round(t * 1000);
@@ -95,59 +103,68 @@ export function LeavingSteps(props: LeavingStepsProps) {
   const tx = (state: LeavingStepState) =>
     state.state === 'pending' || state.state === 'failed'
       ? <TxStatus state={state.state === 'pending' ? 'pending' : 'failed'} hash={state.hash}
-        stalled={stalled} explorerUrl={explorer(state.hash)} {...(onRefresh ? { onRefresh } : {})} />
+        stalled={stalled} explorerUrl={explorer(state.hash)} lang={lang}
+        {...(onRefresh ? { onRefresh } : {})} />
       : null;
 
   return (
     <main className="sheet" aria-busy={busy}>
       <ScreenHeader back={back} demoLabel={demoLabel} />
       <div className="sheet-body">
-        <p className="eyebrow">LEAVING · SQUAD {squad.shortId.toUpperCase()}</p>
-        <h1>Get your NIM<br />ready in time.</h1>
-        <p className="intro">
-          Your share of {squad.name} is {formatLuna(shareLuna)}. Leaving a stake takes three
-          separate approvals and a wait the chain decides. Nothing here starts by itself.
-        </p>
+        <p className="eyebrow">{s.leaving.eyebrow(squad.shortId.toUpperCase())}</p>
+        <h1>{s.leaving.headingTop}<br />{s.leaving.headingBottom}</h1>
+        <p className="intro">{s.leaving.intro(squad.name, formatLuna(shareLuna, lang))}</p>
         <div className="banner" role="note">
-          <p className="banner-title">Start leaving by {formatMoment(leaveBy, tzOffsetMinutes)}</p>
+          <p className="banner-title">
+            {s.leaving.leaveByTitle(formatMoment(leaveBy, tzOffsetMinutes, lang))}
+          </p>
           <p>
             {leaveBy > instant
-              ? `${countdown(leaveBy - instant)} left.`
-              : 'That deadline has passed — start now and it may still arrive in time.'}{' '}
-            Goal day is {formatMoment(squad.goalAt, tzOffsetMinutes)}.
+              ? s.leaving.leaveByLeft(countdown(leaveBy - instant, lang))
+              : s.leaving.leaveByPassed}{' '}
+            {s.leaving.goalDayIs(formatMoment(squad.goalAt, tzOffsetMinutes, lang))}
           </p>
         </div>
         <p className="member-status-age">
           {stake === null
-            ? 'No stake found for your address'
-            : `${formatLuna(stake.activeLuna)} active · ${formatLuna(stake.inactiveLuna)} unstaking · ${formatLuna(stake.retiredLuna)} ready to withdraw`}
-          {' · '}{readAge(readAt, now)}
+            ? s.leaving.noStake
+            : s.leaving.stakeLine(
+              formatLuna(stake.activeLuna, lang),
+              formatLuna(stake.inactiveLuna, lang),
+              formatLuna(stake.retiredLuna, lang),
+            )}
+          {' · '}{readAge(readAt, now, lang)}
         </p>
 
-        <Step index={1} title="Start leaving" state={steps.start}>
+        <Step index={1} title={s.leaving.step1} state={steps.start} lang={lang}>
           {steps.start.state === 'available' && <>
             <label className="field">
-              <span className="field-label">NIM to free up</span>
+              <span className="field-label">{s.leaving.amountLabel}</span>
               <input className="field-input" type="text" inputMode="decimal" value={amountNim}
                 placeholder="2000" disabled={busy}
                 onChange={(event) => onAmountChange?.(event.target.value)} />
-              <span className="field-hint">Your share is {formatLuna(shareLuna)}. Fee
-                {' '}{formatLuna(unstakeFeeLuna)}.</span>
+              <span className="field-hint">
+                {s.leaving.amountHint(
+                  formatLuna(shareLuna, lang), formatLuna(unstakeFeeLuna, lang),
+                )}
+              </span>
             </label>
             {shortfallLuna > 0 && (
               <div className="banner" role="note">
                 <p className="banner-title">
-                  This will show you short by {formatLuna(shortfallLuna)}
+                  {s.leaving.shortfallTitle(formatLuna(shortfallLuna, lang))}
                 </p>
                 <p>
-                  Your squads all read the same one active balance, so taking NIM out of it
-                  changes what every squad sees.{affected.length > 0 && ' These would say so:'}
+                  {s.leaving.shortfallBody}
+                  {affected.length > 0 && s.leaving.shortfallAffected}
                 </p>
                 {affected.length > 0 && (
                   <ul className="affected-list">
                     {affected.map((squadRow) => (
                       <li key={squadRow.squadId}>
-                        {squadRow.name} — {formatLuna(squadRow.committedLuna)} committed
+                        {s.leaving.affectedRow(
+                          squadRow.name, formatLuna(squadRow.committedLuna, lang),
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -155,82 +172,72 @@ export function LeavingSteps(props: LeavingStepsProps) {
               </div>
             )}
             <button className="primary-button" onClick={onStartLeaving} disabled={busy}>
-              {busy ? 'Waiting…' : 'Start leaving in Nimiq Pay'}
+              {busy ? s.common.waiting : s.leaving.startButton}
             </button>
           </>}
-          {steps.start.state === 'locked' && (
-            <p>You have no stake to leave. Commit and stake first.</p>
-          )}
-          {steps.start.state === 'done' && (
-            <p>Your stake is on its way out. The chain decides when it is released.</p>
-          )}
+          {steps.start.state === 'locked' && <p>{s.leaving.step1Locked}</p>}
+          {steps.start.state === 'done' && <p>{s.leaving.step1Done}</p>}
           {tx(steps.start)}
         </Step>
 
-        <Step index={2} title="Confirm withdrawal" state={steps.retire}>
+        <Step index={2} title={s.leaving.step2} state={steps.retire} lang={lang}>
           {steps.retire.state === 'waiting' && <>
             <p>
               {release === null
-                ? 'The release time is not known yet, so this stays switched off rather than guessing.'
-                : `About ${countdown(Math.max(0, release.estimatedReleaseAt - instant))} to go.`}
+                ? s.leaving.releaseUnknown
+                : s.leaving.releaseAbout(
+                  countdown(Math.max(0, release.estimatedReleaseAt - instant), lang),
+                )}
             </p>
             {release !== null && (
               <p className="field-hint">
-                Released at block {release.releaseBlock.toLocaleString('en-US')}
-                {headBlock === null ? '' : `, chain is at ${headBlock.toLocaleString('en-US')}`}
-                {' '}— about {formatMoment(release.estimatedReleaseAt, tzOffsetMinutes)}. The block
-                number is the rule; the time is an estimate.
-                {release.jailed && ' Your validator has been jailed, which pushes this later.'}
+                {s.leaving.releaseDetail(
+                  formatCount(release.releaseBlock, lang),
+                  headBlock === null ? null : formatCount(headBlock, lang),
+                  formatMoment(release.estimatedReleaseAt, tzOffsetMinutes, lang),
+                )}
+                {release.jailed && s.leaving.releaseJailed}
               </p>
             )}
           </>}
           {steps.retire.state === 'available' && <>
-            <p>
-              This is the irreversible one: retired stake no longer earns, and it can only go
-              back to your wallet. Fee {formatLuna(retireFeeLuna)}.
-            </p>
+            <p>{s.leaving.retireBody(formatLuna(retireFeeLuna, lang))}</p>
             <label className="confirm-tick">
               <input type="checkbox" checked={confirmTicked} disabled={busy}
                 onChange={(event) => onConfirmTick?.(event.target.checked)} />
-              <span>I understand this cannot be undone.</span>
+              <span>{s.leaving.confirmTick}</span>
             </label>
             <button className="primary-button" onClick={onRetire} disabled={busy || !confirmTicked}>
-              {busy ? 'Waiting…' : 'Confirm withdrawal in Nimiq Pay'}
+              {busy ? s.common.waiting : s.leaving.retireButton}
             </button>
           </>}
-          {steps.retire.state === 'locked' && <p>Nothing is unstaking yet.</p>}
-          {steps.retire.state === 'done' && <p>Confirmed. Your NIM is ready to withdraw.</p>}
+          {steps.retire.state === 'locked' && <p>{s.leaving.step2Locked}</p>}
+          {steps.retire.state === 'done' && <p>{s.leaving.step2Done}</p>}
           {tx(steps.retire)}
         </Step>
 
-        <Step index={3} title="Withdraw" state={steps.withdraw}>
+        <Step index={3} title={s.leaving.step3} state={steps.withdraw} lang={lang}>
           {steps.withdraw.state === 'available' && <>
-            <p>
-              {formatLuna(stake?.retiredLuna ?? 0)} goes back to your wallet. It has to be the
-              whole amount, and the fee comes out of it, so there is nothing to choose here.
-            </p>
+            <p>{s.leaving.withdrawBody(formatLuna(stake?.retiredLuna ?? 0, lang))}</p>
             <button className="primary-button" onClick={onWithdraw} disabled={busy}>
-              {busy ? 'Waiting…' : 'Withdraw in Nimiq Pay'}
+              {busy ? s.common.waiting : s.leaving.withdrawButton}
             </button>
           </>}
-          {steps.withdraw.state === 'locked' && <p>Confirm the withdrawal first.</p>}
-          {steps.withdraw.state === 'done' && <p>Your NIM is back in your own wallet.</p>}
+          {steps.withdraw.state === 'locked' && <p>{s.leaving.step3Locked}</p>}
+          {steps.withdraw.state === 'done' && <p>{s.leaving.step3Done}</p>}
           {tx(steps.withdraw)}
         </Step>
 
         {steps.pay !== null && (
-          <Step index={4} title="Pay my share" state={steps.pay}>
+          <Step index={4} title={s.leaving.step4} state={steps.pay} lang={lang}>
             {steps.pay.state === 'available' && payUrl !== null
               ? <>
-                <p>
-                  {formatLuna(shareLuna)} to the recipient fixed when the squad was created. The
-                  squad sees it once the chain confirms it.
-                </p>
-                <a className="primary-button" href={payUrl}>Pay my share</a>
+                <p>{s.leaving.payBody(formatLuna(shareLuna, lang))}</p>
+                <a className="primary-button" href={payUrl}>{s.common.payMyShare}</a>
               </>
               : steps.pay.state === 'done'
-                ? <p>Your share is paid and verified on-chain.</p>
-                : <p>Finish withdrawing first, then pay your share.</p>}
+                ? <p>{s.leaving.payDone}</p>
+                : <p>{s.leaving.payLocked}</p>}
             {tx(steps.pay)}
           </Step>
         )}
@@ -245,10 +252,8 @@ export function LeavingSteps(props: LeavingStepsProps) {
       <footer className="sheet-footer">
         {/* Always offered: every figure above is a chain read, and an age is only meaningful
             next to a way to renew it. Reading is not sending. */}
-        <button className="secondary-button" onClick={onRefresh}>Check the chain again</button>
-        <p className="fine-print">
-          Squad Stake cannot move your NIM. Each step waits for your approval in Nimiq Pay.
-        </p>
+        <button className="secondary-button" onClick={onRefresh}>{s.common.refreshChain}</button>
+        <p className="fine-print">{s.leaving.fineprint}</p>
       </footer>
     </main>
   );

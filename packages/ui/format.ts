@@ -1,24 +1,47 @@
 // Formatting happens only at the UI edge (AGENTS.md 10): amounts travel as integer luna.
+//
+// Every function takes the language, because the separators, the month names and the words
+// ("Checked 3 min ago") differ (packages/ui/i18n). `Intl` is deliberately not used: ICU data
+// differs between Node builds and browsers, and the web app and the Remotion render must
+// produce the same glyphs (AGENTS.md "UI purity" 3), so the separators come from the
+// catalogue and the grouping is done here.
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
+
+const LUNA_PER_NIM = 100_000;
+
+function group(digits: string, separator: string) {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+}
 
 /** Luna as a NIM figure with no unit, for places that write the unit themselves. */
-export function formatNim(luna: number) {
-  const whole = Math.floor(luna / 100_000).toLocaleString('en-US');
-  const fraction = String(luna % 100_000).padStart(5, '0').replace(/0+$/, '');
-  return `${whole}${fraction ? `.${fraction}` : ''}`;
+export function formatNim(luna: number, lang: Lang = DEFAULT_LANG) {
+  const { group: thousands, decimal } = strings(lang).fmt;
+  const sign = luna < 0 ? '-' : '';
+  const absolute = Math.abs(luna);
+  const whole = group(String(Math.floor(absolute / LUNA_PER_NIM)), thousands);
+  const fraction = String(absolute % LUNA_PER_NIM).padStart(5, '0').replace(/0+$/, '');
+  return `${sign}${whole}${fraction ? `${decimal}${fraction}` : ''}`;
 }
 
-export function formatLuna(luna: number) {
-  return `${formatNim(luna)} NIM`;
+export function formatLuna(luna: number, lang: Lang = DEFAULT_LANG) {
+  return `${formatNim(luna, lang)} NIM`;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** A plain count — a block number, a confirmation total — grouped the way the language does
+ * it. Replaces `toLocaleString`, which depends on the runtime's ICU data. */
+export function formatCount(value: number, lang: Lang = DEFAULT_LANG) {
+  const sign = value < 0 ? '-' : '';
+  return `${sign}${group(String(Math.abs(Math.trunc(value))), strings(lang).fmt.group)}`;
+}
+
 /**
- * UTC and a fixed month list on purpose: the web app and the Remotion render must produce
- * the same glyphs whatever the machine's timezone or ICU data (AGENTS.md "UI purity").
+ * UTC and the catalogue's month list on purpose: the web app and the Remotion render must
+ * produce the same glyphs whatever the machine's timezone or ICU data (AGENTS.md "UI purity").
  */
-export function formatDay(milliseconds: number) {
+export function formatDay(milliseconds: number, lang: Lang = DEFAULT_LANG) {
+  const { months, day } = strings(lang).fmt;
   const date = new Date(milliseconds);
-  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()] ?? ''} ${date.getUTCFullYear()}`;
+  return day(date.getUTCDate(), months[date.getUTCMonth()] ?? '', date.getUTCFullYear());
 }
 
 /** Whole days between two instants, floored — used for "goal in N days" copy. */
@@ -31,10 +54,11 @@ export function daysBetween(from: number, to: number) {
  * show the last known state with its age, never an invented fresh one
  * (briefing/FAILURE_MODES.md, AGENTS.md "Never fabricate").
  */
-export function readAge(readAt: number | null, now: number) {
-  if (readAt === null) return 'Chain read: —';
+export function readAge(readAt: number | null, now: number, lang: Lang = DEFAULT_LANG) {
+  const { readAgeNone, readAgeSeconds, readAgeMinutes } = strings(lang).fmt;
+  if (readAt === null) return readAgeNone;
   const seconds = Math.max(0, Math.floor((now - readAt) / 1000));
-  return `Checked ${seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min`} ago`;
+  return seconds < 60 ? readAgeSeconds(seconds) : readAgeMinutes(Math.floor(seconds / 60));
 }
 
 /**
@@ -58,8 +82,8 @@ export function shortAddress(address: string) {
  */
 const pad = (value: number) => String(value).padStart(2, '0');
 
-export function formatDayIn(milliseconds: number, offsetMinutes: number) {
-  return formatDay(milliseconds + offsetMinutes * 60_000);
+export function formatDayIn(milliseconds: number, offsetMinutes: number, lang: Lang = DEFAULT_LANG) {
+  return formatDay(milliseconds + offsetMinutes * 60_000, lang);
 }
 
 export function formatTimeIn(milliseconds: number, offsetMinutes: number) {
@@ -68,7 +92,7 @@ export function formatTimeIn(milliseconds: number, offsetMinutes: number) {
 }
 
 /** `UTC`, `UTC+1`, `UTC-5:30` — named beside every local time, so a screenshot of the screen
- * is still unambiguous. */
+ * is still unambiguous. The label itself is the same in every language. */
 export function zoneLabel(offsetMinutes: number) {
   if (offsetMinutes === 0) return 'UTC';
   const absolute = Math.abs(offsetMinutes);
@@ -76,8 +100,14 @@ export function zoneLabel(offsetMinutes: number) {
   return `UTC${offsetMinutes > 0 ? '+' : '-'}${Math.floor(absolute / 60)}${minutes === 0 ? '' : `:${pad(minutes)}`}`;
 }
 
-export function formatMoment(milliseconds: number, offsetMinutes: number) {
-  return `${formatDayIn(milliseconds, offsetMinutes)}, ${formatTimeIn(milliseconds, offsetMinutes)} ${zoneLabel(offsetMinutes)}`;
+export function formatMoment(
+  milliseconds: number, offsetMinutes: number, lang: Lang = DEFAULT_LANG,
+) {
+  return strings(lang).fmt.dayTime(
+    formatDayIn(milliseconds, offsetMinutes, lang),
+    formatTimeIn(milliseconds, offsetMinutes),
+    zoneLabel(offsetMinutes),
+  );
 }
 
 /**
@@ -85,14 +115,28 @@ export function formatMoment(milliseconds: number, offsetMinutes: number) {
  * that has run out says so, because the permission it was counting to is the chain's to give
  * and only a chain read can confirm it (Q11).
  */
-export function countdown(remainingMs: number) {
-  if (remainingMs <= 0) return 'any moment now';
+export function countdown(remainingMs: number, lang: Lang = DEFAULT_LANG) {
+  const fmt = strings(lang).fmt;
+  if (remainingMs <= 0) return fmt.countdownNow;
   const totalMinutes = Math.floor(remainingMs / 60_000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
-  if (days > 0) return `${days} d ${hours} h`;
-  if (hours > 0) return `${hours} h ${minutes} min`;
-  if (minutes > 0) return `${minutes} min`;
-  return 'under a minute';
+  if (days > 0) return fmt.countdownDaysHours(days, hours);
+  if (hours > 0) return fmt.countdownHoursMinutes(hours, minutes);
+  if (minutes > 0) return fmt.countdownMinutes(minutes);
+  return fmt.countdownUnderMinute;
+}
+
+/**
+ * A pool fee as a percentage. The Validators API publishes it as a fraction of 1 (0.05 = 5 %,
+ * `server/utils/schemas.ts`), so the conversion happens here, at the UI edge, with at most two
+ * decimals and the language's decimal mark. Rounding is `Math.round`, and the figure is only
+ * ever shown beside the pool's name, never used in a calculation.
+ */
+export function formatPercent(fraction: number, lang: Lang = DEFAULT_LANG) {
+  const { decimal, percent } = strings(lang).fmt;
+  const rounded = Math.round(fraction * 10_000) / 100;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/0+$/, '');
+  return percent(text.replace('.', decimal));
 }

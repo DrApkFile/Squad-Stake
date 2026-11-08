@@ -21,7 +21,7 @@ const squadRow = z.object({
 }).strict();
 const membershipRow = z.object({
   squad_id: z.uuid(), address: z.string(), personal_target_luna: luna.nullable(),
-  committed_luna: luna, left_at: z.date().nullable(),
+  committed_luna: luna, joined_at: z.date(), left_at: z.date().nullable(),
 }).strict();
 const trackedRow = z.object({
   hash: z.string(), address: z.string(), squad_id: z.uuid(), kind: txKind,
@@ -60,7 +60,7 @@ const toMembership = (row: unknown): Membership => {
   const parsed = membershipRow.parse(row);
   return { squadId: parsed.squad_id, address: parsed.address,
     personalTargetLuna: parsed.personal_target_luna, committedLuna: parsed.committed_luna,
-    leftAt: parsed.left_at?.getTime() ?? null };
+    joinedAt: parsed.joined_at.getTime(), leftAt: parsed.left_at?.getTime() ?? null };
 };
 export const squadStore: SquadStore = {
   async insertSquad(squad, organiser) {
@@ -90,7 +90,8 @@ export const squadStore: SquadStore = {
     return rows[0] ? toSquad(rows[0]) : null;
   },
   async getMembership(squadId, address) {
-    const rows = await db()`SELECT squad_id, address, personal_target_luna, committed_luna, left_at
+    const rows = await db()`SELECT squad_id, address, personal_target_luna, committed_luna,
+        joined_at, left_at
       FROM memberships WHERE squad_id = ${squadId} AND address = ${address}`;
     return rows[0] ? toMembership(rows[0]) : null;
   },
@@ -125,7 +126,8 @@ export const squadStore: SquadStore = {
   async listMembers(squadId) {
     // Ordered so the roster and the orbit are stable between reads: joiners after the
     // organiser, and a deterministic tie-break on address.
-    const rows = await db()`SELECT squad_id, address, personal_target_luna, committed_luna, left_at
+    const rows = await db()`SELECT squad_id, address, personal_target_luna, committed_luna,
+        joined_at, left_at
       FROM memberships WHERE squad_id = ${squadId} ORDER BY joined_at ASC, address ASC`;
     return rows.map(toMembership);
   },
@@ -169,6 +171,18 @@ export const squadStore: SquadStore = {
       FROM tracked_txs WHERE squad_id = ${squadId} AND address = ${address}
       ORDER BY created_at ASC, hash ASC`;
     return rows.map(toTracked);
+  },
+  async trackedTxsForAddress(address) {
+    // Across squads on purpose: one address has one stake, so deposits made through another
+    // squad still count against its active balance (§9.12).
+    const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at
+      FROM tracked_txs WHERE address = ${address} ORDER BY created_at ASC, hash ASC`;
+    return rows.map(toTracked);
+  },
+  async activeMemberAddresses(limit) {
+    const rows = await db()`SELECT DISTINCT address FROM memberships
+      WHERE left_at IS NULL ORDER BY address ASC LIMIT ${limit}`;
+    return rows.map((row) => z.object({ address: z.string() }).strict().parse(row).address);
   },
   async listSquadTrackedTxs(squadId, kind) {
     const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at

@@ -1,3 +1,4 @@
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import type { SquadStatusTone } from './StatusDot';
 
 /**
@@ -18,17 +19,10 @@ export type MemberStatusView =
 
 export type MemberStatusName = MemberStatusView['status'];
 
-export const STATUS_LABELS: Record<MemberStatusName, string> = {
-  BACKED: 'Backed',
-  SHORT: 'Short',
-  UNSTAKING: 'Unstaking',
-  RELEASABLE: 'Ready to retire',
-  RETIRED: 'Ready to withdraw',
-  NOT_STAKING: 'Not staking',
-  LEFT: 'Left the squad',
-  WITHDRAWN: 'Withdrawn',
-  PAID: 'Paid',
-};
+/** The word beside the dot, in the viewer's language (packages/ui/i18n). */
+export function statusLabel(status: MemberStatusName, lang: Lang = DEFAULT_LANG) {
+  return strings(lang).status[status];
+}
 
 const TONES: Record<MemberStatusName, SquadStatusTone> = {
   BACKED: 'BACKED',

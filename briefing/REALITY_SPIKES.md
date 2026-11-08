@@ -37,9 +37,11 @@
 | 2026-10-21 | S2 v3 (builder) | ✅ `getTransactionsByAddress` works with params `[address, max, null]`. ✅ `getStakerByAddress` returned real records for 8/8 sampled stakers on **mainnet** and 8/8 on **testnet** (fields: address, balance, delegation, inactiveBalance, inactiveFrom, retiredBalance). Earlier "Internal error" = queried a non-staker | builder output |
 | 2026-10-21 | S3 v3 (builder) | ✅ corrected timeline: release = `getBlockAfterReportingWindow(getElectionBlockAfter(now))`. Mainnet block 64,855,xxx → effective ~8.5 h, retire ~20.5 h. Testnet → ~2.2 h, ~14.2 h. Rule confirmed: **12–24 h** | builder output |
 | 2026-10-21 | S4 v3 (builder) | ⚠️ stakers receive recurring incoming txs from 1–4 senders (consistent with pool payouts). Attribution needs the pool payout-address list (Validators API) → follow-up S4b | builder output |
+| 2026-11-08 | **S4b** | ❌ **not possible from Nimiq's own data, and that is the finding.** The Validators API publishes `name`, `address`, `fee`, `payoutType` and `payoutSchedule` and **no payout address** — verified in `server/utils/schemas.ts` (`validatorSchema`, lines 5–12), `server/utils/types.ts` (`PayoutType`, lines 4–8), the per-validator files under `public/validators/`, and the live mainnet and testnet payloads (21 and 13 validators). So a `direct` pool's payouts cannot be told apart from any other incoming transfer, and no sender can be matched to a pool. Consequence in the build: "earned since joining" measures **restake** pools exactly (active balance − the deposits this app watched land) and answers `PAYOUT_ADDRESS_UNKNOWN` for a direct pool instead of attributing transfers to it | `apps/web/src/server/lib/pool-directory.ts`; `apps/web/src/server/core/earned.ts`; `tests/fixtures/http/validators-testnet.json`; `tests/live/pools.test.ts` |
 
 ## Status after 2026-10-21
-S1 ✅ · S2 ✅ · S3 ✅ · S4 ⚠️ (S4b: map pool payout addresses) · S5–S8 open (phone, testnet).
+S1 ✅ · S2 ✅ · S3 ✅ · S4 ⚠️ (S4b closed 2026-11-08: Nimiq publishes no pool payout address,
+so senders cannot be mapped; see the result log) · S5–S8 open (phone, testnet).
 **Foundation verdict: GO.**
 
 ## Peer evidence replaces phone spikes S5–S8 (2026-10-22)
@@ -59,7 +61,10 @@ Source: NimJar (Cycle 2), github.com/imprint-hash/nimjar, cloned and read.
 
 ## Remaining
 - Smoke test during the build: sign in + create staker in the real app on testnet (5 min).
-- S4b: pool payout addresses for "earned so far" (NimJar reads "what your pool has added to your stake"; check its code for the method).
+- ~~S4b: pool payout addresses for "earned so far"~~ — **closed 2026-11-08** (result log): Nimiq
+  publishes no payout address, so only a restake pool's growth can be measured, which is the
+  same thing NimJar reads ("what your pool has added to your stake"). Squad Stake measures it
+  as active balance − the deposits it watched land, and shows "—" with a reason otherwise.
 
 ## Chain reader build verification (2026-10-23)
 - Captured raw testnet JSON-RPC envelopes in `tests/fixtures/rpc/testnet.json`, with

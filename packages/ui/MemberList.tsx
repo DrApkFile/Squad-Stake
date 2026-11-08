@@ -1,6 +1,8 @@
+import { earnedAmountText, earnedWhyText, type EarnedView } from './earned';
 import { formatLuna, readAge } from './format';
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { StatusDot } from './StatusDot';
-import { STATUS_LABELS, statusTone } from './status';
+import { statusLabel, statusTone } from './status';
 import type { MemberStatusView } from './status';
 
 export interface MemberRowView {
@@ -16,6 +18,9 @@ export interface MemberRowView {
   isYou: boolean;
   /** A tracked transaction of this member's that has not reached a verdict yet. */
   pending?: { confirmations: number | null; requiredConfirmations: number } | null | undefined;
+  /** PRD §9.12: what this member's stake has earned since they joined, measured on the chain,
+   * or a reason it cannot be measured. Absent when the screen does not ask for it. */
+  earned?: EarnedView | null | undefined;
 }
 
 export interface MemberListProps {
@@ -23,9 +28,13 @@ export interface MemberListProps {
   now: number;
   /** The proof view prints addresses in full, because that is what a reader re-checks. */
   showFullAddress?: boolean | undefined;
+  lang?: Lang | undefined;
 }
 
-export function MemberList({ members, now, showFullAddress = false }: MemberListProps) {
+export function MemberList({
+  members, now, showFullAddress = false, lang = DEFAULT_LANG,
+}: MemberListProps) {
+  const s = strings(lang);
   return (
     <ul className="member-list">
       {members.map((member) => (
@@ -38,36 +47,54 @@ export function MemberList({ members, now, showFullAddress = false }: MemberList
           </span>
           <span className="member-main">
             <span className="member-name">
-              {member.isYou ? 'You' : member.shortAddress}
+              {member.isYou ? s.common.you : member.shortAddress}
             </span>
             {showFullAddress && <span className="member-address">{member.fullAddress}</span>}
             <span className="member-state">
               {member.status === null || member.readAt === null ? (
                 <>
-                  <StatusDot tone="NEUTRAL" label="Not read yet" />{' '}
-                  <span className="member-state-label">—</span>
+                  <StatusDot tone="NEUTRAL" label={s.status.notReadYet} />{' '}
+                  <span className="member-state-label">{s.common.unknownValue}</span>
                 </>
               ) : (
                 <>
-                  <StatusDot tone={statusTone(member.status.status)} label={STATUS_LABELS[member.status.status]} />{' '}
+                  <StatusDot tone={statusTone(member.status.status)}
+                    label={statusLabel(member.status.status, lang)} />{' '}
                   <span className="member-state-label">
                     {member.status.status === 'SHORT' && member.status.shortBy !== null
-                      ? `Short by ${formatLuna(member.status.shortBy)}`
-                      : STATUS_LABELS[member.status.status]}
+                      ? s.status.shortBy(formatLuna(member.status.shortBy, lang))
+                      : statusLabel(member.status.status, lang)}
                   </span>
                 </>
               )}
             </span>
+            {/* PRD §9.12. A measured amount names what it was measured from; "—" names why,
+                on tap. `<details>` rather than state: a disclosure that needs no JavaScript
+                renders the same closed frame in the app, in a test and in the video
+                (AGENTS.md "UI purity" 1). */}
+            {member.earned && (
+              <details className="member-earned" data-known={member.earned.known ? 'yes' : 'no'}>
+                <summary>
+                  <span className="member-earned-term">{s.earned.term}:</span>{' '}
+                  <span className="member-earned-value">
+                    {earnedAmountText(member.earned, lang)}
+                  </span>
+                </summary>
+                <p className="member-earned-why">{earnedWhyText(member.earned, lang)}</p>
+                {member.earned.known && <p className="member-earned-why">{s.earned.measured}</p>}
+              </details>
+            )}
             {member.pending && (
               <span className="member-pending">
-                Transaction pending · {member.pending.confirmations ?? 0} of{' '}
-                {member.pending.requiredConfirmations} confirmations
+                {s.memberList.pending(
+                  member.pending.confirmations ?? 0, member.pending.requiredConfirmations,
+                )}
               </span>
             )}
           </span>
           <span className="member-figures">
-            <span className="member-amount">{formatLuna(member.committedLuna)}</span>
-            <span className="member-age">{readAge(member.readAt, now)}</span>
+            <span className="member-amount">{formatLuna(member.committedLuna, lang)}</span>
+            <span className="member-age">{readAge(member.readAt, now, lang)}</span>
           </span>
         </li>
       ))}

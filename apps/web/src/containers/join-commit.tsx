@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { JoinCommitSheet, type JoinCommitState } from '@squad-stake/ui';
+import { JoinCommitSheet, strings, type JoinCommitState, type Lang } from '@squad-stake/ui';
 import { LUNA_PER_NIM, STAKING_FEES_LUNA } from '../config/constants';
-import { catalogError, errors } from '../core/errors/catalog';
+import { catalogError } from '../core/errors/catalog';
+import { useLang } from '../i18n/client';
 import { commitResponse, joinSquadResponse, trackedTxResponse } from '../core/squad-contract';
 import { planStakingAction } from '../core/staking-actions';
 import { useTxPoll } from '../hooks/use-tx-poll';
@@ -12,16 +13,20 @@ import type { JoinView } from '../core/view-contract';
 
 const toLuna = (nim: string) => /^\d{1,9}(\.\d{1,5})?$/.test(nim.trim())
   ? Math.round(Number(nim) * LUNA_PER_NIM) : null;
-export function JoinCommitContainer({ view, token, now }: {
-  view: JoinView; token: string; now: number;
+export function JoinCommitContainer({ view, token, now, initialLang }: {
+  view: JoinView; token: string; now: number; initialLang: Lang;
 }) {
+  const lang = useLang(initialLang);
   const [amountNim, setAmountNim] = useState('');
   const poll = useTxPoll();
   /** The transaction being followed, so the manual re-check knows what to ask about. */
   const [pendingTx, setPendingTx] = useState<{ hash: string; amountLuna: number } | null>(null);
   const [state, setState] = useState<JoinCommitState>(() => {
-    if (view.member === null) return { status: 'failed', changedAnything: false,
-      message: errors.CHAIN_UNAVAILABLE.message, nextAction: errors.CHAIN_UNAVAILABLE.nextAction };
+    if (view.member === null) {
+      const unread = catalogError('CHAIN_UNAVAILABLE', initialLang);
+      return { status: 'failed', changedAnything: false,
+        message: unread.message, nextAction: unread.nextAction };
+    }
     if (view.member.activeBalanceLuna === null) return { status: 'not-staking', minimumLuna: view.minimumLuna };
     return { status: 'ready',
       freeLuna: Math.max(0, view.member.activeBalanceLuna - view.member.otherCommitmentsLuna) };
@@ -29,7 +34,7 @@ export function JoinCommitContainer({ view, token, now }: {
   const [readAt, setReadAt] = useState<number | null>(view.member?.readAt ?? null);
 
   const fail = (code: string, changedAnything = false) => {
-    const entry = catalogError(code);
+    const entry = catalogError(code, lang);
     setState({ status: 'failed', message: entry.message, nextAction: entry.nextAction,
       changedAnything: changedAnything || entry.changedAnything });
   };
@@ -100,9 +105,11 @@ export function JoinCommitContainer({ view, token, now }: {
   return <JoinCommitSheet squad={view.squad} amountNim={amountNim} state={state} now={now} readAt={readAt}
     onAmountChange={setAmountNim}
     stalled={poll.stalled}
+    lang={lang}
+    pool={view.pool}
     {...(pendingTx ? { onRefresh: () => void guarded(() =>
       awaitInclusion(pendingTx.hash, pendingTx.amountLuna)) } : {})}
-    back={{ label: 'Home', href: '/squads' }}
+    back={{ label: strings(lang).common.backSquads, href: '/squads' }}
     onCommit={() => void guarded(async () => {
       const amountLuna = toLuna(amountNim);
       if (amountLuna === null) return fail('INVALID_INPUT');

@@ -1,5 +1,6 @@
 import { countUp, entranceProgress, ringAngle, ringDirection, ringPeriod, seatAngle } from './motion';
 import { formatNim } from './format';
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { vars } from './css';
 import { ScreenHeader } from './ScreenHeader';
 import type { SquadStatusTone } from './StatusDot';
@@ -30,6 +31,7 @@ export interface OrbitSquadProps {
   /** What the centre figure is. A squad page reads the chain and says "backed"; a list card
    * only knows our record of commitments and says "committed" (PRD §7.4, §9.3). */
   totalWord?: 'backed' | 'committed' | undefined;
+  lang?: Lang | undefined;
 }
 
 /** Ring diameters as a percentage of the square, outermost first, so the whole figure scales
@@ -60,11 +62,13 @@ export function OrbitSquad({
   t = 0,
   still = false,
   totalWord = 'backed',
+  lang = DEFAULT_LANG,
 }: OrbitSquadProps) {
+  const s = strings(lang);
   const rings = ringCountFor(members.length);
   const byRing = seatsByRing(members, rings);
   const shown = backedLuna === null ? null : still ? backedLuna : countUp(t, backedLuna);
-  const total = shown === null ? '—' : formatNim(shown);
+  const total = shown === null ? s.common.unknownValue : formatNim(shown, lang);
   // The centre figure steps down a size rather than overflowing the ring on a big total.
   const size = total.length <= 6 ? 'lg' : total.length <= 9 ? 'md' : 'sm';
 
@@ -124,9 +128,12 @@ export function OrbitSquad({
         <div className="orbit-centre">
           <p className="orbit-total" data-size={size}>{total}</p>
           <p className="orbit-of">
-            {targetLuna === null
-              ? `NIM ${totalWord}`
-              : `${totalWord} of ${formatNim(targetLuna)} NIM`}
+            {(() => {
+              const word = totalWord === 'backed' ? s.orbit.wordBacked : s.orbit.wordCommitted;
+              return targetLuna === null
+                ? s.orbit.total(word)
+                : s.orbit.totalOfTarget(word, formatNim(targetLuna, lang));
+            })()}
           </p>
         </div>
       </div>
@@ -141,11 +148,12 @@ export interface OrbitSceneProps extends OrbitSquadProps {
 
 /** The orbit on its own inside a phone frame, for the fixture gallery and the video. */
 export function OrbitScene({ heading, demoLabel, ...props }: OrbitSceneProps & { demoLabel?: string | undefined }) {
+  const s = strings(props.lang ?? DEFAULT_LANG);
   return (
     <main className="sheet">
       <ScreenHeader demoLabel={demoLabel} />
       <div className="sheet-body">
-        <p className="eyebrow">ORBIT</p>
+        <p className="eyebrow">{s.orbit.sceneEyebrow}</p>
         <h1>{heading}</h1>
         <OrbitSquad {...props} />
       </div>

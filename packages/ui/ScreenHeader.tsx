@@ -1,13 +1,16 @@
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
+
 export interface ScreenHeaderProps {
   /** The way out of this screen. Every screen but the entry screen has one, so no page is a
    * dead end. Omitted on the welcome screen, where there is nowhere to go back to. */
   back?: { label: string; href: string } | undefined;
   demoLabel?: string | undefined;
+  lang?: Lang | undefined;
 }
 
 /** The brand line, plus the back-or-home control. Shared by every screen so the header is
  * written once rather than copied into each component. */
-export function ScreenHeader({ back, demoLabel }: ScreenHeaderProps) {
+export function ScreenHeader({ back, demoLabel, lang = DEFAULT_LANG }: ScreenHeaderProps) {
   return (
     <>
       <header className="brand">
@@ -20,7 +23,7 @@ export function ScreenHeader({ back, demoLabel }: ScreenHeaderProps) {
           <span className="brand-mark" aria-hidden="true">s.</span>{' '}
           {/* Beside a back control the mark alone carries the brand, so the two do not crowd
               each other in a 375 px header; the name stays in the accessibility tree. */}
-          <span className="brand-word">Squad Stake</span>
+          <span className="brand-word">{strings(lang).common.brand}</span>
         </span>
       </header>
       {demoLabel && <p className="demo-label">{demoLabel}</p>}

@@ -5,11 +5,16 @@ import {
   LeaveConfirm,
   SquadScreen,
   shortAddress,
+  strings,
+  type FiatRate,
+  type Lang,
   type MemberRowView,
   type SquadScreenProps,
 } from '@squad-stake/ui';
 import { catalogError } from '../core/errors/catalog';
 import { squadDetailResponse } from '../core/squad-contract';
+import { useFiat } from '../hooks/use-fiat';
+import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
 import type { SquadView } from '../core/view-contract';
 
@@ -19,19 +24,28 @@ type CatalogError = { message: string; nextAction: string };
  * Screen 5. The server renders the first view; this container re-reads it on demand and owns
  * the two actions the page offers (share and leave). It never calls the wallet.
  */
-export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel }: {
+export function SquadContainer({
+  initial, identicons, inviteBase, now, initialLang, fiat = null, demoLabel,
+}: {
   initial: SquadView;
   /** address → identicon SVG, generated on the server (src/server/lib/identicon.ts). */
   identicons: Record<string, string | null>;
   inviteBase: string;
   /** From the server, so the first render matches the markup it hydrates. */
   now: number;
+  initialLang: Lang;
+  /** PRD §9.11: null when the price source failed, and then no estimate is shown. */
+  fiat?: FiatRate | null | undefined;
   demoLabel?: string | undefined;
 }) {
   const t = useSceneTime();
+  const lang = useLang(initialLang);
+  // PRD §9.11: the estimate arrives after mount, because only Nimiq Pay knows the currency.
+  const hostRate = useFiat();
+  const rate = fiat ?? hostRate;
   const [view, setView] = useState(initial);
   const [error, setError] = useState<CatalogError | null>(
-    initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE') : null,
+    initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', initialLang) : null,
   );
   const [shared, setShared] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -53,17 +67,17 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
       });
       const parsed = squadDetailResponse.parse(await response.json());
       if (!parsed.ok) {
-        setError(catalogError(parsed.code));
+        setError(catalogError(parsed.code, lang));
         return;
       }
       setView(parsed.view);
-      setError(parsed.view.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE') : null);
+      setError(parsed.view.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', lang) : null);
     } catch {
-      setError(catalogError('NETWORK_ERROR'));
+      setError(catalogError('NETWORK_ERROR', lang));
     } finally {
       setBusy(false);
     }
-  }, [busy, view.squadId]);
+  }, [busy, lang, view.squadId]);
 
   const inviteUrl = view.inviteToken === null ? null : `${inviteBase}/s/${view.inviteToken}`;
   const proofUrl = `${inviteBase}/proof/${view.squad.shortId}`;
@@ -94,16 +108,16 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
       if (!ok) {
         const code = typeof body === 'object' && body !== null && 'code' in body
           ? String(body.code) : 'UNAVAILABLE';
-        setLeaveError(catalogError(code));
+        setLeaveError(catalogError(code, lang));
         return;
       }
       window.location.assign('/squads');
     } catch {
-      setLeaveError(catalogError('NETWORK_ERROR'));
+      setLeaveError(catalogError('NETWORK_ERROR', lang));
     } finally {
       setLeaving(false);
     }
-  }, [leaving, view.squadId]);
+  }, [lang, leaving, view.squadId]);
 
   const members: readonly MemberRowView[] = view.members.map((member) => ({
     id: member.address,
@@ -115,6 +129,9 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
     readAt: member.readAt,
     isYou: member.isYou,
     pending: member.pending,
+    // Already a code plus figures (view-contract `EarnedWire`); the component words it in
+    // the member's language, and it is null for everyone but the viewer.
+    earned: member.earned,
   }));
 
   if (confirmLeave) {
@@ -126,7 +143,8 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
         {...(leaveError ? { error: leaveError } : {})}
         onLeave={leave}
         onCancel={() => setConfirmLeave(false)}
-        back={{ label: 'Squad', href: `/squads/${view.squadId}` }}
+        lang={lang}
+        back={{ label: strings(lang).common.backSquad, href: `/squads/${view.squadId}` }}
         demoLabel={demoLabel}
       />
     );
@@ -153,7 +171,9 @@ export function SquadContainer({ initial, identicons, inviteBase, now, demoLabel
     onLeave: () => setConfirmLeave(true),
     onRefresh: refresh,
     t,
-    back: { label: 'Squads', href: '/squads' },
+    lang,
+    fiat: rate,
+    back: { label: strings(lang).common.backSquads, href: '/squads' },
     demoLabel,
     ...(error ? { error } : {}),
   };

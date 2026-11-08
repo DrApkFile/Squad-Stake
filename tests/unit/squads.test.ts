@@ -89,7 +89,7 @@ test('Q03 leaving removes the commitment and cannot be repeated', async () => {
   assert.ok(created.ok);
   h.memberships.set(`${created.id}|${ADDRESSES.alice}`, {
     squadId: created.id, address: ADDRESSES.alice, personalTargetLuna: null,
-    committedLuna: 100_000_000, leftAt: null });
+    committedLuna: 100_000_000, joinedAt: h.at(), leftAt: null });
 
   assert.ok((await h.squads.leave(ADDRESSES.alice, created.id)).ok);
   const membership = h.memberships.get(`${created.id}|${ADDRESSES.alice}`);

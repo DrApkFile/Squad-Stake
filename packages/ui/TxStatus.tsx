@@ -1,3 +1,4 @@
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
 
 export type TxStatusState = 'pending' | 'failed' | 'done' | 'unknown';
@@ -14,14 +15,16 @@ export interface TxStatusProps {
   /** Reads the chain again. It never resends anything — that is the whole point of offering
    * it (briefing/FAILURE_MODES.md: check status before resending, never auto-retry). */
   onRefresh?: (() => void) | undefined;
+  lang?: Lang | undefined;
 }
 
-const TITLES: Record<TxStatusState, string> = {
-  pending: 'Waiting for the chain',
-  failed: 'That transaction failed',
-  done: 'Confirmed on-chain',
-  unknown: 'Outcome not known yet',
-};
+function title(state: TxStatusState, lang: Lang) {
+  const s = strings(lang).tx;
+  if (state === 'pending') return s.pendingTitle;
+  if (state === 'failed') return s.failedTitle;
+  if (state === 'done') return s.doneTitle;
+  return s.unknownTitle;
+}
 
 /**
  * Screen 9, as a block rather than a screen of its own: it sits inside whichever sheet started
@@ -30,36 +33,27 @@ const TITLES: Record<TxStatusState, string> = {
  */
 export function TxStatus({
   state, hash, confirmations = null, requiredConfirmations, stalled = false,
-  explorerUrl = null, onRefresh,
+  explorerUrl = null, onRefresh, lang = DEFAULT_LANG,
 }: TxStatusProps) {
+  const s = strings(lang);
   return (
     <div className="tx-status" data-state={state} role="status" aria-live="polite">
-      <p className="status-title">{TITLES[state]}</p>
+      <p className="status-title">{title(state, lang)}</p>
       {state === 'pending' && requiredConfirmations !== undefined && (
-        <p>
-          {confirmations ?? 0} of {requiredConfirmations} confirmations. Nothing counts as done
-          until the chain has finalised it.
-        </p>
+        <p>{s.tx.confirmations(confirmations ?? 0, requiredConfirmations)}</p>
       )}
-      {state === 'failed' && (
-        <p>It was included in a block but did not execute. Nothing moved; the fee was spent.</p>
-      )}
-      {state === 'unknown' && (
-        <p>The chain could not be read for this transaction. It may still be fine — nothing has
-          been resent.</p>
-      )}
-      {stalled && state !== 'done' && (
-        <p>Still no verdict after two minutes. Nothing was resent; check again whenever you like.</p>
-      )}
+      {state === 'failed' && <p>{s.tx.failedBody}</p>}
+      {state === 'unknown' && <p>{s.tx.unknownBody}</p>}
+      {stalled && state !== 'done' && <p>{s.tx.stalled}</p>}
       <p className="tx-status-hash mono">{hash}</p>
       {explorerUrl !== null && (
         <p className="field-hint">
-          <a className="back-link back-link-inline" href={explorerUrl}>Look it up yourself</a>
+          <a className="back-link back-link-inline" href={explorerUrl}>{s.tx.lookUp}</a>
         </p>
       )}
       {onRefresh && (
         <button className="secondary-button secondary-button-quiet" onClick={onRefresh}>
-          Check status again
+          {s.common.checkStatusAgain}
         </button>
       )}
     </div>
@@ -69,16 +63,14 @@ export function TxStatus({
 /** The same block inside a sheet, so the fixture gallery measures it the way a member sees it
  * (it is never a screen of its own in the app). */
 export function TxStatusScene({ demoLabel, ...props }: TxStatusProps & { demoLabel?: string }) {
+  const s = strings(props.lang ?? DEFAULT_LANG);
   return (
     <main className="sheet">
       <ScreenHeader demoLabel={demoLabel} />
       <div className="sheet-body">
-        <p className="eyebrow">TRANSACTION</p>
-        <h1>A hash is not<br />success.</h1>
-        <p className="intro">
-          Every transaction Squad Stake starts is followed until the chain says what happened to
-          it, and the hash is always shown so anyone can look it up.
-        </p>
+        <p className="eyebrow">{s.tx.sceneEyebrow}</p>
+        <h1>{s.tx.sceneHeadingTop}<br />{s.tx.sceneHeadingBottom}</h1>
+        <p className="intro">{s.tx.sceneIntro}</p>
         <TxStatus {...props} />
       </div>
     </main>

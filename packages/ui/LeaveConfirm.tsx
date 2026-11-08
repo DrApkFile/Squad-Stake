@@ -1,4 +1,5 @@
 import { formatLuna } from './format';
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
 
 export interface LeaveConfirmProps {
@@ -11,6 +12,7 @@ export interface LeaveConfirmProps {
   onLeave?: (() => void) | undefined;
   onCancel?: (() => void) | undefined;
   demoLabel?: string | undefined;
+  lang?: Lang | undefined;
 }
 
 /**
@@ -19,19 +21,20 @@ export interface LeaveConfirmProps {
  */
 export function LeaveConfirm({
   squad, committedLuna, busy = false, error, onLeave, onCancel, demoLabel, back,
+  lang = DEFAULT_LANG,
 }: LeaveConfirmProps) {
+  const s = strings(lang);
   return <main className="sheet" aria-busy={busy}>
     <ScreenHeader back={back} demoLabel={demoLabel} />
     <div className="sheet-body">
-      <p className="eyebrow">LEAVE SQUAD</p>
-      <h1>Leave<br />{squad.name}?</h1>
-      <p className="intro">Your commitment of {formatLuna(committedLuna)} is removed and the squad
-        sees it straight away.</p>
+      <p className="eyebrow">{s.leave.eyebrow}</p>
+      <h1>{s.leave.headingTop}<br />{s.leave.headingBottom(squad.name)}</h1>
+      <p className="intro">{s.leave.intro(formatLuna(committedLuna, lang))}</p>
       <dl className="notice-list">
-        <dt>Your stake</dt>
-        <dd>Stays exactly as it is. Leaving sends no transaction and pays no fee.</dd>
-        <dt>Unstaking</dt>
-        <dd>Separate, and up to you. Start it from your stake when you want your NIM liquid.</dd>
+        <dt>{s.leave.stakeTerm}</dt>
+        <dd>{s.leave.stakeBody}</dd>
+        <dt>{s.leave.unstakingTerm}</dt>
+        <dd>{s.leave.unstakingBody}</dd>
       </dl>
       <div className="sheet-status" role="status" aria-live="polite">
         {error && <><p className="status-title">{error.message}</p><p>{error.nextAction}</p></>}
@@ -39,9 +42,9 @@ export function LeaveConfirm({
     </div>
     <footer className="sheet-footer">
       <button className="primary-button" onClick={onLeave} disabled={busy}>
-        {busy ? 'Leaving…' : 'Leave squad'}
+        {busy ? s.leave.leaving : s.leave.leave}
       </button>
-      <button className="secondary-button" onClick={onCancel} disabled={busy}>Stay</button>
+      <button className="secondary-button" onClick={onCancel} disabled={busy}>{s.leave.stay}</button>
     </footer>
   </main>;
 }

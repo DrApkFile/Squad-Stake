@@ -2,20 +2,24 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SignInScreen, type SignInState } from '@squad-stake/ui';
+import { SignInScreen, strings, type Lang, type SignInState } from '@squad-stake/ui';
 import { DEMO_LABEL, demoExample, demoGoals } from '@squad-stake/ui/scenes';
-import { errors } from '../core/errors/catalog';
+import { catalogError } from '../core/errors/catalog';
+import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
 import { signIn } from '../wallet/sign-in';
 
-export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onwardUrl = '/squads', invitedTo }: {
+export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onwardUrl = '/squads', invitedTo, initialLang }: {
   devIdentity: string | null;
   initialAddress: string | null;
   openInPayUrl: string;
   /** Where a completed sign-in lands. An invite sends the visitor back to the invite.  */
   onwardUrl?: string;
   invitedTo?: string;
+  /** The server's guess from Accept-Language; Nimiq Pay's own setting wins after mount. */
+  initialLang: Lang;
 }) {
+  const lang = useLang(initialLang);
   const router = useRouter();
   const t = useSceneTime();
   const [state, setState] = useState<SignInState>(initialAddress
@@ -25,10 +29,10 @@ export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onw
   useEffect(() => {
     if (!devIdentity && !initialAddress && typeof window.nimiqPay === 'undefined') {
       setOutsideHost(true);
-      const error = errors.OUTSIDE_HOST;
+      const error = catalogError('OUTSIDE_HOST', lang);
       setState({ status: 'error', message: error.message, nextAction: error.nextAction });
     }
-  }, [devIdentity, initialAddress]);
+  }, [devIdentity, initialAddress, lang]);
   async function handleSignIn() {
     if (pending.current) return;
     pending.current = true;
@@ -41,15 +45,17 @@ export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onw
         // success state still renders (and links onward) in case navigation is blocked.
         router.replace(onwardUrl);
       } else {
-        const error = errors[result.code];
+        const error = catalogError(result.code, lang);
         setOutsideHost(result.code === 'OUTSIDE_HOST');
         setState({ status: result.code === 'DECLINED' ? 'declined' : 'error', message: error.message, nextAction: error.nextAction });
       }
     } finally { pending.current = false; }
   }
   // The orbit and the ticker on this screen are hand-written samples, labelled as such.
-  const label = invitedTo === undefined ? DEMO_LABEL : `Invited to ${invitedTo} — sign in to join`;
-  return <SignInScreen state={state} onSignIn={handleSignIn} t={t}
+  const label = invitedTo === undefined
+    ? DEMO_LABEL
+    : strings(lang).signIn.invitedTo(invitedTo);
+  return <SignInScreen state={state} onSignIn={handleSignIn} t={t} lang={lang}
     example={demoExample} goals={demoGoals} onwardUrl={onwardUrl}
     {...(outsideHost ? { openInPayUrl } : {})}
     demoLabel={devIdentity ? `DEV IDENTITY: ${devIdentity} — never fund this wallet` : label} />;

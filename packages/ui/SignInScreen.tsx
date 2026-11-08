@@ -4,6 +4,7 @@ import { OrbitSquad } from './OrbitSquad';
 import { ScreenHeader } from './ScreenHeader';
 import { TypewriterHeading } from './TypewriterHeading';
 import { entranceProgress } from './motion';
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { vars } from './css';
 import type { OrbitMember } from './OrbitSquad';
 
@@ -35,6 +36,7 @@ export interface SignInScreenProps {
   /** Seconds since the screen appeared; drives the typewriter, the orbit and the entrances. */
   t?: number | undefined;
   demoLabel?: string | undefined;
+  lang?: Lang | undefined;
 }
 
 /** Screens 1 and 2: welcome and sign in, one screen. */
@@ -48,16 +50,18 @@ export function SignInScreen({
   onwardUrl = '/squads',
   t = 0,
   demoLabel,
+  lang = DEFAULT_LANG,
 }: SignInScreenProps) {
+  const s = strings(lang);
   const waiting = state.status === 'waiting';
   const success = state.status === 'success';
   return (
     <main className="sign-in" aria-busy={waiting}>
       <ScreenHeader demoLabel={demoLabel} />
       <div className="sign-in-body">
-        <TypewriterHeading lead="Save together. " emphasis="Nobody holds the pot." t={t} />
+        <TypewriterHeading lead={s.signIn.headingLead} emphasis={s.signIn.headingEmphasis} t={t} />
         <p className="intro" style={vars({ '--enter': entranceProgress(t, 18) })}>
-          Every share stays in its owner’s wallet, staked and earning, proven on the Nimiq chain.
+          {s.signIn.intro}
         </p>
         <div className="sign-in-orbit" style={vars({ '--enter': entranceProgress(t, 22) })}>
           <OrbitSquad
@@ -66,30 +70,31 @@ export function SignInScreen({
             backedLuna={example.backedLuna}
             targetLuna={example.targetLuna}
             t={t}
+            lang={lang}
           />
         </div>
         <div className="sign-in-status" role="status" aria-live="polite">
-          {state.status === 'idle' && <p>Sign in to get started. Your signature proves it’s you.</p>}
-          {waiting && <><p className="status-title">Approve in Nimiq Pay</p><p>Waiting for your signature…</p></>}
+          {state.status === 'idle' && <p>{s.signIn.idle}</p>}
+          {waiting && <><p className="status-title">{s.common.approveInPay}</p><p>{s.signIn.waitingSignature}</p></>}
           {(state.status === 'declined' || state.status === 'error') && <>
             <p className="status-title">{state.message}</p><p>{state.nextAction}</p>
           </>}
-          {success && <><p className="status-title">You’re signed in.</p><p className="address">{state.address}</p></>}
+          {success && <><p className="status-title">{s.signIn.signedIn}</p><p className="address">{state.address}</p></>}
         </div>
       </div>
       <footer className="sign-in-footer">
         {success
-          ? <GradientBorderButton label="Go to my squads" href={onwardUrl} t={t} />
+          ? <GradientBorderButton label={s.signIn.goToSquads} href={onwardUrl} t={t} />
           : openInPayUrl
-            ? <GradientBorderButton label="Open in Nimiq Pay ↗" href={openInPayUrl} t={t} />
+            ? <GradientBorderButton label={s.signIn.openInPay} href={openInPayUrl} t={t} />
             : <GradientBorderButton
-              label={waiting ? 'Waiting for approval…' : state.status === 'idle' ? 'Sign in with Nimiq Pay' : 'Try sign-in again'}
+              label={waiting ? s.signIn.waitingApproval : state.status === 'idle' ? s.signIn.signIn : s.signIn.tryAgain}
               onClick={onSignIn}
               disabled={disabled || waiting}
               t={t}
             />}
-        <p className="fine-print">Signing in doesn’t move any NIM.</p>
-        <GoalTicker goals={goals} caption="Example goals" t={t} />
+        <p className="fine-print">{s.signIn.fineprint}</p>
+        <GoalTicker goals={goals} caption={s.signIn.exampleGoals} t={t} />
       </footer>
     </main>
   );

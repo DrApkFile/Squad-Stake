@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { LeavingSteps, type LeavingStepsProps } from '@squad-stake/ui';
+import { LeavingSteps, strings, type Lang, type LeavingStepsProps } from '@squad-stake/ui';
 import { LUNA_PER_NIM, STAKING_FEES_LUNA } from '../config/constants';
 import { catalogError } from '../core/errors/catalog';
 import { planResponse, trackedTxResponse, type PlanWire, type TxKind } from '../core/squad-contract';
 import { planLeaving, planRemove, planRetire, type LeavingStep } from '../core/staking-actions';
+import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
 import { useTxPoll } from '../hooks/use-tx-poll';
 import { sendLeavingAction } from '../wallet/staking';
@@ -20,21 +21,23 @@ const nim = (luna: number) => String(luna / LUNA_PER_NIM);
  * them the plan is read again from the chain — so the amount that goes to Nimiq Pay is the
  * balance the chain has *now*, not the one this page loaded with (Q12).
  */
-export function LeavingContainer({ initial, now, explorerBase, demoLabel }: {
+export function LeavingContainer({ initial, now, explorerBase, initialLang, demoLabel }: {
   initial: PlanWire;
   /** From the server, so the first render matches the markup it hydrates. */
   now: number;
   explorerBase: string | null;
+  initialLang: Lang;
   demoLabel?: string | undefined;
 }) {
   const t = useSceneTime();
+  const lang = useLang(initialLang);
   const poll = useTxPoll();
   const [plan, setPlan] = useState(initial);
   const [amountNim, setAmountNim] = useState(() => nim(initial.shareLuna));
   const [ticked, setTicked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CatalogError | null>(
-    initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE') : null,
+    initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', initialLang) : null,
   );
   // The member's own zone, read once after mount. The server cannot know it, so the first
   // paint says UTC and then corrects itself; the label always names the zone it is showing,
@@ -42,7 +45,7 @@ export function LeavingContainer({ initial, now, explorerBase, demoLabel }: {
   const [tzOffsetMinutes, setTz] = useState(0);
   useEffect(() => { setTz(-new Date().getTimezoneOffset()); }, []);
 
-  const fail = (code: string) => setError(catalogError(code));
+  const fail = (code: string) => setError(catalogError(code, lang));
 
   const loadPlan = useCallback(async (): Promise<PlanWire | null> => {
     const response = await fetch(`/api/plan/${plan.squadId}`, {
@@ -54,9 +57,9 @@ export function LeavingContainer({ initial, now, explorerBase, demoLabel }: {
       return null;
     }
     setPlan(parsed.plan);
-    setError(parsed.plan.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE') : null);
+    setError(parsed.plan.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', lang) : null);
     return parsed.plan;
-  }, [plan.squadId]);
+  }, [lang, plan.squadId]);
 
   /** The pure planner decides every wallet argument from one fresh plan (never from state). */
   function decide(kind: TxKind, fresh: PlanWire): LeavingStep {
@@ -156,7 +159,8 @@ export function LeavingContainer({ initial, now, explorerBase, demoLabel }: {
     onRetire: () => void act('retire'),
     onWithdraw: () => void act('remove'),
     onRefresh: () => void loadPlan(),
-    back: { label: 'Squad', href: `/squads/${plan.squadId}` },
+    lang,
+    back: { label: strings(lang).common.backSquad, href: `/squads/${plan.squadId}` },
     demoLabel,
     ...(error ? { error } : {}),
   };

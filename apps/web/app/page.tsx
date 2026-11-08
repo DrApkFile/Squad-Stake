@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { SignInContainer } from '../src/containers/sign-in';
 import { devOptions } from '../src/dev/is-dev-server';
+import { currentLang } from '../src/i18n/server';
 import { serverEnv } from '../src/server/lib/env';
 import { currentAddress } from '../src/server/lib/session-page';
 
@@ -20,5 +21,6 @@ export default async function WelcomePage({ searchParams }: {
   if (address !== null && dev.identity === null) redirect('/squads');
   const host = new URL(serverEnv().APP_ORIGIN).host;
   return <SignInContainer devIdentity={dev.identity} initialAddress={address}
-    openInPayUrl={`https://nimpay.app/miniapps/open/${host}`} />;
+    openInPayUrl={`https://nimpay.app/miniapps/open/${host}`}
+    initialLang={await currentLang()} />;
 }

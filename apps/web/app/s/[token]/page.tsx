@@ -5,6 +5,7 @@ import { JoinCommitContainer } from '../../../src/containers/join-commit';
 import { SignInContainer } from '../../../src/containers/sign-in';
 import { authService } from '../../../src/server/lib/auth';
 import { SESSION_COOKIE } from '../../../src/server/lib/auth-http';
+import { currentLang } from '../../../src/i18n/server';
 import { serverEnv } from '../../../src/server/lib/env';
 import { joinView } from '../../../src/server/lib/squad-view';
 
@@ -21,13 +22,14 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   }
   const view = await joinView(token, address);
   if (!view) notFound();
+  const lang = await currentLang();
   if (!address) {
     // Joining requires a signed-in wallet (FAILURE_MODES "invite link guessing").
     const host = new URL(serverEnv().APP_ORIGIN).host;
     // The real container, so the button works and sign-in returns to this invite.
     return <SignInContainer devIdentity={null} initialAddress={null}
       openInPayUrl={`https://nimpay.app/miniapps/open/${host}`}
-      onwardUrl={`/s/${token}`} invitedTo={view.squad.name} />;
+      onwardUrl={`/s/${token}`} invitedTo={view.squad.name} initialLang={lang} />;
   }
-  return <JoinCommitContainer view={view} token={token} now={Date.now()} />;
+  return <JoinCommitContainer view={view} token={token} now={Date.now()} initialLang={lang} />;
 }

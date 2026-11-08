@@ -616,3 +616,186 @@ wallet directly (not counted).
 - The mock chain provider (`?chain=mock`) and Remotion; §9.11–12 fiat and earned (P1).
 - Consider passing the §7.6 refusal code (not a boolean) into `deriveLeavingSteps`, per the
   rough edge above.
+
+## Pools, earnings, fiat, five languages, templates, two deployments — 2026-11-08
+
+The six-part request after the leaving/payments slice. Nothing that existed was rebuilt: the
+chain reader, release math, member status, commitments, the tracker and the payment check were
+read first and left alone. **No protected file was modified** — `git status` shows
+`member-status.ts`, `release.ts`, `commitments.ts`, `tx-tracker.ts`, `payment-check.ts`,
+`rpc-schemas.ts`, `staking-actions.ts`, `app/api/auth/verify/route.ts` and every existing file
+in `src/wallet/` unchanged. One **new** file was added under `src/wallet/`: `host.ts`, which
+wraps the SDK's `getHostLanguage()` / `getHostFiat()`. Neither is a provider call — they need
+no approval and move nothing — but they touch `window`, so they live with the SDK.
+
+### 1 · Pool-aware validator choice (PRD §7.7)
+Source, quoted with file and line in `apps/web/src/server/lib/pool-directory.ts`:
+github.com/nimiq/validators-api — the endpoints from its README (lines 22–23, 111–117) and the
+fields from `server/utils/schemas.ts` `validatorSchema` (lines 5–12) and
+`server/utils/types.ts` `PayoutType` (lines 4–8, `restake | direct | none`). Both hosts live in
+the new `apps/web/src/config/network.ts`, keyed by `NEXT_PUBLIC_NIMIQ_NETWORK`.
+
+- `createPoolDirectory` — 10-minute cache, 5 s abort, failures never cached, an empty list
+  treated as a failed read (otherwise "no pool pays anything" would make everything ineligible).
+- `choosePoolValidator` (appended to `validator-choice.ts`; the old `chooseValidator` is
+  untouched and is now the documented fallback) — active, not jailed, not retired, **and**
+  listed by Nimiq with a payout type other than `none`; then fewest Squad Stake members, with
+  the address as the deterministic tie-break.
+- The spread count is read from the chain in `squad-view.ts` (`membersPerValidator`): one
+  cached staker read per current member address, capped at `SPREAD_SAMPLE_LIMIT` 200. Nothing
+  about a delegation is stored, so the count cannot drift from the chain. The honest reason it
+  is not stored: the only place that could write it truthfully is the protected tracker.
+- Unreadable API → the chain-only rule picks, and `PoolCard` renders `fallback: true`: the
+  title "Pool details unavailable", no fee, no payout type, and a sentence saying the choice
+  came from chain data alone.
+- The pool is shown **only** on the action that joins a validator (`not-staking`, or
+  `needs-stake` with `action: 'create'`); adding to an existing stake keeps its delegation and
+  shows nothing.
+- If nothing qualifies, the delegation stays null and `staking-actions.ts` (unchanged) blocks
+  with `NO_VALIDATOR`, which now has catalogue words in all five languages.
+
+### 2 · Earned since joining (PRD §9.12, spike S4b) — and S4b is closed
+`server/core/earned.ts` is pure; `member-earned.ts` assembles its inputs.
+- **restake**: active balance − every deposit this app watched land (`create`/`add`,
+  `INCLUDED_OK`, across every squad, because one address has one stake).
+- **direct**: the sum of transfers from the pool's payout address since the member joined.
+- Eight named reasons for "—" and no estimate branch: `NOT_STAKING`, `NO_POOL_DATA`,
+  `PAYOUT_ADDRESS_UNKNOWN`, `PAYS_NOTHING`, `OUTSIDE_STAKE`, `UNTRACKED_DEPOSIT`, `LEAVING`,
+  `CHAIN_UNAVAILABLE`. A deposit with no verdict is `UNTRACKED_DEPOSIT` (a hash is not success
+  and not failure); a staker this app did not create is `OUTSIDE_STAKE`; any non-failed
+  leaving transaction is `LEAVING`.
+- **S4b's answer is negative, and that is the finding.** Nimiq's validator data publishes **no
+  payout address** — verified in `schemas.ts`, `types.ts`, the per-validator files under
+  `public/validators/`, and in both live payloads (21 mainnet, 13 testnet validators, 0 with
+  one). So a direct pool's payouts cannot be told apart from any other incoming transfer and
+  the screen says exactly that. The branch is written and tested, and will measure the day a
+  pool publishes an address. Recorded in `briefing/REALITY_SPIKES.md`.
+- **Privacy**: earned is computed and sent **only for the member looking at the page**, and is
+  null for every other row and on the public proof view — earned plus the deposits it was
+  measured against is that member's active balance. Same rule as `SHORT.shortBy`.
+- The reason crosses the wire as a code, never a sentence, so the words follow the language.
+  The "why" is a `<details>`/`<summary>` disclosure: one tap, no JavaScript, deterministic for
+  Remotion. `scripts/measure-scenes.mjs` now counts `summary` as a tap target.
+
+### 3 · Fiat estimates (PRD §9.11)
+`server/lib/price.ts` + `GET /api/price?currency=XXX`: CoinGecko's keyless
+`simple/price?ids=nimiq-2` (`nimiq` is the pre-2018 asset), 10-minute cache per currency,
+5 s abort. A failed read, a non-positive quote or a currency CoinGecko does not quote answers
+503 and the screen shows **nothing** — there is no stale-price fallback. `useFiat()` reads the
+currency after mount from `getHostFiat()`, so the estimate follows Nimiq Pay; outside Nimiq Pay
+and on the public proof page there is no estimate at all, because nobody has said a currency.
+Every figure reads `≈ … · estimate` with the source and the price's age beside it.
+Of Nimiq Pay's four currencies CoinGecko quotes USD, EUR and CRC but **not GMD**; a GMD user
+sees no estimate rather than a figure in a currency they did not choose.
+
+### 4 · Five languages: en, es, de, fr, pt (PRD §10)
+One catalogue in `packages/ui/i18n/`, ~460 entries per language in three files of English
+(`en-core`, `en-screens`, `en-features`) and one file per other language, each declared
+`const de: Strings = {…}` — so a missing, renamed or wrong-arity key fails `pnpm typecheck` in
+every language. Entries that interpolate are **functions**, not placeholder templates.
+- **No `Intl` anywhere.** Separators, month names, percent spacing and the countdown words live
+  in each catalogue's `fmt` section, because ICU data differs between a browser and the
+  Remotion renderer and the video has to match the app glyph for glyph.
+- The error catalogue now holds only the non-language flags (`retryable`, `changedAnything`);
+  its words come from the same catalogue, and a test pins that the flags do not vary by
+  language and that an unknown code still degrades to `UNAVAILABLE`.
+- Language = Nimiq Pay's `getHostLanguage()`, then the browser, then English. The server
+  guesses from `Accept-Language` (RFC 9110 §12.5.4 parser, q-weights, `*` and `q=0` dropped)
+  so the first paint and `<html lang>` are right; `useLang` switches after mount.
+
+### 5 · Squad templates (PRD §10)
+Trip, gift, gadget, rent buffer and event, each filling the mode, a name in the member's own
+language and a suggested date (120/30/60/30/90 days, all well past `GOAL_MIN_AHEAD_MS`), plus a
+"start from scratch" chip. **A template never fills the recipient address** — the one field
+where a suggestion could cost money. The dates come from the server's clock
+(`templateGoalDates(now)`) so the first paint and the hydrated screen agree.
+
+### 6 · Two deployments from one repository
+`apps/web/src/config/network.ts` is now the only place a chain-specific value exists: RPC node,
+explorer base and Validators API, keyed by `NEXT_PUBLIC_NIMIQ_NETWORK`. `rpc-client.ts`, the
+proof page and the leaving/pay pages were changed to read it; the duplicated per-network maps in
+those three pages are gone. README "Deploy" gained a two-deployment section: two Vercel
+projects, two Neon branches, their own `APP_ORIGIN`, the same commit deployed twice, and the
+table of what differs. `tests/unit/network-config.test.ts` asserts the switch **and scans every
+`.ts`/`.tsx` under `apps/web/app` and `apps/web/src` for a hardcoded endpoint outside that one
+file** (comments may still record where a recording came from).
+
+One asymmetry left deliberately unchanged: `serverEnv()` defaults an unset network to
+`testnet`, while `src/wallet/network.ts`'s `appNetwork()` defaults to `mainnet`. Either way the
+host guard's comparison fails and actions stay blocked, so the asymmetry is safe — but it is in
+protected wallet code, so it was reported rather than quietly changed.
+
+### What ran, and what did not
+- New code: `src/config/network.ts`, `server/lib/{pool-directory,price}.ts`,
+  `server/core/{earned,member-earned}.ts`, `app/api/price/route.ts`, `hooks/use-fiat.ts`,
+  `src/i18n/{accept-language,server,client}.ts`, `src/wallet/host.ts`,
+  `packages/ui/{i18n/*,earned.ts,fiat.ts,templates.ts,PoolCard.tsx}`,
+  `packages/ui/scenes/features.ts`. Changed: `validator-choice.ts` (append-only),
+  `squad-detail.ts` (one optional dependency), `squad-view.ts`, `squad-store.ts` +
+  `core/squads.ts` (`joinedAt`, `trackedTxsForAddress`, `activeMemberAddresses`),
+  `view-contract.ts`, `squad-contract.ts`, the error catalogue, every screen in
+  `packages/ui` (a `lang` prop) and all nine pages.
+- **22 new scenes** (`pool-restake`, `pool-direct`, `pool-fallback`,
+  `pool-not-shown-when-ready`, `earned-measured`, `earned-unknown`, `fiat-estimate`,
+  `fiat-and-earned`, `fiat-my-squads`, `templates-offered`, `templates-picked`, and
+  `lang-{es,de,fr,pt}-{commit,squad,create}`), registered on `/scenes`.
+- **New tests, all passing: 123 unit (was 100) and 34 adversarial (was 29).**
+  `pools` (5: the recorded payload, the 10-minute cache, failing closed, pool-aware choice
+  and spread, the fallback rule), `earned` (3, every reason), `price` (3), `i18n` (5: the
+  catalogue shape across five languages with no English left in them, language negotiation,
+  the no-`Intl` formatting, the error catalogue, the templates), `ui-features` (5),
+  `network-config` (2, including the source scan), and adversarial `features` (5: a hostile
+  directory, a lying spread count, a lying price source, the earned privacy mask, and a
+  handcrafted reason code).
+- **Recorded HTTP fixtures** with provenance in `tests/fixtures/http/README.md`:
+  the whole testnet Validators API payload and a CoinGecko quote, both unmodified.
+- `pnpm gate` — **typecheck, lint, 123 unit tests and 34 adversarial tests all passed (no
+  skips)**, and then the run was **killed by the harness during `next build` because the
+  machine ran low on memory**. So in this session the Next build, `test:production`, the
+  secret scan, `deps:check` and `check:tracked` **did not run**: the gate is *not* green yet
+  and must be re-run from a clean tree. (An earlier run of the same gate failed at the unit
+  tests on a real bug — `backTo` used before initialization in `scenes/features.ts`, a `const`
+  arrow in the temporal dead zone — which is now a hoisted function declaration.)
+  Log: `.cache/features-gate-2026-11-08.log`.
+- `LIVE_RPC=1 pnpm test:live` (log `.cache/live-2026-11-08-features.log`): **two tests, zero
+  skips**, after one `curl` warm-up of the three hosts (the first attempt timed out on the
+  cold read at the deliberate five seconds, the same behaviour as every earlier slice; the
+  timeout was never raised). The existing RPC test still passes: head 16,252,929, staker
+  `NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7`, validator
+  `NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S` with `jailedFrom: null`, release from a real
+  inclusion block 3,140,555 → 3,204,811, `PAYMENT_DATA_MISMATCH` on a real transfer.
+  The **new** live test read Nimiq's testnet Validators API and CoinGecko:
+  **13 pools listed, payout types `restake` and `direct`, 0 publishing a payout address**;
+  11 active validators; §7.7 chose `NQ08 N4RH FQDL TE7S 8C66 65LT KYDU Q382 YG7U`
+  ("Not-A-Pool", fee 0.11, restake); with that pool marked full the spread moved to
+  `NQ24 DJE3 KX3U HG5X 1BXP 8XQ3 SK7S X364 N7G7`; EUR per NIM 0.00024088; GMD `NO_QUOTE`.
+  It signs and sends nothing.
+- `pnpm check:scenes` against the dev server: **129 scenes × 2 themes × {390, 375} = 516
+  frames, 0 failures** — nothing crossing the frame, no horizontal scroll, every tap target
+  (now including `summary`) at least 44 px. Record: `.cache/scene-measurements.json`
+  (`measuredAt 2026-11-08T20:47:46Z`). Looked at `pool-restake`, `earned-unknown` and the
+  German commit sheet in both themes; the French squad page, `fiat-and-earned`,
+  `templates-offered` and `pool-fallback` are measured and screenshotted but not inspected.
+  **Caveat:** two small text edits landed *after* that measurement — the `NO_VALIDATOR`
+  wording (no scene renders it) and the localised back label in the twelve `lang-*` scenes
+  (one short word per frame, e.g. "Squads" → "Escuadras"). Those twelve scenes should be
+  measured again with the gate.
+
+### Not verified by this slice
+No wallet, no Nimiq Pay approval sheet, no phone, no mainnet, and **no staking transaction has
+ever been sent with a pool-aware delegation**. No database was touched in this session at all:
+`joinedAt`, `trackedTxsForAddress` and `activeMemberAddresses` are proven against the in-memory
+twin only, and the SQL behind them has never run — the next database run must exercise them.
+The fiat estimate has never been seen inside Nimiq Pay, so `getHostFiat()` returning a real
+currency is unproven; the same is true of `getHostLanguage()` driving the language. The
+direct-pool branch of "earned" cannot be proven at all until some pool publishes a payout
+address. Nothing here has been deployed, so the two-deployment section of the README is a
+written procedure, not an observed one.
+
+### Next
+- Re-run `pnpm gate` from a clean tree (it stopped at the build for lack of memory) and
+  `pnpm check:scenes` for the twelve `lang-*` scenes.
+- The three leaving steps and a Mode A payment on a real phone on testnet, then mainnet.
+- Neon through the pooler, including the concurrent-commit refusal and the three new queries.
+- The mock chain provider (`?chain=mock`) and Remotion.
+- Consider passing the §7.6 refusal code (not a boolean) into `deriveLeavingSteps`.

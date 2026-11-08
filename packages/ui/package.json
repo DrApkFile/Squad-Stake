@@ -5,9 +5,16 @@
   "exports": {
     ".": "./index.ts",
     "./styles.css": "./styles.css",
-    "./scenes": "./scenes/index.ts"
+    "./scenes": "./scenes/index.ts",
+    "./i18n": "./i18n/index.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "peerDependencies": { "react": "19.2.8" },
-  "devDependencies": { "react": "19.2.8" }
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "react": "19.2.8"
+  }
 }

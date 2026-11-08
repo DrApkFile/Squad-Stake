@@ -56,6 +56,49 @@ Vercel runs no migrations. Apply them from a shell with the direct endpoint:
 `DATABASE_URL_UNPOOLED=… pnpm db:migrate` (it is idempotent and takes a transaction-scoped
 advisory lock).
 
+### Two deployments from this one repository
+
+A mainnet copy and a testnet copy are the **same commit deployed twice**, never a branch or a
+build flag: two Vercel projects, each with its own Neon branch and its own `APP_ORIGIN`.
+
+| | mainnet copy | testnet copy |
+|---|---|---|
+| Vercel project | e.g. `squad-stake` | e.g. `squad-stake-testnet` |
+| `NEXT_PUBLIC_NIMIQ_NETWORK` | `mainnet` | `testnet` |
+| Neon | the `production` branch | a second branch (Neon → Branches → *Create branch* from `production`), which has its own pooled and direct strings |
+| `DATABASE_URL` / `DATABASE_URL_UNPOOLED` | that branch's pooled / direct string | the other branch's pooled / direct string |
+| `APP_ORIGIN` | that project's own origin, e.g. `https://squad-stake.vercel.app` | that project's own origin, e.g. `https://squad-stake-testnet.vercel.app` |
+| Migrations | `DATABASE_URL_UNPOOLED=<that branch> pnpm db:migrate` | the same command against the other branch |
+| Nimiq Pay deeplink | `https://nimpay.app/miniapps/open/<that project's host>` (built from `APP_ORIGIN`) | the same, with the other host |
+
+Everything else is identical, and every setting in the table above is read at run time or
+inlined at build time from those four variables — so the two copies never share a database, a
+session cookie or an origin. Two separate Neon branches also mean a testnet squad can never
+appear on the mainnet copy: the squads are rows, and the rows are in different databases.
+
+Why it is safe to deploy the same commit to both: **every network-specific value comes from
+`NEXT_PUBLIC_NIMIQ_NETWORK`**, and there is one place that turns it into values —
+`apps/web/src/config/network.ts`:
+
+| Value | mainnet | testnet |
+|---|---|---|
+| RPC node (every chain read, and the call the proof view prints) | `https://rpc.nimiqwatch.com` | `https://rpc.testnet.nimiqwatch.com` |
+| Explorer base (transaction links on the leaving and pay screens) | `https://nimiq.watch/#` | `https://test.nimiq.watch/#` |
+| Nimiq Validators API (PRD §7.7 pool data) | `https://validators-api-main.je-cf9.workers.dev/api/v1/validators` | `https://validators-api-test.je-cf9.workers.dev/api/v1/validators` |
+
+The host guard is driven by the same variable: `apps/web/src/wallet/network.ts` blocks every
+action unless `window.nimiqPay.network` equals it, so a testnet build opened inside a mainnet
+Nimiq Pay can read but cannot act, and the other way round. `serverEnv()` defaults the variable
+to `testnet` when it is unset or misspelt, so a missing variable can never point a deployment
+at mainnet; the client-side guard's own default is `mainnet`, which fails the comparison and
+therefore also blocks actions. The proof view prints the network it read and the exact RPC
+call, so a reader can tell the two copies apart without taking the app's word for it.
+
+Grep for a hardcoded chain before deploying: `rg 'nimiq\.watch|nimiqwatch|workers\.dev' --type ts
+apps packages` should only hit `apps/web/src/config/network.ts`, the fixture scenes in
+`packages/ui/scenes/` (sample data, labelled as such) and comments recording where a recording
+came from.
+
 The request-path client uses the pooled URL with `prepare: false`, because PgBouncer's
 transaction mode cannot keep a named prepared statement alive between statements, and with
 `ssl: 'verify-full'`, which authenticates Neon's publicly trusted certificate rather than only

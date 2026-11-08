@@ -3,6 +3,8 @@ import { GradientBorderButton } from './GradientBorderButton';
 import { OrbitSquad } from './OrbitSquad';
 import { ScreenHeader } from './ScreenHeader';
 import { countdown, daysBetween, formatDay, formatLuna, formatMoment, readAge } from './format';
+import { fiatLine, fiatNote, type FiatRate } from './fiat';
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { statusTone } from './status';
 import type { MemberRowView } from './MemberList';
 import type { OrbitMember } from './OrbitSquad';
@@ -48,6 +50,9 @@ export interface SquadScreenProps {
   state?: string | undefined;
   /** Mode A: where this member pays their own share. */
   payUrl?: string | null | undefined;
+  /** PRD §9.11: approximate fiat beside the target and the totals. Null when the price source
+   * failed, and then nothing is shown (packages/ui/fiat.ts). */
+  fiat?: FiatRate | null | undefined;
   loading?: boolean | undefined;
   error?: { message: string; nextAction: string } | undefined;
   /** True once the container has put the invite link on the clipboard. */
@@ -58,16 +63,19 @@ export interface SquadScreenProps {
   t?: number | undefined;
   demoLabel?: string | undefined;
   back?: { label: string; href: string } | undefined;
+  lang?: Lang | undefined;
 }
 
 const THREE_DAYS_MS = 3 * 86_400_000;
 
-function orbitMembers(members: readonly MemberRowView[]): readonly OrbitMember[] {
+function orbitMembers(
+  members: readonly MemberRowView[], youLabel: string,
+): readonly OrbitMember[] {
   return members.map((member) => ({
     id: member.id,
     identiconSvg: member.identiconSvg,
     tone: member.status === null ? 'NEUTRAL' : statusTone(member.status.status),
-    label: member.isYou ? 'You' : member.shortAddress,
+    label: member.isYou ? youLabel : member.shortAddress,
   }));
 }
 
@@ -89,6 +97,7 @@ export function SquadScreen({
   payments = null,
   state,
   payUrl = null,
+  fiat = null,
   loading = false,
   error,
   shared = false,
@@ -98,7 +107,9 @@ export function SquadScreen({
   t = 0,
   demoLabel,
   back,
+  lang = DEFAULT_LANG,
 }: SquadScreenProps) {
+  const s = strings(lang);
   const days = daysBetween(now, squad.goalAt);
   const showLeaveBy = leaveBy - now <= THREE_DAYS_MS;
   const completed = state === 'COMPLETED';
@@ -107,47 +118,56 @@ export function SquadScreen({
     <main className="sheet" aria-busy={loading}>
       <ScreenHeader back={back} demoLabel={demoLabel} />
       <div className="sheet-body">
-        <p className="eyebrow">{squad.mode === 'A' ? 'SHARED GOAL' : 'TOGETHER GOALS'}</p>
+        <p className="eyebrow">{squad.mode === 'A' ? s.common.eyebrowModeA : s.common.eyebrowModeB}</p>
         <OrbitSquad
           goal={squad.name}
-          members={orbitMembers(members)}
+          members={orbitMembers(members, s.common.you)}
           backedLuna={loading ? null : backedLuna}
           targetLuna={squad.targetLuna}
           t={t}
+          lang={lang}
         />
         <p className="intro">
-          {formatLuna(committedLuna)} committed by {members.length}{' '}
-          {members.length === 1 ? 'member' : 'members'}. Goal day {formatDay(squad.goalAt)}
-          {days >= 0 ? `, in ${days} ${days === 1 ? 'day' : 'days'}` : ''}.
+          {s.squad.intro(
+            formatLuna(committedLuna, lang),
+            s.common.members(members.length),
+            s.common.goalDayIn(formatDay(squad.goalAt, lang), days >= 0 ? days : null),
+          )}
         </p>
         <p className="member-status-age">
           {backedLuna === null
-            ? 'Backed total: — · no chain read yet'
-            : `${formatLuna(backedLuna)} of that is backed by active stake`}
+            ? s.common.backedTotalUnread
+            : s.squad.backedLine(formatLuna(backedLuna, lang))}
           {' · '}
-          {readAge(readAt, now)}
+          {readAge(readAt, now, lang)}
         </p>
+        {/* The estimate is extra, under the figures it approximates, and it names its source
+            and age in the note below (PRD §9.11). */}
+        {fiat !== null && (
+          <p className="member-status-age squad-fiat">
+            {fiatLine(squad.targetLuna ?? committedLuna, fiat, lang)}
+          </p>
+        )}
         {/* Every chain figure on this page can be re-read on demand, whether or not the last
             read failed: the age above is only meaningful next to a way to renew it. */}
         {onRefresh && (
           <button className="secondary-button secondary-button-quiet" onClick={onRefresh}>
-            Check the chain again
+            {s.common.refreshChain}
           </button>
         )}
 
         {showLeaveBy && !completed && (
           <div className="banner" data-tone="SHORT" role="note">
             <p className="banner-title">
-              Start leaving by {formatMoment(leaveBy, tzOffsetMinutes)}
-              {leaveBy > now ? ` — ${countdown(leaveBy - now)} left` : ' — that has passed'}
+              {s.squad.leaveByTitle(formatMoment(leaveBy, tzOffsetMinutes, lang))}
+              {leaveBy > now
+                ? s.squad.leaveByLeft(countdown(leaveBy - now, lang))
+                : s.squad.leaveByPassed}
             </p>
-            <p>
-              Unstaking takes up to a day on the Nimiq chain, so a stake you want liquid on goal
-              day has to start leaving before then. Nothing starts by itself.
-            </p>
+            <p>{s.squad.leaveByBody}</p>
             <p className="banner-action">
               <a className="secondary-button secondary-button-quiet" href={leavingUrl}>
-                Start leaving
+                {s.squad.startLeaving}
               </a>
             </p>
           </div>
@@ -155,8 +175,8 @@ export function SquadScreen({
 
         {completed && (
           <div className="banner" data-tone="BACKED" role="note">
-            <p className="banner-title">This squad is complete</p>
-            <p>Every member who committed has paid, and each payment was checked on-chain.</p>
+            <p className="banner-title">{s.squad.completeTitle}</p>
+            <p>{s.squad.completeBody}</p>
           </div>
         )}
 
@@ -167,30 +187,27 @@ export function SquadScreen({
           </div>
         )}
 
-        <h2 className="section-title">Members</h2>
-        <MemberList members={members} now={now} />
+        <h2 className="section-title">{s.common.membersSection}</h2>
+        <MemberList members={members} now={now} lang={lang} />
 
         {squad.mode === 'A' && squad.recipient !== null && (
-          <p className="fine-print fine-print-left">
-            On goal day, every share is paid to {squad.recipient}, the recipient fixed when the
-            squad was created.
-          </p>
+          <p className="fine-print fine-print-left">{s.squad.recipientNote(squad.recipient)}</p>
         )}
 
         {payments !== null && (
           <>
-            <h2 className="section-title">Payments</h2>
+            <h2 className="section-title">{s.common.paymentsSection}</h2>
             <p className="member-status-age">
-              {payments.paid} of {payments.owing} paid
+              {s.common.paidOf(payments.paid, payments.owing)}
             </p>
             <ul className="payment-list">
               {payments.rows.map((row) => (
                 <li className="payment-row" key={row.address} data-verified={row.verified ? 'yes' : 'no'}>
                   <span className="payment-who">{row.address}</span>
                   <span className="payment-state">
-                    {row.verified ? 'Paid · verified on-chain'
-                      : row.hash === null ? 'Not paid yet'
-                        : 'Payment not counted yet'}
+                    {row.verified ? s.common.paymentVerified
+                      : row.hash === null ? s.common.paymentNone
+                        : s.common.paymentUncounted}
                   </span>
                   {/* The hash is public on purpose: a reader re-checks it on an explorer
                       (briefing/PROOF_PLAN.md "Verify it yourself"). */}
@@ -199,38 +216,38 @@ export function SquadScreen({
               ))}
             </ul>
             {payUrl !== null && (
-              <a className="secondary-button secondary-button-quiet" href={payUrl}>Pay my share</a>
+              <a className="secondary-button secondary-button-quiet" href={payUrl}>
+                {s.common.payMyShare}
+              </a>
             )}
           </>
         )}
 
-        <h2 className="section-title">Share</h2>
+        <h2 className="section-title">{s.common.shareSection}</h2>
         {inviteUrl === null ? (
-          <p className="field-hint">
-            This squad was created before invite links could be shown again, so its link cannot
-            be recovered. New members need a link from whoever created it.
-          </p>
+          <p className="field-hint">{s.squad.inviteMissing}</p>
         ) : (
           <>
             <p className="field-input field-input-mono">{inviteUrl}</p>
             <p className="field-hint">
-              {shared
-                ? 'Invite link copied.'
-                : 'Anyone with this link can join, so share it only with your squad.'}
+              {shared ? s.squad.inviteCopied : s.squad.inviteHint}
             </p>
           </>
         )}
         <p className="fine-print fine-print-left">
-          Anyone can check this squad without signing in: <span className="mono">{proofUrl}</span>
+          {s.squad.proofNote} <span className="mono">{proofUrl}</span>
         </p>
+        {fiat !== null && <p className="fine-print fine-print-left">{fiatNote(fiat, now, lang)}</p>}
       </div>
       <footer className="sheet-footer">
         <a className="primary-button" href={commitUrl}>
-          {you === undefined || you.committedLuna === 0 ? 'Commit my share' : 'Change my commitment'}
+          {you === undefined || you.committedLuna === 0
+            ? s.squad.commitMine
+            : s.squad.changeCommitment}
         </a>
-        {inviteUrl !== null && <GradientBorderButton label="Share invite" onClick={onShare} t={t} />}
+        {inviteUrl !== null && <GradientBorderButton label={s.squad.shareInvite} onClick={onShare} t={t} />}
         {onLeave && (
-          <button className="secondary-button" onClick={onLeave}>Leave squad</button>
+          <button className="secondary-button" onClick={onLeave}>{s.squad.leaveSquad}</button>
         )}
       </footer>
     </main>

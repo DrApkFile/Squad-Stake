@@ -4,10 +4,14 @@ export { MemberStatusBadge, MemberStatusScene } from './MemberStatusBadge';
 export type { MemberStatusBadgeProps, MemberStatusView } from './MemberStatusBadge';
 export { PrivacyNotice } from './PrivacyNotice';
 export type { PrivacyNoticeProps } from './PrivacyNotice';
+export { SQUAD_TEMPLATES, TEMPLATE_IDS, isoDay, templateGoalDates, templateText } from './templates';
+export type { SquadTemplate, TemplateId } from './templates';
 export { CreateSquadScreen } from './CreateSquadScreen';
 export type { CreateSquadScreenProps, CreateSquadValues } from './CreateSquadScreen';
 export { JoinCommitSheet } from './JoinCommitSheet';
 export type { JoinCommitSheetProps, JoinCommitState } from './JoinCommitSheet';
+export { PoolCard } from './PoolCard';
+export type { PoolCardProps, PoolView } from './PoolCard';
 export { LeaveConfirm } from './LeaveConfirm';
 export type { LeaveConfirmProps } from './LeaveConfirm';
 export { MySquadsScreen } from './MySquadsScreen';
@@ -24,6 +28,10 @@ export { ProofScreen } from './ProofScreen';
 export type { ProofScreenProps } from './ProofScreen';
 export { MemberList } from './MemberList';
 export type { MemberListProps, MemberRowView } from './MemberList';
+export {
+  earnedAmountText, earnedBasisText, earnedReasonText, earnedWhyText,
+  type EarnedBasis, type EarnedReason, type EarnedView,
+} from './earned';
 export { OrbitSquad, OrbitScene } from './OrbitSquad';
 export type { OrbitMember, OrbitSquadProps, OrbitSceneProps } from './OrbitSquad';
 export { GradientBorderButton } from './GradientBorderButton';
@@ -36,10 +44,14 @@ export { ScreenHeader } from './ScreenHeader';
 export type { ScreenHeaderProps } from './ScreenHeader';
 export { StatusDot } from './StatusDot';
 export type { SquadStatusTone, StatusDotProps } from './StatusDot';
-export { STATUS_LABELS, statusTone } from './status';
+export { statusLabel, statusTone } from './status';
 export type { MemberStatusName } from './status';
 export { REDUCED_MOTION_T } from './motion';
 export {
-  formatLuna, formatNim, formatDay, formatDayIn, formatTimeIn, formatMoment, zoneLabel,
-  countdown, daysBetween, readAge, shortAddress,
+  formatLuna, formatNim, formatCount, formatPercent, formatDay, formatDayIn, formatTimeIn, formatMoment,
+  zoneLabel, countdown, daysBetween, readAge, shortAddress,
 } from './format';
+export { DEFAULT_LANG, LANGS, isLang, parseLang, pickLang, strings } from './i18n';
+export { fiatLine, fiatNote, fiatValue } from './fiat';
+export type { FiatRate } from './fiat';
+export type { Lang, Strings } from './i18n';

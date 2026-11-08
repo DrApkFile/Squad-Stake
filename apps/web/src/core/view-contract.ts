@@ -6,6 +6,23 @@ export interface JoinView {
   member: { activeBalanceLuna: number | null; otherCommitmentsLuna: number; readAt: number } | null;
   delegation: string | null;
   minimumLuna: number;
+  /**
+   * PRD §7.7: the pool the chosen validator runs, shown before the Nimiq Pay approval that
+   * creates the staker. Null when no validator was chosen (nothing to show yet, or nothing
+   * eligible). `fallback: true` means Nimiq's Validators API could not be read, so the
+   * choice came from chain data alone and the sheet says so instead of implying a vetted pool.
+   */
+  pool: PoolWire | null;
+}
+
+export interface PoolWire {
+  address: string;
+  name: string | null;
+  /** A fraction of the reward (0.05 = 5%), or null when the pool publishes no fee. */
+  feeFraction: number | null;
+  payout: 'restake' | 'direct' | 'none' | null;
+  payoutSchedule: string | null;
+  fallback: boolean;
 }
 
 /**
@@ -28,7 +45,17 @@ export interface SquadMemberWire {
   isYou: boolean;
   /** A tracked transaction with no verdict yet. A hash is not success (PRD Q10). */
   pending: { confirmations: number | null; requiredConfirmations: number } | null;
+  /** PRD §9.12: what this member's stake has earned since joining, measured on the chain,
+   * or the reason it cannot be measured. */
+  earned: EarnedWire | null;
 }
+
+/** The wire twin of `server/core/earned.ts`'s result; `EarnedView` in packages/ui words it. */
+export type EarnedWire =
+  | { known: true; luna: number; basis: { kind: 'restake'; depositsLuna: number } | { kind: 'direct'; payouts: number } }
+  | { known: false; reason: EarnedReasonWire };
+export type EarnedReasonWire = 'NOT_STAKING' | 'NO_POOL_DATA' | 'PAYOUT_ADDRESS_UNKNOWN'
+  | 'PAYS_NOTHING' | 'OUTSIDE_STAKE' | 'UNTRACKED_DEPOSIT' | 'LEAVING' | 'CHAIN_UNAVAILABLE';
 
 export interface SquadView {
   squadId: string;

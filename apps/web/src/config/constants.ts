@@ -48,3 +48,16 @@ export const LEAVE_BY_WARNING_MS = 3 * 24 * 60 * 60 * 1000;
  * loop (ARCHITECTURE "Vercel notes"). Two minutes of five-second checks, then a manual retry. */
 export const TX_POLL_INTERVAL_MS = 5_000;
 export const TX_POLL_ATTEMPTS = 24;
+
+/**
+ * PRD §7.7 "spread members": how many member addresses the spread count samples. The count
+ * comes from one staker read per address (through the 60 s cache), on the one screen where a
+ * member is about to create a staker, so it is bounded rather than growing with the app. A
+ * smaller sample only makes the spread less even; it can never pick an ineligible validator.
+ */
+export const SPREAD_SAMPLE_LIMIT = 200;
+
+/** PRD §9.12: how many of an address's transactions are scanned for pool payouts. The upstream
+ * `max` is an `Option<u16>` (rpc-schemas.ts), and a pool paying every 3 hours produces a few
+ * hundred a year, so this is a page, not a promise of completeness. */
+export const EARNED_TX_PAGE = 500;

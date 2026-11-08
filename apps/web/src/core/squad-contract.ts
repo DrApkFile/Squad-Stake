@@ -71,6 +71,18 @@ const memberStatusBody = z.union([
   z.object({ status: z.literal('SHORT'), shortBy: z.number().int().nullable() }).strict(),
   z.object({ status: z.literal('UNSTAKING'), releaseBlock: z.number().int().nullable() }).strict(),
 ]);
+/** PRD §9.12. Either a measured amount with the basis it was measured from, or the reason
+ * it cannot be measured — there is no third case, because an estimate is never shown. */
+export const earnedReason = z.enum(['NOT_STAKING', 'NO_POOL_DATA', 'PAYOUT_ADDRESS_UNKNOWN',
+  'PAYS_NOTHING', 'OUTSIDE_STAKE', 'UNTRACKED_DEPOSIT', 'LEAVING', 'CHAIN_UNAVAILABLE']);
+export const earnedBody = z.union([
+  z.object({ known: z.literal(true), luna: z.number().int().nonnegative(),
+    basis: z.union([
+      z.object({ kind: z.literal('restake'), depositsLuna: z.number().int().nonnegative() }).strict(),
+      z.object({ kind: z.literal('direct'), payouts: z.number().int().nonnegative() }).strict(),
+    ]) }).strict(),
+  z.object({ known: z.literal(false), reason: earnedReason }).strict(),
+]);
 const squadMemberBody = z.object({
   address: addressInput,
   committedLuna: z.number().int().nonnegative(),
@@ -81,6 +93,7 @@ const squadMemberBody = z.object({
     confirmations: z.number().int().nullable(),
     requiredConfirmations: z.number().int(),
   }).strict().nullable(),
+  earned: earnedBody.nullable(),
 }).strict();
 const squadViewBody = z.object({
   squadId: z.uuid(),
@@ -192,3 +205,13 @@ export const payResponse = z.discriminatedUnion('ok', [
 ]);
 export type StepStateWire = z.infer<typeof stepState>;
 export type PlanWire = z.infer<typeof planBody>;
+
+/** PRD §9.11. The price route answers the rate alone; the screens label it an estimate and
+ * print its age, and a failure means no estimate is rendered at all. */
+export const priceResponse = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), price: z.object({
+    currency: z.string().length(3), perNim: z.number().positive(),
+    readAt: z.number().int(), source: z.string(),
+  }).strict() }).strict(),
+  failure,
+]);

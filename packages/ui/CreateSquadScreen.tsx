@@ -1,4 +1,6 @@
+import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
+import { SQUAD_TEMPLATES, TEMPLATE_IDS, templateText, type TemplateId } from './templates';
 
 export interface CreateSquadValues {
   name: string;
@@ -15,6 +17,12 @@ export interface CreateSquadScreenProps {
   values: CreateSquadValues;
   /** Earliest allowed goal date (YYYY-MM-DD), computed from `now` by the container. */
   minGoalDate: string;
+  /**
+   * PRD §10: the suggested goal date of each quick-start template, `YYYY-MM-DD`. Dates depend
+   * on the clock, so the container computes them (`templateGoalDates(now)`) and this screen
+   * stays pure. Absent = no quick starts, which is what the fixture for the bare form shows.
+   */
+  templateDates?: Record<TemplateId, string> | undefined;
   error?: { message: string; nextAction: string };
   /** Set once the squad exists: the form is replaced by the share step. `squadUrl` is where
    * the creator goes next; `inviteUrl` is what they hand to the squad. */
@@ -23,85 +31,112 @@ export interface CreateSquadScreenProps {
   onChange?: (patch: Partial<CreateSquadValues>) => void;
   onSubmit?: () => void;
   demoLabel?: string;
+  lang?: Lang | undefined;
 }
 
 /** Screen 4. Controlled: every value and the minimum date come in as props. */
 export function CreateSquadScreen({
-  values, minGoalDate, error, created, busy = false, onChange, onSubmit, demoLabel, back,
+  values, minGoalDate, templateDates, error, created, busy = false, onChange, onSubmit,
+  demoLabel, back, lang = DEFAULT_LANG,
 }: CreateSquadScreenProps) {
+  const s = strings(lang);
   const modeA = values.mode === 'A';
   if (created) {
     return <main className="sheet">
     <ScreenHeader back={back} demoLabel={demoLabel} />
       <div className="sheet-body">
-        <p className="eyebrow">SQUAD {created.shortId.toUpperCase()}</p>
-        <h1>{values.name}<br />is ready.</h1>
-        <p className="intro">Share this link. Friends sign in with Nimiq Pay and commit from
-          their own wallet.</p>
+        <p className="eyebrow">{s.create.squadEyebrow(created.shortId.toUpperCase())}</p>
+        <h1>{values.name}<br />{s.create.readyHeadingTail}</h1>
+        <p className="intro">{s.create.readyIntro}</p>
         <p className="field-input field-input-mono">{created.inviteUrl}</p>
-        <p className="field-hint">Anyone with the link can join, so share it only with your squad.</p>
+        <p className="field-hint">{s.create.inviteHint}</p>
       </div>
       <footer className="sheet-footer">
-        <a className="primary-button" href={created.squadUrl}>Open the squad</a>
+        <a className="primary-button" href={created.squadUrl}>{s.create.openSquad}</a>
       </footer>
     </main>;
   }
   return <main className="sheet" aria-busy={busy}>
     <ScreenHeader back={back} demoLabel={demoLabel} />
     <div className="sheet-body">
-      <p className="eyebrow">NEW SQUAD</p>
-      <h1>What are you<br />saving for?</h1>
+      <p className="eyebrow">{s.create.eyebrow}</p>
+      <h1>{s.create.headingTop}<br />{s.create.headingBottom}</h1>
+
+      {/* A template only fills in fields the member can still change, and never the
+          recipient address (packages/ui/templates.ts). */}
+      {templateDates !== undefined && <div className="templates">
+        <p className="field-label">{s.templates.label}</p>
+        <div className="template-row">
+          {TEMPLATE_IDS.map((id) => {
+            const text = templateText(id, lang);
+            const picked = values.name === text.name && values.mode === SQUAD_TEMPLATES[id].mode;
+            return <button key={id} type="button" disabled={busy}
+              className={`template-chip${picked ? ' template-chip-on' : ''}`}
+              aria-pressed={picked}
+              onClick={() => onChange?.({
+                name: text.name, mode: SQUAD_TEMPLATES[id].mode, goalDate: templateDates[id],
+              })}>
+              {text.label}
+            </button>;
+          })}
+          <button type="button" className="template-chip" disabled={busy}
+            onClick={() => onChange?.({ name: '', goalDate: '' })}>
+            {s.templates.clear}
+          </button>
+        </div>
+        <p className="field-hint">{s.templates.hint}</p>
+      </div>}
 
       <label className="field">
-        <span className="field-label">Squad name</span>
+        <span className="field-label">{s.create.nameLabel}</span>
         <input className="field-input" type="text" value={values.name} maxLength={60}
-          placeholder="Lisbon in April" disabled={busy}
+          placeholder={s.create.namePlaceholder} disabled={busy}
           onChange={(event) => onChange?.({ name: event.target.value })} />
       </label>
 
       <fieldset className="mode-choice" disabled={busy}>
-        <legend className="field-label">Mode</legend>
+        <legend className="field-label">{s.create.modeLegend}</legend>
         <label className={`mode-option${modeA ? ' mode-option-on' : ''}`}>
           <input type="radio" name="mode" value="A" checked={modeA}
             onChange={() => onChange?.({ mode: 'A' })} />
-          <span className="mode-title">Shared goal</span>
-          <span className="mode-detail">One total. On goal day everyone pays the recipient.</span>
+          <span className="mode-title">{s.common.modeA}</span>
+          <span className="mode-detail">{s.create.modeADetail}</span>
         </label>
         <label className={`mode-option${modeA ? '' : ' mode-option-on'}`}>
           <input type="radio" name="mode" value="B" checked={!modeA}
             onChange={() => onChange?.({ mode: 'B' })} />
-          <span className="mode-title">Together goals</span>
-          <span className="mode-detail">Own targets, shared date. Nobody pays anybody.</span>
+          <span className="mode-title">{s.common.modeB}</span>
+          <span className="mode-detail">{s.create.modeBDetail}</span>
         </label>
       </fieldset>
 
       {modeA ? <>
         <label className="field">
-          <span className="field-label">Total target (NIM)</span>
+          <span className="field-label">{s.create.totalLabel}</span>
           <input className="field-input" type="text" inputMode="decimal" value={values.targetNim}
             placeholder="12000" disabled={busy}
             onChange={(event) => onChange?.({ targetNim: event.target.value })} />
         </label>
         <label className="field">
-          <span className="field-label">Recipient address</span>
+          <span className="field-label">{s.create.recipientLabel}</span>
           <input className="field-input field-input-mono" type="text" value={values.recipient}
             placeholder="NQ.. .. .." disabled={busy} autoCapitalize="characters" spellCheck={false}
             onChange={(event) => onChange?.({ recipient: event.target.value })} />
-          <span className="field-hint">Fixed now and visible to everyone. Payments go straight here.</span>
+          <span className="field-hint">{s.create.recipientHint}</span>
         </label>
       </> : <label className="field">
-        <span className="field-label">Your target (NIM)</span>
+        <span className="field-label">{s.create.personalLabel}</span>
         <input className="field-input" type="text" inputMode="decimal" value={values.personalTargetNim}
           placeholder="2000" disabled={busy}
           onChange={(event) => onChange?.({ personalTargetNim: event.target.value })} />
-        <span className="field-hint">Everyone sets their own when they join.</span>
+        <span className="field-hint">{s.create.personalHint}</span>
       </label>}
 
       <label className="field">
-        <span className="field-label">Goal date</span>
+        <span className="field-label">{s.create.goalDateLabel}</span>
         <input className="field-input" type="date" value={values.goalDate} min={minGoalDate}
           disabled={busy} onChange={(event) => onChange?.({ goalDate: event.target.value })} />
-        <span className="field-hint">At least three days away: leaving a stake takes up to a day.</span>
+        <span className="field-hint">{s.create.goalDateHint}</span>
       </label>
 
       <div className="sheet-status" role="status" aria-live="polite">
@@ -110,9 +145,9 @@ export function CreateSquadScreen({
     </div>
     <footer className="sheet-footer">
       <button className="primary-button" onClick={onSubmit} disabled={busy}>
-        {busy ? 'Creating…' : 'Create squad'}
+        {busy ? s.create.creating : s.create.submit}
       </button>
-      <p className="fine-print">Creating a squad moves no NIM and needs no approval.</p>
+      <p className="fine-print">{s.create.fineprint}</p>
     </footer>
   </main>;
 }

@@ -1,10 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { CreateSquadScreen, type CreateSquadValues, PrivacyNotice } from '@squad-stake/ui';
+import {
+  CreateSquadScreen, PrivacyNotice, strings,
+  type CreateSquadValues, type Lang, type TemplateId,
+} from '@squad-stake/ui';
 import { LUNA_PER_NIM } from '../config/constants';
 import { createSquadResponse } from '../core/squad-contract';
-import { catalogError, errors } from '../core/errors/catalog';
+import { catalogError } from '../core/errors/catalog';
+import { useLang } from '../i18n/client';
 
 const EMPTY: CreateSquadValues = {
   name: '', mode: 'A', targetNim: '', recipient: '', personalTargetNim: '', goalDate: '',
@@ -16,12 +20,17 @@ function toLuna(nim: string): number | null {
   return Number.isSafeInteger(luna) && luna > 0 ? luna : null;
 }
 
-/** Every screen keeps a way out (no dead ends): the creator's own squads. */
-const HOME = { label: 'My squads', href: '/squads' };
-
-export function CreateSquadContainer({ minGoalDate, inviteBase }: {
-  minGoalDate: string; inviteBase: string;
+export function CreateSquadContainer({ minGoalDate, inviteBase, initialLang, templateDates }: {
+  minGoalDate: string;
+  inviteBase: string;
+  initialLang: Lang;
+  /** PRD §10: the suggested goal date per template, computed from the server's clock so the
+   * first paint and the hydrated screen agree (`templateGoalDates`). */
+  templateDates: Record<TemplateId, string>;
 }) {
+  const lang = useLang(initialLang);
+  /** Every screen keeps a way out (no dead ends): the creator's own squads. */
+  const home = { label: strings(lang).common.backSquads, href: '/squads' };
   const [accepted, setAccepted] = useState(false);
   const [values, setValues] = useState<CreateSquadValues>(EMPTY);
   const [busy, setBusy] = useState(false);
@@ -29,7 +38,7 @@ export function CreateSquadContainer({ minGoalDate, inviteBase }: {
   const [created, setCreated] = useState<
     { shortId: string; inviteUrl: string; squadUrl: string } | undefined>();
 
-  if (!accepted) return <PrivacyNotice onAccept={() => setAccepted(true)} back={HOME} />;
+  if (!accepted) return <PrivacyNotice onAccept={() => setAccepted(true)} back={home} lang={lang} />;
 
   async function submit() {
     if (busy) return;
@@ -42,7 +51,7 @@ export function CreateSquadContainer({ minGoalDate, inviteBase }: {
         recipient: values.recipient.trim().toUpperCase() }
       : { mode: 'B' as const, name: values.name.trim(), goalAt, personalTargetLuna: personal };
     if (!Number.isFinite(goalAt) || (values.mode === 'A' ? target === null : personal === null)) {
-      setError(errors.INVALID_INPUT);
+      setError(catalogError('INVALID_INPUT', lang));
       return;
     }
     setBusy(true);
@@ -52,17 +61,18 @@ export function CreateSquadContainer({ minGoalDate, inviteBase }: {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       const result = createSquadResponse.parse(await response.json());
-      if (!result.ok) setError(catalogError(result.code));
+      if (!result.ok) setError(catalogError(result.code, lang));
       else setCreated({ shortId: result.shortId, squadUrl: `/squads/${result.id}`,
         inviteUrl: `${inviteBase}/s/${result.inviteToken}` });
     } catch {
-      setError(errors.NETWORK_ERROR);
+      setError(catalogError('NETWORK_ERROR', lang));
     } finally {
       setBusy(false);
     }
   }
 
-  return <CreateSquadScreen values={values} minGoalDate={minGoalDate} busy={busy} back={HOME}
+  return <CreateSquadScreen values={values} minGoalDate={minGoalDate} busy={busy} back={home}
+    lang={lang} templateDates={templateDates}
     {...(error ? { error } : {})} {...(created ? { created } : {})}
     onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
     onSubmit={() => void submit()} />;

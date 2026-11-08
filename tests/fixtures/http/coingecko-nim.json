@@ -1,0 +1,9 @@
+{
+  "source": "https://api.coingecko.com/api/v3/simple/price?ids=nimiq-2&vs_currencies=eur",
+  "recordedAt": "2026-11-08T20:13:23.865Z",
+  "body": {
+    "nimiq-2": {
+      "eur": 0.0002408
+    }
+  }
+}

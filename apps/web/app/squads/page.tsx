@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { MySquadsContainer } from '../../src/containers/my-squads';
+import { currentLang } from '../../src/i18n/server';
 import { identiconsFor } from '../../src/server/lib/identicon';
 import { currentAddress } from '../../src/server/lib/session-page';
 import { mySquadsView } from '../../src/server/lib/squad-view';
@@ -32,5 +33,6 @@ export default async function MySquadsPage() {
       label: member,
     })),
   }));
-  return <MySquadsContainer squads={cards} now={Date.now()} />;
+  return <MySquadsContainer squads={cards} now={Date.now()}
+    initialLang={await currentLang()} />;
 }

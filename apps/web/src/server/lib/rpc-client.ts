@@ -1,11 +1,7 @@
 import 'server-only';
+import { networkConfig } from '../../config/network';
 import { createRpcClient, type NimiqRpc } from './rpc';
 import { serverEnv } from './env';
-
-const ENDPOINTS = {
-  mainnet: 'https://rpc.nimiqwatch.com',
-  testnet: 'https://rpc.testnet.nimiqwatch.com',
-} as const;
 
 let client: NimiqRpc | undefined;
 /**
@@ -14,6 +10,6 @@ let client: NimiqRpc | undefined;
  * every decision that must be exact reads with `fresh: true`.
  */
 export function nimiqRpc(): NimiqRpc {
-  client ??= createRpcClient({ url: ENDPOINTS[serverEnv().NIMIQ_NETWORK] });
+  client ??= createRpcClient({ url: networkConfig(serverEnv().NIMIQ_NETWORK).rpcUrl });
   return client;
 }

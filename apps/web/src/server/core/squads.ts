@@ -21,7 +21,11 @@ export interface Squad {
 }
 export interface Membership {
   squadId: string; address: string; personalTargetLuna: number | null;
-  committedLuna: number; leftAt: number | null;
+  committedLuna: number;
+  /** When this membership started (migration 002 `joined_at`). "Earned since joining"
+   * measures from it, and the roster is ordered by it. */
+  joinedAt: number;
+  leftAt: number | null;
 }
 export interface NewMembership { squadId: string; address: string; personalTargetLuna: number | null }
 /**
@@ -78,6 +82,12 @@ export interface SquadStore {
   listTrackedTxs(squadId: string, address: string): Promise<readonly TrackedTx[]>;
   /** Every member's transactions of one kind in a squad, for the paid roster (§7.6). */
   listSquadTrackedTxs(squadId: string, kind: TxKind): Promise<readonly TrackedTx[]>;
+  /** One address's tracked transactions across every squad. Stake is per address, not per
+   * squad, so "earned since joining" (§9.12) can only subtract deposits if it sees them all. */
+  trackedTxsForAddress(address: string): Promise<readonly TrackedTx[]>;
+  /** Distinct addresses with a current membership, ordered, capped by `limit`: the §7.7 spread
+   * counts how many of this app's members each validator already has. */
+  activeMemberAddresses(limit: number): Promise<readonly string[]>;
   /** The viewer's commitments in squads that still bind their stake, with squad names, so the
    * leaving screen can name the squads that would go short. */
   namedCommitments(address: string): Promise<readonly { squadId: string; name: string; committedLuna: number }[]>;

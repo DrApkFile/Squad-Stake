@@ -48,7 +48,9 @@ const MEASURE = `(() => {
     }
   }
   const small = [];
-  const selector = 'a, button, input, select, textarea, [role="button"], [tabindex]';
+  // A summary element is a real tap target: the "earned since joining" disclosure
+  // (PRD 9.12) opens with it, so it meets the same 44 px rule as a button.
+  const selector = 'a, button, input, select, textarea, summary, [role="button"], [tabindex]';
   for (const node of frame.querySelectorAll(selector)) {
     const style = getComputedStyle(node);
     if (style.display === 'none' || style.visibility === 'hidden') continue;

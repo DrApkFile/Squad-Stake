@@ -1,12 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { PayShareSheet, type PayShareSheetProps, type PayShareState } from '@squad-stake/ui';
+import {
+  PayShareSheet, strings, type Lang, type PayShareSheetProps, type PayShareState,
+} from '@squad-stake/ui';
 import { catalogError } from '../core/errors/catalog';
 import {
   payResponse, planResponse, trackedTxResponse, type PlanWire,
 } from '../core/squad-contract';
 import { planPayment } from '../core/staking-actions';
+import { useLang } from '../i18n/client';
 import { useTxPoll } from '../hooks/use-tx-poll';
 import { sendPayment } from '../wallet/staking';
 
@@ -15,20 +18,22 @@ import { sendPayment } from '../wallet/staking';
  * client learns whether it settled, it never asserts it. The recipient, the share and the
  * `sq:<short_id>` marker all come from the plan the server built.
  */
-export function PayShareContainer({ initial, now, explorerBase, demoLabel }: {
+export function PayShareContainer({ initial, now, explorerBase, initialLang, demoLabel }: {
   initial: PlanWire;
   now: number;
   explorerBase: string | null;
+  initialLang: Lang;
   demoLabel?: string | undefined;
 }) {
   const poll = useTxPoll();
+  const lang = useLang(initialLang);
   const [plan, setPlan] = useState(initial);
-  const [state, setState] = useState<PayShareState>(() => firstState(initial));
+  const [state, setState] = useState<PayShareState>(() => firstState(initial, initialLang));
   const [tzOffsetMinutes, setTz] = useState(0);
   useEffect(() => { setTz(-new Date().getTimezoneOffset()); }, []);
 
   const fail = (code: string, hash: string | null = null) => {
-    const entry = catalogError(code);
+    const entry = catalogError(code, lang);
     setState(hash === null
       ? { status: 'failed', message: entry.message, nextAction: entry.nextAction,
         changedAnything: entry.changedAnything }
@@ -107,25 +112,26 @@ export function PayShareContainer({ initial, now, explorerBase, demoLabel }: {
     canPay: plan.steps.pay?.state === 'available' || plan.steps.pay?.state === 'failed',
     stalled: poll.stalled,
     explorerBase,
+    lang,
     onPay: () => void guarded(pay),
     ...(pending === null
       ? {}
       : { onRefresh: () => void guarded(() => follow(pending)) }),
-    back: { label: 'Squad', href: `/squads/${plan.squadId}` },
+    back: { label: strings(lang).common.backSquad, href: `/squads/${plan.squadId}` },
     demoLabel,
   };
   return <PayShareSheet {...props} />;
 }
 
 /** What the sheet opens on: a payment already verified, one still waiting, or nothing yet. */
-function firstState(plan: PlanWire): PayShareState {
+function firstState(plan: PlanWire, lang: Lang): PayShareState {
   const step = plan.steps.pay;
   if (step?.state === 'done' && step.hash !== null) {
     return { status: 'paid', hash: step.hash, squadCompleted: plan.roster !== null
       && plan.roster.owing > 0 && plan.roster.paid === plan.roster.owing };
   }
   if (step?.state === 'failed' && plan.payment !== null) {
-    const entry = catalogError(plan.payment.code ?? 'PAYMENT_NOT_VERIFIED');
+    const entry = catalogError(plan.payment.code ?? 'PAYMENT_NOT_VERIFIED', lang);
     return { status: 'refused', hash: plan.payment.hash, message: entry.message,
       nextAction: entry.nextAction };
   }

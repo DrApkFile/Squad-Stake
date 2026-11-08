@@ -1,5 +1,8 @@
 import { shortAddress } from '../../format';
+import { templateGoalDates } from '../../templates';
 import { demoIdenticonList } from './identicons';
+import type { FiatRate } from '../../fiat';
+import type { PoolView } from '../../PoolCard';
 import type { MemberRowView } from '../../MemberList';
 import type { OrbitMember } from '../../OrbitSquad';
 import type { MemberStatusView } from '../../status';
@@ -169,3 +172,67 @@ export const demoCommitments = [
 ];
 
 export const demoRecipient = demoSquadPage.recipient;
+
+// --- Pools, earnings, fiat and templates (PRD §7.7, §9.11, §9.12, §10) ----
+// Hand-written sample data again, and deliberately recognisable as such: the pool names and
+// addresses below are invented, not the real Nimiq validators the app reads at run time, and
+// the fiat rate is a round made-up number. Nothing here is evidence of anything.
+
+/** A sample restake pool, as the Validators API publishes one (fee as a fraction). */
+export const demoPoolRestake: PoolView = {
+  address: 'NQ49 SAMP L3PO 0L00 0000 0000 0000 0000 0001',
+  name: 'Sample Restake Pool',
+  feeFraction: 0.05,
+  payout: 'restake',
+  payoutSchedule: 'Every 12 hours',
+  fallback: false,
+};
+/** A sample pool that pays rewards straight to the wallet, on a stated schedule. */
+export const demoPoolDirect: PoolView = {
+  address: 'NQ11 SAMP L3PO 0L00 0000 0000 0000 0000 0002',
+  name: 'Sample Direct Pool',
+  feeFraction: 0.025,
+  payout: 'direct',
+  payoutSchedule: 'Every 3 hours',
+  fallback: false,
+};
+/** What the sheet shows when Nimiq's Validators API could not be read: the chain's own
+ * eligibility decided, and no fee or payout type is claimed (PRD §7.7). */
+export const demoPoolFallback: PoolView = {
+  address: 'NQ77 SAMP L3PO 0L00 0000 0000 0000 0000 0003',
+  name: null,
+  feeFraction: null,
+  payout: null,
+  payoutSchedule: null,
+  fallback: true,
+};
+
+/** A sample price, four minutes old, so the screens show "≈ … · estimate" with its age. */
+export const demoFiat: FiatRate = {
+  currency: 'EUR',
+  perNim: 0.0004,
+  readAt: demoNow - 4 * 60_000,
+  source: 'coingecko',
+};
+
+/** The same roster with "earned since joining" filled in: measured on the first row, and one
+ * reason per row after it, because "—" has to say why (PRD §9.12). */
+export const demoEarnedMeasured: readonly MemberRowView[] = demoRoster.map((member, index) => ({
+  ...member,
+  earned: index === 0
+    ? { known: true, luna: 1_482_000, basis: { kind: 'restake', depositsLuna: 200_000_000 } }
+    : index === 1
+      ? { known: true, luna: 640_000, basis: { kind: 'direct', payouts: 12 } }
+      : index === 2
+        ? { known: false, reason: 'OUTSIDE_STAKE' }
+        : { known: false, reason: 'PAYS_NOTHING' },
+}));
+export const demoEarnedUnknown: readonly MemberRowView[] = demoRoster.map((member, index) => ({
+  ...member,
+  earned: { known: false, reason:
+    (['NO_POOL_DATA', 'PAYOUT_ADDRESS_UNKNOWN', 'UNTRACKED_DEPOSIT', 'LEAVING'] as const)[index]
+      ?? 'CHAIN_UNAVAILABLE' },
+}));
+
+/** Fixed template dates, so a scene renders the same frame forever. */
+export const demoTemplateDates = templateGoalDates(demoNow);
