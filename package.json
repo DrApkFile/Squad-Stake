@@ -19,7 +19,8 @@
     "deps:check": "node scripts/check-dep-age.mjs",
     "check:tracked": "git diff --exit-code && git diff --cached --exit-code",
     "db:migrate": "pnpm --filter @squad-stake/web db:migrate",
-    "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:adversarial && pnpm build && pnpm test:production && pnpm secrets && pnpm deps:check && pnpm check:tracked"
+    "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:adversarial && pnpm build && pnpm test:production && pnpm secrets && pnpm deps:check && pnpm check:tracked",
+    "check:scenes": "node scripts/measure-scenes.mjs"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.5.27",

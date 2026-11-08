@@ -38,11 +38,11 @@ Evidence ids refer to `REALITY_SPIKES.md`.
 | Member leaves early / unstakes | status from chain: `SHORT by X`; squad sees it; Mode A organiser sees who is short before goal day |
 | Member never pays (Mode A) | payment verified on-chain; roster shows unpaid; no automatic consequences (self-custody) |
 | Organiser disappears (Mode A) | recipient address fixed at creation and visible to all; payments go straight to it |
-| Privacy | squad sees each member's commitment and **backed / short**, not their full balance |
+| Privacy | squad sees each member's commitment and **backed / short**, not their full balance. `SHORT.shortBy` is sent only to the member it belongs to, because it equals (their commitments − their active balance); `tests/adversarial/squad-detail.test.ts` attacks it |
 
 ## Data / infra (Vercel + Postgres)
 | Mode | Guard |
 |---|---|
 | Concurrent updates | state changes via `UPDATE … WHERE state = $from`; 0 rows = refused |
 | Missing env | validated at startup |
-| Invite link guessing | random 128-bit invite tokens; joining needs a signed-in wallet |
+| Invite link guessing | random 128-bit invite tokens; joining needs a signed-in wallet. Since migration 003 (2026-11-07) the token is also stored in plaintext, so the squad page can show the link again; the lookup stays on the hash, and a session token is never stored this way |

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@nimiq/core": "2.22.0",
+    "@nimiq/identicons": "1.6.2",
     "@nimiq/mini-app-sdk": "0.2.4",
     "@squad-stake/ui": "workspace:*",
     "next": "15.5.27",

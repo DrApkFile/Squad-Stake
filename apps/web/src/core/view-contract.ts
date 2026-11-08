@@ -7,3 +7,51 @@ export interface JoinView {
   delegation: string | null;
   minimumLuna: number;
 }
+
+/**
+ * A member's status as it crosses the wire. The server derives it from the chain on every read
+ * (PRD §7.4); `shortBy` is present only for the member looking at the page, because the gap
+ * between a commitment and an active balance reveals that balance, and a squad sees
+ * backed-or-short, not balances (briefing/FAILURE_MODES.md, "Privacy").
+ */
+export type MemberStatusWire =
+  | { status: 'BACKED' | 'RELEASABLE' | 'RETIRED' | 'NOT_STAKING' | 'LEFT' }
+  | { status: 'SHORT'; shortBy: number | null }
+  | { status: 'UNSTAKING'; releaseBlock: number | null };
+
+export interface SquadMemberWire {
+  address: string;
+  committedLuna: number;
+  /** Null when the chain could not be read for this member; the UI then shows "—". */
+  status: MemberStatusWire | null;
+  readAt: number | null;
+  isYou: boolean;
+  /** A tracked transaction with no verdict yet. A hash is not success (PRD Q10). */
+  pending: { confirmations: number | null; requiredConfirmations: number } | null;
+}
+
+export interface SquadView {
+  squadId: string;
+  squad: {
+    name: string; shortId: string; mode: 'A' | 'B';
+    targetLuna: number | null; recipient: string | null; goalAt: number;
+  };
+  members: readonly SquadMemberWire[];
+  /** Active members only; the roster also carries those who left. */
+  memberCount: number;
+  /** Σ commitments on record. */
+  committedLuna: number;
+  /** Σ commitments the chain currently backs — PRD §7.4 "Squad total = Σ backed amounts".
+   * Null when no member could be read. */
+  backedLuna: number | null;
+  /** The oldest chain read behind this page, so the age shown is the worst case. */
+  readAt: number | null;
+  /** PRD §7.5: goal − 26 h. */
+  leaveBy: number;
+  /** Set when a chain read failed, so the screen can say so instead of implying a fresh read. */
+  chainUnavailable: boolean;
+  /** Null for squads created before migration 003, whose token cannot be recovered. */
+  inviteToken: string | null;
+  /** True when the viewer is a current member. */
+  youAreMember: boolean;
+}

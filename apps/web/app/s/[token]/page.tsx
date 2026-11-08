@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { SignInScreen } from '@squad-stake/ui';
 import { inviteTokenInput } from '../../../src/core/squad-contract';
 import { JoinCommitContainer } from '../../../src/containers/join-commit';
+import { SignInContainer } from '../../../src/containers/sign-in';
 import { authService } from '../../../src/server/lib/auth';
 import { SESSION_COOKIE } from '../../../src/server/lib/auth-http';
 import { serverEnv } from '../../../src/server/lib/env';
@@ -24,9 +24,10 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   if (!address) {
     // Joining requires a signed-in wallet (FAILURE_MODES "invite link guessing").
     const host = new URL(serverEnv().APP_ORIGIN).host;
-    return <SignInScreen state={{ status: 'idle' }}
+    // The real container, so the button works and sign-in returns to this invite.
+    return <SignInContainer devIdentity={null} initialAddress={null}
       openInPayUrl={`https://nimpay.app/miniapps/open/${host}`}
-      demoLabel={`Invited to ${view.squad.name} — sign in to join`} />;
+      onwardUrl={`/s/${token}`} invitedTo={view.squad.name} />;
   }
   return <JoinCommitContainer view={view} token={token} now={Date.now()} />;
 }

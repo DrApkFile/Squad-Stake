@@ -1,13 +1,16 @@
 import { formatLuna } from './format';
+import { ScreenHeader } from './ScreenHeader';
 
 export interface LeaveConfirmProps {
+  /** Where the back control goes; see ScreenHeader. */
+  back?: { label: string; href: string } | undefined;
   squad: { name: string };
   committedLuna: number;
-  busy?: boolean;
-  error?: { message: string; nextAction: string };
-  onLeave?: () => void;
-  onCancel?: () => void;
-  demoLabel?: string;
+  busy?: boolean | undefined;
+  error?: { message: string; nextAction: string } | undefined;
+  onLeave?: (() => void) | undefined;
+  onCancel?: (() => void) | undefined;
+  demoLabel?: string | undefined;
 }
 
 /**
@@ -15,11 +18,10 @@ export interface LeaveConfirmProps {
  * tick here — that belongs to retire (PRD "Design").
  */
 export function LeaveConfirm({
-  squad, committedLuna, busy = false, error, onLeave, onCancel, demoLabel,
+  squad, committedLuna, busy = false, error, onLeave, onCancel, demoLabel, back,
 }: LeaveConfirmProps) {
   return <main className="sheet" aria-busy={busy}>
-    <header className="brand"><span className="brand-mark" aria-hidden="true">s.</span> Squad Stake</header>
-    {demoLabel && <p className="demo-label">{demoLabel}</p>}
+    <ScreenHeader back={back} demoLabel={demoLabel} />
     <div className="sheet-body">
       <p className="eyebrow">LEAVE SQUAD</p>
       <h1>Leave<br />{squad.name}?</h1>

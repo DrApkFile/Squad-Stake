@@ -61,3 +61,64 @@ export const trackedTxResponse = z.discriminatedUnion('ok', [
     requiredConfirmations: z.number().int() }).strict(),
   failure,
 ]);
+
+// --- Read responses (screens 3, 5 and 10) ---------------------------------
+const memberStatusBody = z.union([
+  z.object({ status: z.enum(['BACKED', 'RELEASABLE', 'RETIRED', 'NOT_STAKING', 'LEFT']) }).strict(),
+  z.object({ status: z.literal('SHORT'), shortBy: z.number().int().nullable() }).strict(),
+  z.object({ status: z.literal('UNSTAKING'), releaseBlock: z.number().int().nullable() }).strict(),
+]);
+const squadMemberBody = z.object({
+  address: addressInput,
+  committedLuna: z.number().int().nonnegative(),
+  status: memberStatusBody.nullable(),
+  readAt: z.number().int().nullable(),
+  isYou: z.boolean(),
+  pending: z.object({
+    confirmations: z.number().int().nullable(),
+    requiredConfirmations: z.number().int(),
+  }).strict().nullable(),
+}).strict();
+const squadViewBody = z.object({
+  squadId: z.uuid(),
+  squad: z.object({
+    name: z.string(), shortId: z.string(), mode: z.enum(['A', 'B']),
+    targetLuna: z.number().int().nullable(), recipient: addressInput.nullable(),
+    goalAt: z.number().int(),
+  }).strict(),
+  members: z.array(squadMemberBody),
+  memberCount: z.number().int().nonnegative(),
+  committedLuna: z.number().int().nonnegative(),
+  backedLuna: z.number().int().nonnegative().nullable(),
+  readAt: z.number().int().nullable(),
+  leaveBy: z.number().int(),
+  chainUnavailable: z.boolean(),
+  inviteToken: inviteTokenInput.nullable(),
+  youAreMember: z.boolean(),
+}).strict();
+
+export const squadDetailResponse = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), view: squadViewBody }).strict(),
+  failure,
+]);
+/** The public proof route answers with the same shape, minus anything viewer-specific. */
+export const proofResponse = squadDetailResponse;
+
+export const mySquadsResponse = z.discriminatedUnion('ok', [
+  z.object({
+    ok: z.literal(true),
+    squads: z.array(z.object({
+      id: z.uuid(),
+      shortId: z.string(),
+      name: z.string(),
+      mode: z.enum(['A', 'B']),
+      goalAt: z.number().int(),
+      targetLuna: z.number().int().nullable(),
+      committedLuna: z.number().int().nonnegative(),
+      squadCommittedLuna: z.number().int().nonnegative(),
+      memberCount: z.number().int().nonnegative(),
+      members: z.array(addressInput),
+    }).strict()),
+  }).strict(),
+  failure,
+]);

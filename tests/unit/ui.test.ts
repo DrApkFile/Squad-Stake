@@ -14,8 +14,8 @@ import { createSquadScenes, joinCommitScenes, leaveScenes, privacyScenes } from 
 import { DEMO_LABEL } from '../../packages/ui/scenes/demo/squad';
 import { errors } from '../../apps/web/src/core/errors/catalog';
 
-test('Q17 all five sign-in scenes render deterministically from props alone', () => {
-  assert.equal(signInScenes.length, 5);
+test('Q17 every welcome/sign-in scene renders deterministically from props alone', () => {
+  assert.equal(signInScenes.length, 8);
   for (const scene of signInScenes) {
     const first = renderToStaticMarkup(createElement(SignInScreen, scene.props));
     assert.equal(first, renderToStaticMarkup(createElement(SignInScreen, scene.props)));
@@ -37,7 +37,7 @@ test('Q17 every member status scene renders deterministically with explicit read
     assert.match(first, scene.props.readAt === null ? /Chain read: —/ : /Checked/);
     assert.match(first, /SYNTHETIC TESTNET/);
     if (scene.id === 'member-short') assert.match(first, /Short by 0.00001 NIM/);
-    if (scene.id === 'member-stale') assert.match(first, /Checked 3 min ago · Refresh unavailable/);
+    if (scene.id === 'member-stale') assert.match(first, /Checked 3 min ago · The chain could not be read/);
     if ('refreshError' in scene.props) assert.deepEqual(scene.props.refreshError, {
       message: errors.CHAIN_UNAVAILABLE.message, nextAction: errors.CHAIN_UNAVAILABLE.nextAction,
     });
@@ -59,8 +59,8 @@ test('Q17 every squad-flow scene renders deterministically from props alone', ()
     assert.ok(scenes.length > 0);
     for (const scene of scenes) {
       const props = { ...scene.props, demoLabel: DEMO_LABEL };
-      const first = renderToStaticMarkup(createElement(component as never, props));
-      assert.equal(first, renderToStaticMarkup(createElement(component as never, props)), scene.id);
+      const first = renderToStaticMarkup(createElement(component as never, props as never));
+      assert.equal(first, renderToStaticMarkup(createElement(component as never, props as never)), scene.id);
       assert.match(first, /SAMPLE DATA/, scene.id);
     }
   }

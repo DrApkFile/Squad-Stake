@@ -52,6 +52,9 @@ importers:
       '@nimiq/core':
         specifier: 2.22.0
         version: 2.22.0(vite@8.3.4(@types/node@22.18.6)(tsx@4.20.5))
+      '@nimiq/identicons':
+        specifier: 1.6.2
+        version: 1.6.2
       '@nimiq/mini-app-sdk':
         specifier: 0.2.4
         version: 0.2.4
@@ -530,6 +533,9 @@ packages:
       vite:
         optional: true
 
+  '@nimiq/identicons@1.6.2':
+    resolution: {integrity: sha512-O8XaSRoOwDjnQjOaWIi4wnELoYSu48WXfApYtz2dzMlFpY+pzekTmQaqS2kYR9uj+6KUiUfBSIVPJUhpWkp88w==}
+
   '@nimiq/mini-app-sdk@0.2.4':
     resolution: {integrity: sha512-gDumiC+5OiN5rIaWXS2moNmDKTav8evrAvs2qLMfcSyTVgIKtX7Prmcgj7k9PXrMyGk0JMmIKaG1lbPkSg8/Ew==}
 
@@ -824,6 +830,9 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  dom-parser@0.1.6:
+    resolution: {integrity: sha512-3nVRKbLEwmGfghLoeT1dxlK/0votalnOfasP+8VCHYDfDuCETY4LeMblfOeqww6XZk2ymZ1Uewy/hVad6Dy3yw==}
 
   es5-ext@0.10.64:
     resolution: {integrity: sha512-p2snDhiLaXe6dahss1LddxqEm+SkuDvV8dnIQG0MWjyHpcMNfXKPE+/Cc0y+PhxJX3A4xGNeFCj5oc0BUh6deg==}
@@ -1723,6 +1732,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@nimiq/identicons@1.6.2':
+    dependencies:
+      dom-parser: 0.1.6
+
   '@nimiq/mini-app-sdk@0.2.4': {}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -1982,6 +1995,8 @@ snapshots:
   deep-is@0.1.4: {}
 
   detect-libc@2.1.2: {}
+
+  dom-parser@0.1.6: {}
 
   es5-ext@0.10.64:
     dependencies:

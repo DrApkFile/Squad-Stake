@@ -11,6 +11,9 @@ const squadRow = z.object({
   id: z.uuid(), short_id: z.string(), name: z.string(), mode: z.enum(['A', 'B']),
   target_luna: luna.nullable(), recipient: z.string().nullable(), goal_at: z.date(),
   organiser: z.string(), state: z.enum(['OPEN', 'SAVING', 'LEAVING', 'SETTLING', 'COMPLETED', 'CANCELLED']),
+  // Null for squads created before migration 003; their page says the link cannot be
+  // recovered rather than inventing one.
+  invite_token: z.string().nullable(),
 }).strict();
 const membershipRow = z.object({
   squad_id: z.uuid(), address: z.string(), personal_target_luna: luna.nullable(),
@@ -21,12 +24,15 @@ const trackedRow = z.object({
   expected: z.object({ valueLuna: luna }).strict(), state: txState, checked_at: z.date().nullable(),
 }).strict();
 const commitmentRow = z.object({ squad_id: z.uuid(), committed_luna: luna }).strict();
+const summaryRow = squadRow.extend({
+  committed_luna: luna, member_count: z.number().int(), squad_committed_luna: luna,
+}).strict();
 
 const toSquad = (row: unknown): Squad => {
   const parsed = squadRow.parse(row);
   return { id: parsed.id, shortId: parsed.short_id, name: parsed.name, mode: parsed.mode,
     targetLuna: parsed.target_luna, recipient: parsed.recipient, goalAt: parsed.goal_at.getTime(),
-    organiser: parsed.organiser, state: parsed.state };
+    organiser: parsed.organiser, state: parsed.state, inviteToken: parsed.invite_token };
 };
 const toMembership = (row: unknown): Membership => {
   const parsed = membershipRow.parse(row);
@@ -38,21 +44,27 @@ export const squadStore: SquadStore = {
   async insertSquad(squad, organiser) {
     await db().begin(async (tx) => {
       await tx`INSERT INTO squads (id, short_id, name, mode, target_luna, recipient, goal_at,
-        organiser, invite_token_hash, state) VALUES (${squad.id}, ${squad.shortId}, ${squad.name},
-        ${squad.mode}, ${squad.targetLuna}, ${squad.recipient}, ${new Date(squad.goalAt)},
-        ${squad.organiser}, ${Buffer.from(squad.inviteTokenHash, 'hex')}, ${squad.state})`;
+        organiser, invite_token_hash, invite_token, state) VALUES (${squad.id}, ${squad.shortId},
+        ${squad.name}, ${squad.mode}, ${squad.targetLuna}, ${squad.recipient},
+        ${new Date(squad.goalAt)}, ${squad.organiser},
+        ${Buffer.from(squad.inviteTokenHash, 'hex')}, ${squad.inviteToken}, ${squad.state})`;
       await tx`INSERT INTO memberships (squad_id, address, personal_target_luna)
         VALUES (${organiser.squadId}, ${organiser.address}, ${organiser.personalTargetLuna})`;
     });
   },
   async getSquad(id) {
     const rows = await db()`SELECT id, short_id, name, mode, target_luna, recipient, goal_at,
-      organiser, state FROM squads WHERE id = ${id}`;
+      organiser, state, invite_token FROM squads WHERE id = ${id}`;
     return rows[0] ? toSquad(rows[0]) : null;
   },
   async getSquadByInviteHash(inviteTokenHash) {
     const rows = await db()`SELECT id, short_id, name, mode, target_luna, recipient, goal_at,
-      organiser, state FROM squads WHERE invite_token_hash = ${Buffer.from(inviteTokenHash, 'hex')}`;
+      organiser, state, invite_token FROM squads WHERE invite_token_hash = ${Buffer.from(inviteTokenHash, 'hex')}`;
+    return rows[0] ? toSquad(rows[0]) : null;
+  },
+  async getSquadByShortId(shortId) {
+    const rows = await db()`SELECT id, short_id, name, mode, target_luna, recipient, goal_at,
+      organiser, state, invite_token FROM squads WHERE short_id = ${shortId}`;
     return rows[0] ? toSquad(rows[0]) : null;
   },
   async getMembership(squadId, address) {
@@ -87,6 +99,50 @@ export const squadStore: SquadStore = {
       const parsed = commitmentRow.parse(row);
       return { squadId: parsed.squad_id, committedLuna: parsed.committed_luna };
     });
+  },
+  async listMembers(squadId) {
+    // Ordered so the roster and the orbit are stable between reads: joiners after the
+    // organiser, and a deterministic tie-break on address.
+    const rows = await db()`SELECT squad_id, address, personal_target_luna, committed_luna, left_at
+      FROM memberships WHERE squad_id = ${squadId} ORDER BY joined_at ASC, address ASC`;
+    return rows.map(toMembership);
+  },
+  async squadsForAddress(address) {
+    // One query: the squad, the viewer's commitment, and the squad's active-member count and
+    // committed sum. Subqueries rather than a GROUP BY so the squad columns stay single-valued.
+    const rows = await db()`SELECT s.id, s.short_id, s.name, s.mode, s.target_luna, s.recipient,
+        s.goal_at, s.organiser, s.state, s.invite_token, m.committed_luna,
+        (SELECT count(*)::int FROM memberships a
+           WHERE a.squad_id = s.id AND a.left_at IS NULL) AS member_count,
+        (SELECT coalesce(sum(a.committed_luna), 0)::bigint FROM memberships a
+           WHERE a.squad_id = s.id AND a.left_at IS NULL) AS squad_committed_luna
+      FROM memberships m JOIN squads s ON s.id = m.squad_id
+      WHERE m.address = ${address} AND m.left_at IS NULL
+        AND s.state = ANY(${[...ACTIVE_SQUAD_STATES]})
+      ORDER BY s.goal_at ASC, s.id ASC`;
+    return rows.map((row) => {
+      const parsed = summaryRow.parse(row);
+      return {
+        squad: toSquad({
+          id: parsed.id, short_id: parsed.short_id, name: parsed.name, mode: parsed.mode,
+          target_luna: parsed.target_luna, recipient: parsed.recipient, goal_at: parsed.goal_at,
+          organiser: parsed.organiser, state: parsed.state, invite_token: parsed.invite_token,
+        }),
+        committedLuna: parsed.committed_luna,
+        memberCount: parsed.member_count,
+        squadCommittedLuna: parsed.squad_committed_luna,
+      };
+    });
+  },
+  async latestOpenTrackedTx(squadId, address) {
+    // Only non-terminal states: a verdict is already reflected in the commitment itself.
+    const rows = await db()`SELECT hash, address, squad_id, kind, expected, state, checked_at
+      FROM tracked_txs WHERE squad_id = ${squadId} AND address = ${address}
+        AND state IN ('SUBMITTED', 'UNKNOWN') ORDER BY created_at DESC LIMIT 1`;
+    if (!rows[0]) return null;
+    const parsed = trackedRow.parse(rows[0]);
+    return { hash: parsed.hash, address: parsed.address, squadId: parsed.squad_id, kind: parsed.kind,
+      expected: parsed.expected, state: parsed.state, checkedAt: parsed.checked_at?.getTime() ?? null };
   },
   async withMemberLock(address, run) {
     // Wrapped in an object because postgres.js unwraps an array result from begin().

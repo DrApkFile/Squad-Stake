@@ -5,6 +5,7 @@ import { setCommitment, type CommitDeps } from '../core/commitments';
 import type { SquadService } from '../core/squads';
 import type { TxTracker } from '../core/tx-tracker';
 import { json, parseBody, validOrigin } from './auth-http';
+import { mySquadsView, proofView, squadDetailView } from './squad-view';
 
 export interface SquadHandlerDeps {
   squads: SquadService;
@@ -24,6 +25,8 @@ const STATUS: Record<string, number> = {
   CHAIN_UNAVAILABLE: 503, UNAVAILABLE: 503,
 };
 const uuid = z.uuid();
+/** A proof link carries the eight-character short id; a uuid is accepted too. */
+const PROOF_ID = z.union([z.uuid(), z.string().regex(/^[0-9a-z]{8}$/)]);
 
 export function createSquadHandlers(deps: SquadHandlerDeps) {
   async function guard(request: Request, requireOrigin: boolean) {
@@ -85,6 +88,27 @@ export function createSquadHandlers(deps: SquadHandlerDeps) {
       if (!hashInput.safeParse(hash).success) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
       return send(await deps.tracker.check(hash));
     }, false),
+
+    // Reads: GETs, so no Origin requirement (browsers omit it on same-origin GETs).
+    list: wrap(async (address) => json({ ok: true, squads: await mySquadsView(address) }), false),
+
+    detail: wrap(async (address, _request, squadId: string) => {
+      if (!withSquadId(squadId)) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
+      const result = await squadDetailView(squadId, address);
+      return result.ok ? json(result, 200) : send(result);
+    }, false),
+
+    /** Public: no session at all. The view masks every other member's `shortBy` and hands out
+     * no invite token, so there is nothing here a member would not share deliberately. */
+    async proof(_request: Request, id: string) {
+      try {
+        if (!PROOF_ID.safeParse(id).success) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
+        const result = await proofView(id);
+        return result.ok ? json(result, 200) : send(result);
+      } catch {
+        return json({ ok: false, code: 'UNAVAILABLE' }, 503);
+      }
+    },
   };
 }
 export type SquadHandlers = ReturnType<typeof createSquadHandlers>;

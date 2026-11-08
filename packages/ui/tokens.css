@@ -1,57 +1,316 @@
+/*
+ * Design tokens. AGENTS.md "UI purity" 3: colours, spacing, radii and type live only here.
+ *
+ * Every value below is Nimiq's own, read from Nimiq's sources on 2026-11-07:
+ *
+ *   [1] github.com/nimiq/nimiq-style — src/theme.css (branch master)
+ *       https://raw.githubusercontent.com/nimiq/nimiq-style/master/src/theme.css
+ *       The canonical palette (--nimiq-blue … --nimiq-white), the hover-darkened variants, the
+ *       on-dark adaptions (--nimiq-light-blue-on-dark, --nimiq-red-on-dark), the radial
+ *       background gradients and --nimiq-highlight-bg (Plaza Night at 6%).
+ *   [2] github.com/nimiq/nimiq-pay-app — DESIGN.md and PRODUCT.md (branch main)
+ *       https://raw.githubusercontent.com/nimiq/nimiq-pay-app/main/DESIGN.md
+ *       The colour names used in comments below, the type scale (Mulish display 300 / headline
+ *       600 / title 600 / body 400 / label 700; Fira Mono 500 numerics), the `rounded` and
+ *       `spacing` scales, the three-layer shadows, and the two easings.
+ *
+ * Deliberate deviations from [2], approved 2026-11-07 (docs/DECISIONS.md):
+ *   - A full-bleed navy dark theme exists, although [2] says Plaza Night is "never used as a
+ *     full-bleed dark background; the plaza is light". The dark surface is [1]'s own
+ *     --nimiq-blue-bg, and the light theme remains the default plaza.
+ *   - Honey Coin gold is this app's accent on entry/reward surfaces (orbit rings, the gradient
+ *     border button). It never reaches a money-move control, per [2] "Never used on a money-move
+ *     screen, only on reward-shaped surfaces": commit / stake / pay use Signal Blue.
+ *
+ * Contrast, measured 2026-11-07 (WCAG 2.1 ratios, AA floor 4.5 body / 3.0 large):
+ *   on Plaza Night: gold 7.79, green 6.32, orange 6.18, mint 7.0, white 15.08;
+ *     Signal Blue 3.63 and Stop Red 3.46 FAIL, so dark uses [1]'s #0CA6FE (5.68) / #FF5C48 (4.94).
+ *   on Cobble White: Plaza Night 14.20; gold 1.82, green 2.25, orange 2.30, Signal Blue 3.91 —
+ *     so on light, status hues are dots and fills beside navy words, never the words themselves.
+ *   Navy on a gold fill is 7.79. White on gold is 1.94 and is never used.
+ */
+
+/* Mulish: display 300, body 400, headline/title 600, label 700 ([2] typography). */
 @font-face {
-  font-family: 'Squad Sans';
-  src: url('./fonts/SquadSans-Regular.ttf') format('truetype');
+  font-family: Mulish;
+  src: url('./fonts/mulish-latin-300-normal.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Mulish;
+  src: url('./fonts/mulish-latin-400-normal.woff2') format('woff2');
   font-weight: 400;
+  font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Squad Sans';
-  src: url('./fonts/SquadSans-Bold.ttf') format('truetype');
-  font-weight: 700;
+  font-family: Mulish;
+  src: url('./fonts/mulish-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: Mulish;
+  src: url('./fonts/mulish-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+/* Fira Mono: every balance, amount, address and hash ([2] "Numeric Font"). */
+@font-face {
+  font-family: 'Fira Mono';
+  src: url('./fonts/fira-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fira Mono';
+  src: url('./fonts/fira-mono-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light dark;
+
+  /* --- Nimiq palette, verbatim from [1]; names from [2] ------------------- */
+  --nq-blue: #1f2348;             /* Plaza Night */
+  --nq-blue-darkened: #151833;
+  --nq-light-blue: #0582ca;       /* Signal Blue */
+  --nq-light-blue-darkened: #0071c3;
+  --nq-light-blue-on-dark: #0ca6fe;
+  --nq-gold: #e9b213;             /* Honey Coin */
+  --nq-gold-darkened: #e5a212;
+  --nq-green: #21bca5;            /* Vault Green */
+  --nq-green-darkened: #20b29e;   /* Tether Verdigris */
+  --nq-mint: #2cc78f;             /* Fresh Mint */
+  --nq-orange: #fc8702;           /* Streetlamp */
+  --nq-orange-darkened: #fc7500;
+  --nq-red: #d94432;              /* Stop Red */
+  --nq-red-on-dark: #ff5c48;
+  --nq-cobble-white: #f8f8f8;
+  --nq-cobble-fog: #f1f1f1;
+  --nq-cobble-ash: #e9e9eb;
+  --nq-paper-white: #ffffff;
+  --nq-void-ink: #0d102c;
+
+  /* Radial background gradients, verbatim from [1]. */
+  --nq-blue-bg: radial-gradient(100% 100% at bottom right, #260133, #1f2348);
+  --nq-light-blue-bg: radial-gradient(100% 100% at bottom right, #265dd7, #0582ca);
+  --nq-light-blue-bg-darkened: radial-gradient(100% 100% at bottom right, #2355c4, #0071c3);
+  --nq-gold-bg: radial-gradient(100% 100% at bottom right, #ec991c, #e9b213);
+  --nq-green-bg: radial-gradient(100% 100% at bottom right, #41a38e, #21bca5);
+  --nq-red-bg: radial-gradient(100% 100% at bottom right, #cc3047, #d94432);
+
+  /* --- Safe areas (AGENTS.md "UI purity" 4) ------------------------------ */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --font-sans: 'Squad Sans', sans-serif;
+
+  /* --- Type ([2] typography; no third typeface) -------------------------- */
+  --font-sans: Mulish, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-mono: 'Fira Mono', 'Fira Code', ui-monospace, monospace;
   --font-xs: 0.75rem;
-  --font-sm: 0.875rem;
-  --font-md: 1rem;
-  --font-lg: 1.125rem;
-  --font-brand: 1.25rem;
-  --font-display: 2.625rem;
+  --font-sm: 0.875rem;   /* label */
+  --font-md: 1rem;       /* body, numerics */
+  --font-lg: 1.125rem;   /* title */
+  --font-brand: 1.125rem;
+  --font-headline: 2.25rem;
+  --font-display: 3.25rem;  /* [2] display is 4.5rem; 3.25rem is the 390 px fit, same weight */
+  --weight-display: 300;
   --weight-regular: 400;
+  --weight-numeric: 500;
+  --weight-semibold: 600;
   --weight-bold: 700;
-  --leading-body: 1.6;
-  --leading-display: 1.12;
-  --tracking-display: -0.055em;
-  --tracking-eyebrow: 0.09em;
+  --leading-display: 1;
+  --leading-headline: 1.125;
+  --leading-body: 1.5;
+  --leading-numeric: 1.25;
+  --tracking-display: -0.025em;
+  --tracking-eyebrow: 0.025em;
+
+  /* --- Spacing ([2] spacing scale, in its own steps) --------------------- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-7: 3rem;
-  --space-8: 4rem;
-  --radius-sm: 0.75rem;
-  --radius-lg: 1.5rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* --- Radii ([2] rounded scale) ----------------------------------------- */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-pill: 9999px;
   --radius-round: 50%;
-  --page: #f5f6ef;
-  --surface: #ffffff;
-  --ink: #172b2a;
-  --muted: #546766;
-  --accent: #bce484;
-  --accent-secondary: #72b8a1;
-  --accent-tertiary: #d6e9bd;
-  --button-bg: #203e36;
-  --button-ink: #ffffff;
-  --outline: #377e6d;
+
+  /* --- Shadows ([2] "quiet stack of three soft shadows") ----------------- */
+  --shadow-card: 0 0.34px 2px rgba(0, 0, 0, 0.03), 0 1.5px 3px rgba(0, 0, 0, 0.05),
+    0 4px 16px rgba(0, 0, 0, 0.07);
+  --shadow-floating: 0 18px 38px rgba(31, 35, 72, 0.07), 0 7px 8.5px rgba(31, 35, 72, 0.04),
+    0 2px 2.5px rgba(31, 35, 72, 0.02);
+  --shadow-around: 0 6px 20px rgba(59, 76, 106, 0.13), 0 1.34px 4.47px rgba(59, 76, 106, 0.077),
+    0 0.4px 1.33px rgba(59, 76, 106, 0.053);
+
+  /* --- Motion -----------------------------------------------------------
+   * --ease-emphasis is this build's entrance/count-up curve; --ease-reveal and --ease-default
+   * are Nimiq's own ([2] "one of the existing easings"). Components never animate layout
+   * properties, only transform and opacity ([2] Don'ts).
+   */
+  --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-default: cubic-bezier(0.25, 0, 0, 1);
+  --duration-reveal: 250ms;
+  --duration-slide: 350ms;
+
+  /* --- Semantic surfaces: light "plaza" ([2] §1) ------------------------- */
+  --page: var(--nq-cobble-white);
+  --page-image: none;
+  --surface: var(--nq-paper-white);
+  --surface-recessed: var(--nq-cobble-fog);
+  --hairline: var(--nq-cobble-ash);
+  --ink: var(--nq-blue);
+  --muted: rgba(31, 35, 72, 0.6);
+  --faint: rgba(31, 35, 72, 0.4);
+  --wash: rgba(31, 35, 72, 0.06);   /* [1] --nimiq-highlight-bg; [2] "The 6% Wash Rule" */
+  --wash-strong: rgba(31, 35, 72, 0.1);
+
+  /* Accents. Gold is entry/reward only; Signal Blue carries money and focus. */
+  --accent: var(--nq-gold);
+  --accent-ink: var(--nq-blue);         /* label on a gold fill: 7.79:1 */
+  --accent-secondary: var(--nq-light-blue);
+  --emphasis: var(--nq-light-blue);     /* emphasised words; gold fails contrast on light */
+  --outline: var(--nq-light-blue);      /* focus ring ([2] focus shifts to Signal Blue) */
+
+  /* Money controls ([2] "Primary, gradient (commit money)"). */
+  --money-bg: var(--nq-light-blue);
+  --money-bg-image: var(--nq-light-blue-bg);
+  --money-bg-image-pressed: var(--nq-light-blue-bg-darkened);
+  --money-ink: var(--nq-paper-white);
+
+  /* The square brand mark. On the light plaza it is a Plaza Night tile; on the navy page that
+   * tile would disappear into the background, so dark uses a white wash instead. */
+  --mark-bg: var(--nq-blue);
+  --mark-bg-image: var(--nq-blue-bg);
+  --mark-ink: var(--nq-paper-white);
+
+  /* Legacy names kept so already-built components re-skin without edits. */
+  --button-bg: var(--nq-light-blue);
+  --button-ink: var(--nq-paper-white);
+  --accent-tertiary: var(--nq-cobble-fog);
+
+  /* --- Status ([2] semantics; every use is paired with a word) ----------- */
+  --status-backed: var(--nq-green);       /* Vault Green: transaction success */
+  --status-short: var(--nq-orange);       /* Streetlamp: warning */
+  --status-unstaking: var(--nq-light-blue);/* Signal Blue: in progress */
+  --status-ready: var(--nq-mint);         /* Fresh Mint */
+  --status-neutral: rgba(31, 35, 72, 0.4);
+  --status-danger: var(--nq-red);         /* Stop Red: destructive only */
+
   --disabled-opacity: 0.6;
 }
+
+/* --- Dark theme: Nimiq's own navy surface ([1] --nimiq-blue-bg) ----------
+ * Only surfaces, inks, washes and the two colours [1] adapts for dark change. The palette,
+ * type, spacing, radii and motion tokens are theme-invariant.
+ */
 @media (prefers-color-scheme: dark) {
-  :root { --page: #14211e; --surface: #1d302a; --ink: #f1f5ec; --muted: #b3c4b9; --button-bg: #bce484; --button-ink: #14211e; --outline: #bce484; }
+  :root:not([data-theme='light']) {
+    --page: var(--nq-blue);
+    --page-image: var(--nq-blue-bg);
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-recessed: rgba(255, 255, 255, 0.04);
+    --hairline: rgba(255, 255, 255, 0.12);
+    --ink: var(--nq-paper-white);
+    --muted: rgba(255, 255, 255, 0.7);
+    --faint: rgba(255, 255, 255, 0.5);
+    --wash: rgba(255, 255, 255, 0.08);
+    --wash-strong: rgba(255, 255, 255, 0.14);
+    --accent-secondary: var(--nq-light-blue-on-dark);
+    --emphasis: var(--nq-light-blue-on-dark);
+    --outline: var(--nq-light-blue-on-dark);
+    --money-bg: var(--nq-light-blue-on-dark);
+    --button-bg: var(--nq-light-blue-on-dark);
+    --status-unstaking: var(--nq-light-blue-on-dark);
+    --mark-bg: rgba(255, 255, 255, 0.12);
+    --mark-bg-image: none;
+    --status-neutral: rgba(255, 255, 255, 0.5);
+    --status-danger: var(--nq-red-on-dark);
+    --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.28);
+    --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.32), 0 7px 8.5px rgba(0, 0, 0, 0.2);
+    --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.4), 0 1.34px 4.47px rgba(0, 0, 0, 0.24);
+  }
 }
-[data-theme='light'] { color-scheme: light; --page: #f5f6ef; --surface: #ffffff; --ink: #172b2a; --muted: #546766; --button-bg: #203e36; --button-ink: #ffffff; --outline: #377e6d; }
-[data-theme='dark'] { color-scheme: dark; --page: #14211e; --surface: #1d302a; --ink: #f1f5ec; --muted: #b3c4b9; --button-bg: #bce484; --button-ink: #14211e; --outline: #bce484; }
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --page: var(--nq-blue);
+  --page-image: var(--nq-blue-bg);
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-recessed: rgba(255, 255, 255, 0.04);
+  --hairline: rgba(255, 255, 255, 0.12);
+  --ink: var(--nq-paper-white);
+  --muted: rgba(255, 255, 255, 0.7);
+  --faint: rgba(255, 255, 255, 0.5);
+  --wash: rgba(255, 255, 255, 0.08);
+  --wash-strong: rgba(255, 255, 255, 0.14);
+  --accent-secondary: var(--nq-light-blue-on-dark);
+  --emphasis: var(--nq-light-blue-on-dark);
+  --outline: var(--nq-light-blue-on-dark);
+  --money-bg: var(--nq-light-blue-on-dark);
+  --button-bg: var(--nq-light-blue-on-dark);
+  --status-unstaking: var(--nq-light-blue-on-dark);
+  --mark-bg: rgba(255, 255, 255, 0.12);
+  --mark-bg-image: none;
+  --status-neutral: rgba(255, 255, 255, 0.5);
+  --status-danger: var(--nq-red-on-dark);
+  --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.32), 0 7px 8.5px rgba(0, 0, 0, 0.2);
+  --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.4), 0 1.34px 4.47px rgba(0, 0, 0, 0.24);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --page: var(--nq-cobble-white);
+  --page-image: none;
+  --surface: var(--nq-paper-white);
+  --surface-recessed: var(--nq-cobble-fog);
+  --hairline: var(--nq-cobble-ash);
+  --ink: var(--nq-blue);
+  --muted: rgba(31, 35, 72, 0.6);
+  --faint: rgba(31, 35, 72, 0.4);
+  --wash: rgba(31, 35, 72, 0.06);
+  --wash-strong: rgba(31, 35, 72, 0.1);
+  --accent-secondary: var(--nq-light-blue);
+  --emphasis: var(--nq-light-blue);
+  --outline: var(--nq-light-blue);
+  --money-bg: var(--nq-light-blue);
+  --button-bg: var(--nq-light-blue);
+  --status-unstaking: var(--nq-light-blue);
+  --status-neutral: rgba(31, 35, 72, 0.4);
+  --status-danger: var(--nq-red);
+  --mark-bg: var(--nq-blue);
+  --mark-bg-image: var(--nq-blue-bg);
+}
+
+/* The travelling arc on the playful pill: gold against the surface behind it. */
+:root {
+  --border-arc-a: var(--nq-gold);
+  --border-arc-b: var(--nq-blue);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { --border-arc-b: rgba(255, 255, 255, 0.18); }
+}
+[data-theme='dark'] { --border-arc-b: rgba(255, 255, 255, 0.18); }
+[data-theme='light'] { --border-arc-b: var(--nq-blue); }

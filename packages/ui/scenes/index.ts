@@ -1,4 +1,6 @@
 export { signInScenes } from './sign-in';
 export { memberStatusScenes } from './member-status';
 export { privacyScenes, createSquadScenes, joinCommitScenes, leaveScenes } from './squad-flow';
-export { DEMO_LABEL } from './demo/squad';
+export { orbitScenes } from './orbit';
+export { mySquadsScenes, squadPageScenes, proofScenes } from './squad-page';
+export { DEMO_LABEL, demoExample, demoGoals } from './demo/squad';

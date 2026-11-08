@@ -16,6 +16,9 @@ function toLuna(nim: string): number | null {
   return Number.isSafeInteger(luna) && luna > 0 ? luna : null;
 }
 
+/** Every screen keeps a way out (no dead ends): the creator's own squads. */
+const HOME = { label: 'My squads', href: '/squads' };
+
 export function CreateSquadContainer({ minGoalDate, inviteBase }: {
   minGoalDate: string; inviteBase: string;
 }) {
@@ -23,9 +26,10 @@ export function CreateSquadContainer({ minGoalDate, inviteBase }: {
   const [values, setValues] = useState<CreateSquadValues>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; nextAction: string } | undefined>();
-  const [created, setCreated] = useState<{ shortId: string; inviteUrl: string } | undefined>();
+  const [created, setCreated] = useState<
+    { shortId: string; inviteUrl: string; squadUrl: string } | undefined>();
 
-  if (!accepted) return <PrivacyNotice onAccept={() => setAccepted(true)} />;
+  if (!accepted) return <PrivacyNotice onAccept={() => setAccepted(true)} back={HOME} />;
 
   async function submit() {
     if (busy) return;
@@ -49,7 +53,8 @@ export function CreateSquadContainer({ minGoalDate, inviteBase }: {
       });
       const result = createSquadResponse.parse(await response.json());
       if (!result.ok) setError(catalogError(result.code));
-      else setCreated({ shortId: result.shortId, inviteUrl: `${inviteBase}/s/${result.inviteToken}` });
+      else setCreated({ shortId: result.shortId, squadUrl: `/squads/${result.id}`,
+        inviteUrl: `${inviteBase}/s/${result.inviteToken}` });
     } catch {
       setError(errors.NETWORK_ERROR);
     } finally {
@@ -57,7 +62,7 @@ export function CreateSquadContainer({ minGoalDate, inviteBase }: {
     }
   }
 
-  return <CreateSquadScreen values={values} minGoalDate={minGoalDate} busy={busy}
+  return <CreateSquadScreen values={values} minGoalDate={minGoalDate} busy={busy} back={HOME}
     {...(error ? { error } : {})} {...(created ? { created } : {})}
     onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
     onSubmit={() => void submit()} />;

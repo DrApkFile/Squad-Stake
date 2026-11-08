@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import { migrationUrl, sslFor } from './lib/db-config';
 
 // CLI entrypoint, never imported by the app; migrations are an explicit operator action.
-const migrations = ['001-auth', '002-squads'] as const;
+const migrations = ['001-auth', '002-squads', '003-invite-token'] as const;
 // Prefers Neon's direct DATABASE_URL_UNPOOLED; `prepare: false` keeps this correct on the
 // fallback, which may be the pooled endpoint (db-config.ts).
 const url = migrationUrl(process.env);

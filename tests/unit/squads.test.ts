@@ -38,7 +38,7 @@ test('Q03 a goal date under three days ahead is refused and no squad is stored',
   assert.equal(h.rows.size, 1);
 });
 
-test('Q03 the invite token is returned once and only its hash is stored', async () => {
+test('Q03 the invite token is looked up by hash; the plaintext is kept only to re-share', async () => {
   const h = harness();
   const created = await h.squads.create(ADDRESSES.alice, modeA);
   assert.ok(created.ok);
@@ -46,7 +46,10 @@ test('Q03 the invite token is returned once and only its hash is stored', async 
   const stored = h.rows.get(created.id);
   assert.ok(stored);
   assert.equal(stored.inviteTokenHash, createHash('sha256').update(created.inviteToken).digest('hex'));
-  assert.equal(JSON.stringify(stored).includes(created.inviteToken), false);
+  // Migration 003: the squad page has to be able to show the link again, so the token itself is
+  // stored beside its hash. The *lookup* is still by hash (see the join test), and a session
+  // token is never treated this way (src/server/migrations/003-invite-token.sql).
+  assert.equal(stored.inviteToken, created.inviteToken);
   // The organiser is a member from the start, with no commitment yet.
   assert.equal(h.memberships.get(`${created.id}|${ADDRESSES.alice}`)?.committedLuna, 0);
 });

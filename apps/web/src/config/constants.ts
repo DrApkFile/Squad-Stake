@@ -33,3 +33,18 @@ export const INVITE_TOKEN_BYTES = 16;
 
 /** Short id goes into Mode A payment data as `sq:<short_id>` (PRD §7.6). */
 export const SHORT_ID_LENGTH = 8;
+
+/**
+ * PRD §7.5 / Q08: a member who wants their stake liquid on goal day has to start leaving
+ * before `goalTime − 24 h − 2 h margin`, because unstaking waits for an election block and
+ * then a reporting window (up to about a day), and nothing starts by itself.
+ */
+export const LEAVE_BY_LEAD_MS = 26 * 60 * 60 * 1000;
+
+/** The leave-by banner appears from three days before the deadline (PRD §7.5). */
+export const LEAVE_BY_WARNING_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** Client-driven tx polling: Vercel route handlers are short-lived, so there is no background
+ * loop (ARCHITECTURE "Vercel notes"). Two minutes of five-second checks, then a manual retry. */
+export const TX_POLL_INTERVAL_MS = 5_000;
+export const TX_POLL_ATTEMPTS = 24;

@@ -1,12 +1,14 @@
 export const errors = {
-  CHAIN_UNAVAILABLE: { code: 'CHAIN_UNAVAILABLE', message: 'Refresh unavailable', retryable: true, nextAction: 'Try refreshing shortly.', changedAnything: false },
+  // These codes reach a sign-in screen, a squad page and a commit sheet alike, so their wording
+  // names no single flow (PRD §8: every state says what happened and what to do next).
+  CHAIN_UNAVAILABLE: { code: 'CHAIN_UNAVAILABLE', message: 'The chain could not be read just now.', retryable: true, nextAction: 'Nothing is lost. Refresh in a moment.', changedAnything: false },
   DECLINED: { code: 'DECLINED', message: 'Sign-in declined. Nothing changed.', retryable: true, nextAction: 'Try again when you’re ready.', changedAnything: false },
   OUTSIDE_HOST: { code: 'OUTSIDE_HOST', message: 'Open Squad Stake in Nimiq Pay to sign in.', retryable: false, nextAction: 'Open in Nimiq Pay.', changedAnything: false },
   WRONG_NETWORK: { code: 'WRONG_NETWORK', message: 'Nimiq Pay is on a different network.', retryable: true, nextAction: 'Switch to the app’s network in Nimiq Pay.', changedAnything: false },
-  AUTH_REFUSED: { code: 'AUTH_REFUSED', message: 'This sign-in could not be verified.', retryable: true, nextAction: 'Start a new sign-in.', changedAnything: false },
-  INVALID_INPUT: { code: 'INVALID_INPUT', message: 'The sign-in request was invalid.', retryable: true, nextAction: 'Start a new sign-in.', changedAnything: false },
-  UNAVAILABLE: { code: 'UNAVAILABLE', message: 'Sign-in is unavailable right now.', retryable: true, nextAction: 'Please try again shortly.', changedAnything: false },
-  NETWORK_ERROR: { code: 'NETWORK_ERROR', message: 'The connection was interrupted.', retryable: true, nextAction: 'Start a new sign-in.', changedAnything: false },
+  AUTH_REFUSED: { code: 'AUTH_REFUSED', message: 'Your session is no longer valid.', retryable: true, nextAction: 'Sign in with Nimiq Pay again.', changedAnything: false },
+  INVALID_INPUT: { code: 'INVALID_INPUT', message: 'That request was not valid.', retryable: true, nextAction: 'Check what you entered and try again.', changedAnything: false },
+  UNAVAILABLE: { code: 'UNAVAILABLE', message: 'Squad Stake is unavailable right now.', retryable: true, nextAction: 'Please try again shortly.', changedAnything: false },
+  NETWORK_ERROR: { code: 'NETWORK_ERROR', message: 'The connection was interrupted.', retryable: true, nextAction: 'Check your connection and try again. Nothing was sent.', changedAnything: false },
   WALLET_ERROR: { code: 'WALLET_ERROR', message: 'Nimiq Pay could not complete sign-in.', retryable: true, nextAction: 'Try again when you’re ready.', changedAnything: false },
 
   // Wallet outcomes for the staking calls (PRD §7.3, Q09). `changedAnything` is true
@@ -30,7 +32,11 @@ export const errors = {
   INVITE_INVALID: { code: 'INVITE_INVALID', message: 'That invite link is not valid.', retryable: false, nextAction: 'Ask the organiser for a new link.', changedAnything: false },
   SQUAD_CLOSED: { code: 'SQUAD_CLOSED', message: 'This squad is closed.', retryable: false, nextAction: 'Ask the organiser about a new squad.', changedAnything: false },
   SQUAD_NOT_FOUND: { code: 'SQUAD_NOT_FOUND', message: 'That squad no longer exists.', retryable: false, nextAction: 'Go back to your squads.', changedAnything: false },
-  NOT_A_MEMBER: { code: 'NOT_A_MEMBER', message: 'You are not in this squad.', retryable: false, nextAction: 'Open the invite link again.', changedAnything: false },
+  NOT_A_MEMBER: { code: 'NOT_A_MEMBER', message: 'You are not in this squad.', retryable: false, nextAction: 'Open the invite link, or view the public proof.', changedAnything: false },
+
+  // Reads behind the squad page and the proof view (PRD §7.4, §9.5, §9.10).
+  STALE_READ: { code: 'STALE_READ', message: 'This is an older chain read.', retryable: true, nextAction: 'Refresh to read the chain again.', changedAnything: false },
+  LEAVE_BLOCKED: { code: 'LEAVE_BLOCKED', message: 'This squad could not release you.', retryable: true, nextAction: 'Refresh the squad and try again. Your stake is untouched.', changedAnything: false },
 } as const;
 export type ErrorCode = keyof typeof errors;
 export function catalogError(code: string) {

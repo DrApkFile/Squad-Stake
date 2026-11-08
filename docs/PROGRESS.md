@@ -1,4 +1,4 @@
-# Progress handoff — 2026-11-06
+# Progress handoff — 2026-11-08
 
 Deadline **2026-11-11 23:59 UTC**. Day plan in `docs/PRD.md` §10 (full scope, nothing cut).
 
@@ -303,21 +303,20 @@ Configuration only: **no Vercel build, no Neon database and no migration has run
 - README now describes the implemented chain slice and removes the obsolete
   scaffolding/install limitation. DB migration and real-phone verification remain open.
 
-## Next slice (Nov 7, per PRD §10)
-- Squad page (§9.5) and `GET /api/squads/:id`: the member list with each member's
-  chain-derived status and the age of its read, plus §7.4's WITHDRAWN / PAID / LEFT,
-  which come from membership and payment rows, not from a staker record.
-- Goal-day planner and the three leaving steps (§7.5, Q08): `leaveBy`,
+## Next slice (Nov 9, per PRD §10)
+Superseded items from the Nov 7 list are done: the squad page (§9.5), `GET /api/squads/:id`,
+the mounted `LeaveConfirm`, `leaveBy` (Q08) and the first real database run. What is left:
+- The three leaving wallet steps (§7.5, Q11, Q12) and `GET /api/plan/:id`:
   `sendSetActiveStake` / `sendRetireStake` / `sendRemoveStake`. Remove uses a fresh
   `retiredBalance` as `value` with `fee` 0; never `getBlockAfterCollateralLockup`.
 - Mode A settlement (§7.6, Q15): `payment-check.ts` verifying recipient, value ≥ share,
   data `sq:<short_id>`, execution and finality **without** matching the sender.
-- Mount `LeaveConfirm` on the squad page (built, with scenes, but not yet reachable) and
-  wire `/api/squads/[id]/leave` to it.
-- Migrate a database and exercise create → join → commit for real; nothing in the squad
-  slice has touched Postgres yet. The client and `pnpm db:migrate` are now configured for
-  Neon through Vercel (pooled vs. unpooled; see the deploy slice), so the first real run
-  also tests that configuration: confirm a concurrent-commit refusal through the pooler.
+- The release estimate on the squad page: `squad-detail.ts` passes `releaseBlock: null`
+  today, so UNSTAKING says the release time is unknown rather than guessing one.
+- Run the whole lifecycle against **Neon through the pooler** and confirm a concurrent-commit
+  refusal there; the only database this build has touched is a local throwaway cluster.
+- A wallet smoke test on a real phone inside Nimiq Pay: sign, stake, track to `INCLUDED_OK`.
+- The mock chain provider (`?chain=mock`), still unimplemented; §9.11–12 fiat and earned (P1).
 - Reuse an RPC client in the server process to retain its address cache; these
   caches are ephemeral optimizations, never database truth.
 - `calculateRelease` accepts an inactivation **inclusion block**; staker
@@ -325,3 +324,119 @@ Configuration only: **no Vercel build, no Neon database and no migration has run
   that helper as an inclusion block. Unknown release stays UNSTAKING, not ready.
 - Active balance covering all commitments takes BACKED precedence over unrelated
   leaving funds; otherwise inactive funds precede retired funds until exit completes.
+
+## Reachable flows + Nimiq visual identity — 2026-11-07/08
+
+Plan: `~/.claude/plans/pasted-content-id-cc27-static-pages-effervescent-wombat.md` (approved).
+The protected critical path (`member-status.ts`, `release.ts`, `commitments.ts`, `rpc.ts`,
+`rpc-schemas.ts`, `tx-tracker.ts`) was **not touched**; `git status` was filtered to prove it.
+
+### Part A — every P0 screen is reachable
+
+Before this slice `apps/web/app/page.tsx` rendered only the sign-in container and its success
+branch printed "You're signed in." with the address, so nothing in the repo ever navigated away
+from `/`. The create page, the invite page and the commit sheet existed and were tested but were
+unreachable, and `/s/[token]`'s signed-out branch rendered the presentational `SignInScreen` with
+no `onSignIn`, so its button did nothing.
+
+Built:
+- `src/server/lib/session-page.ts` — `currentAddress()` for server components; a failed session
+  read is "not signed in", never an error page.
+- `src/server/core/squad-detail.ts` (pure, injected store/rpc/now) — one `getBlockNumber()` plus
+  one cached `getStakerByAddress` per member, then the existing `deriveMemberStatus`. Returns the
+  squad, `memberCount`, Σ committed, **Σ backed** (PRD §7.4 "squad total = Σ backed amounts"),
+  `leaveBy`, and per member `{ address, committedLuna, status, readAt, pendingTx, isYou }`.
+  `releaseBlock` is `null`, so UNSTAKING renders "release time unknown"; `inactiveFrom` is already
+  an effective election block and is never fed to `calculateRelease` as an inclusion block.
+  A failed read per member yields a null status with the catalog's `CHAIN_UNAVAILABLE`.
+- **Privacy**: no balance, free amount or `otherCommitments` figure leaves the server for anyone,
+  and `SHORT.shortBy` is masked to `null` for every member but its owner, because
+  `shortBy = Σ commitments − active balance` publishes a balance.
+- `src/core/leave-by.ts` (Q08) — `goalAt − 24 h − 2 h`, plus `showFrom = leaveBy − 3 days`.
+- Store: `listMembers`, `squadsForAddress`, `getSquadByShortId`, `latestOpenTrackedTx`, with the
+  in-memory twin and a new `detailHarness` in `tests/support/squads.ts`.
+- Migration `003-invite-token.sql` — the plaintext invite token beside its hash, so the squad page
+  can show the link again. The lookup is still by hash; a session token is never stored this way.
+- Routes: `GET /api/squads`, `GET /api/squads/[id]` (members only; a non-member gets
+  `NOT_A_MEMBER` so the UI can offer the proof link), `GET /api/proof/[id]` (**public**: no
+  session, no Origin requirement, accepts a short id or a uuid).
+- Pages: `/` (welcome → sign-in, `redirect('/squads')` when a session exists), `/squads`,
+  `/squads/[id]`, `/proof/[id]`, `/join/[token]` → `/s/[token]`, and `/s/[token]`'s signed-out
+  branch now renders the real sign-in container with an `onwardUrl` back to the invite.
+- `src/hooks/use-tx-poll.ts` — 5 s × 24 = 2 min, then it stops and exposes a manual refresh.
+  It never resends a wallet call; `INCLUDED_FAILED` is a failure, an unknown verdict keeps waiting.
+  Used by the commit sheet and by a pending member on the squad page.
+- Fixed `feeLuna: 0` in the commit sheet's needs-stake branch to read `STAKING_FEES_LUNA`.
+- `LeaveConfirm` (built last slice, previously unreachable) is mounted on the squad page.
+- Error catalog: five generic entries reworded to be screen-neutral (they said "Start a new
+  sign-in." on a squad page), plus `STALE_READ` and `LEAVE_BLOCKED`. Every screen has a back or
+  home control through one new pure `ScreenHeader`.
+
+### Part B — Nimiq's own visual identity
+
+`packages/ui/tokens.css` was rewritten on Nimiq's published values, with both sources, their raw
+URLs and the retrieval date (2026-11-07) in its header comment, and the measured contrast table
+next to them. `packages/ui/fonts` now holds Mulish 300/400/600/700 and Fira Mono 400/500 as
+`.woff2`, extracted from the `@fontsource` 5.3.0 tarballs, with both OFL licences and SHA-256 per
+file in its README; the two "SquadSans" files (Liberation Sans renamed in CSS) are deleted. No
+dependency was added for the fonts.
+
+Three documented deviations, all in `docs/DECISIONS.md` and in the `tokens.css` header: the light
+plaza is the default theme and navy the secondary one; money controls are Signal Blue and gold
+never reaches one; status hues are dots and fills beside navy words on light, because every one of
+them fails AA as text on Cobble White.
+
+Motion is time-driven: pure `packages/ui/motion.ts` (`ringAngle`, `typedChars`, `countUp`,
+`tickerOffset`, `easeOutCubic`, `REDUCED_MOTION_T`), every moving component takes `t` in seconds,
+per-frame values reach CSS as inline custom properties, and `apps/web/src/hooks/use-scene-time.ts`
+supplies `t` from `requestAnimationFrame`, freezing it at `REDUCED_MOTION_T` under
+`prefers-reduced-motion`. There is no `@keyframes` loop, `setInterval`, `setTimeout` or
+`requestAnimationFrame` anywhere in `packages/ui`. New pure components: `OrbitSquad`,
+`GradientBorderButton` (non-money actions only), `TypewriterHeading`, `GoalTicker`, `ScreenHeader`,
+`StatusDot`, `MemberList`, `MySquadsScreen`, `SquadScreen`, `ProofScreen`.
+
+Identicons are generated outside `packages/ui` (`src/server/lib/identicon.ts`, `@nimiq/identicons`
+1.6.2 pinned in `apps/web` only) and passed down as an SVG string, so `packages/ui` stays
+dependency-free. `scripts/build-identicons.mjs` wrote the demo set once; it is checked in and
+labelled sample data.
+
+### The orbit ring overflowed because the box rotated, not the paint
+The first `OrbitSquad` rotated a square 340 px box with `transform: rotate()`. Its bounding box is
+the diagonal — 420 px measured at 375 px — so the ring "crossed the frame" in 14 frames while the
+circle it painted never did. The ring now turns by moving a `conic-gradient(from …)` start angle,
+and the box never rotates.
+
+### What ran
+- `pnpm gate` (log `.cache/ui-gate-2026-11-08.log`): typecheck, lint, **68 unit tests, 20 adversarial tests** (no skips), Next build
+  (compiled clean in 13.0 s, 8/8 static pages, no warnings, 20 routes), Q16 production-artifact
+  guards, secret scan and **19** exact dependency pins across 5 manifests all passed. It
+  **exited 1 only at `check:tracked`**, because these changes are uncommitted; the human commits.
+  Nothing else in the gate failed.
+- `LIVE_RPC=1 pnpm test:live` (log `.cache/live-2026-11-08.log`): one test, zero skips, 3.5 s.
+  Head 16,181,845; staker `NQ14 TEMC ANU0 CELF GBTQ GN3R 86L9 CXDD 83R7`; validator
+  `NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S`, `jailedFrom: null`; release 16,251,211; a
+  two-transaction page; **11** active validators today (12 on Nov 6), of which §7.7 picked
+  `NQ08 N4RH FQDL TE7S 8C66 65LT KYDU Q382 YG7U`. It signs and sends nothing. One `curl` warm-up
+  first; the deliberate five-second timeout was never raised.
+- `pnpm check:scenes` (new, `scripts/measure-scenes.mjs`, zero dependencies, **not** in the gate
+  because the gate must pass without a browser): 64 scenes × 2 themes × {390, 375} = **256 frames,
+  0 failures** — no element crossing the frame, no horizontal scroll, every interactive target
+  ≥ 44 px. Record: `.cache/scene-measurements.json` (`measuredAt 2026-11-08T00:49:42Z`).
+  Eyes on the welcome, squad page (light and dark), proof view, commit-pending and leave-confirm
+  frames in `.cache/scenes/`.
+- **First real database run.** A throwaway local PostgreSQL 18.6 cluster (port 55432, socket under the
+  session scratchpad) took `pnpm db:migrate` for `001-auth`, `002-squads` and `003-invite-token`,
+  and the whole lifecycle ran against it through the dev server as alice/bob/carol: create →
+  `/squads` list → `/squads/[id]` detail → join by token → a commit refused for over-commitment →
+  re-join → a guessed invite token refused → public `/proof/<shortId>` while signed out → leave →
+  the member shown LEFT. The live JSON confirmed the mask: bob's `shortBy` was present for bob and
+  `null` for alice. The cluster has been stopped and left in the scratchpad.
+
+### Not verified by this slice
+No wallet, no Nimiq Pay approval sheet, no staking transaction signed, sent, included or tracked
+on any network, no mainnet, no real phone. The database that ran is a **local throwaway cluster,
+not Neon**, so the PgBouncer-pooled concurrent-commit refusal is still unproven. The squad page's
+member statuses came from real testnet reads of addresses that are not stakers (so NOT_STAKING)
+and from scripted harness reads for the other five statuses. Mode A settlement (§7.6), the three
+leaving wallet steps (§7.5), `GET /api/plan/:id`, the mock chain provider and Remotion remain the
+next slice.

@@ -6,7 +6,8 @@ const now = readAt + 30_000;
 const releaseBlock = recording.releaseBlock;
 const estimatedReleaseAt = readAt + (releaseBlock - recording.headBlock) * 1000;
 // Catalog text is verified by Q17 without importing application code into pure UI.
-const refreshError = { message: 'Refresh unavailable', nextAction: 'Try refreshing shortly.' };
+const refreshError = { message: 'The chain could not be read just now.',
+  nextAction: 'Nothing is lost. Refresh in a moment.' };
 
 // Six derived UI states, including a one-luna SHORT boundary. These are explicitly
 // synthetic cases based on S2/S3 testnet response shapes, NOT mainnet demo evidence.

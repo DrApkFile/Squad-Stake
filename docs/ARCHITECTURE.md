@@ -42,6 +42,8 @@ CREATE TABLE squads (
   target_luna bigint, recipient text,                            -- A only
   goal_at timestamptz NOT NULL, organiser text NOT NULL,
   invite_token_hash bytea NOT NULL,
+  invite_token text,            -- migration 003: plaintext, so the squad page can re-share the
+                                -- link. The lookup is still by hash. Never done for a session.
   state text NOT NULL CHECK (state IN ('OPEN','SAVING','LEAVING','SETTLING','COMPLETED','CANCELLED')),
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (mode = 'B' OR (target_luna > 0 AND recipient IS NOT NULL)));
@@ -91,13 +93,20 @@ environment variables and query parameters, and expects refusal.
 |---|---|
 | `POST /api/auth/challenge` · `POST /api/auth/verify` | sign-in |
 | `POST /api/squads` | create |
-| `GET /api/squads/:id` | squad + per-member derived status + `readAt` |
+| `GET /api/squads` | the viewer's squads (our record of commitments; no chain read) — **built** |
+| `GET /api/squads/:id` | squad + per-member derived status + `readAt`; members only, another member's `shortBy` masked — **built** |
 | `POST /api/squads/:id/join` | invite token → membership |
 | `POST /api/squads/:id/commit` | set commitment (invariant) |
 | `POST /api/squads/:id/leave` | leave |
 | `POST /api/tx` · `GET /api/tx/:hash` | record + check tracked tx |
 | `GET /api/plan/:id` | leave-by, current release estimate, jail warnings |
-| `GET /api/proof/:id` | public: members (short addresses), committed, last chain read, payments with tx hashes |
+| `GET /api/proof/:id` | public, no session: members (full addresses), committed, derived status, last chain read, the RPC call to repeat — **built** (payments arrive with §7.6) |
+
+Reads are `GET`s and so do not require an `Origin` header (browsers omit it on same-origin
+GETs); every state-changing `POST` does. `GET /api/proof/:id` has no session guard at all.
+The store adds `getSquadByShortId`, `listMembers` (members who left included — §7.4 lists
+LEFT), `squadsForAddress` (one query: squad + the viewer's commitment + member count + Σ
+committed) and `latestOpenTrackedTx` (SUBMITTED/UNKNOWN only, so a roster row can say pending).
 
 ## RPC rules (from spikes)
 Positional params, explicit `null` for optional ones. Allowed and used: `getBlockNumber`,

@@ -1,14 +1,16 @@
+import { ScreenHeader } from './ScreenHeader';
 export interface PrivacyNoticeProps {
+  /** Where the back control goes; see ScreenHeader. */
+  back?: { label: string; href: string } | undefined;
   onAccept?: () => void;
   busy?: boolean;
   demoLabel?: string;
 }
 
 /** Screen 0. Shown before the first save (PRD §7.2); says what leaves the wallet: nothing. */
-export function PrivacyNotice({ onAccept, busy = false, demoLabel }: PrivacyNoticeProps) {
+export function PrivacyNotice({ onAccept, busy = false, demoLabel, back }: PrivacyNoticeProps) {
   return <main className="sheet" aria-busy={busy}>
-    <header className="brand"><span className="brand-mark" aria-hidden="true">s.</span> Squad Stake</header>
-    {demoLabel && <p className="demo-label">{demoLabel}</p>}
+    <ScreenHeader back={back} demoLabel={demoLabel} />
     <div className="sheet-body">
       <p className="eyebrow">BEFORE YOU START</p>
       <h1>Your NIM stays<br />in your wallet.</h1>

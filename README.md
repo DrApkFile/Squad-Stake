@@ -119,18 +119,28 @@ and adversarial tests use the raw recording in `tests/fixtures/rpc/testnet.json`
 `node scripts/build-chain-scenes.mjs` refreshes the UI projection of that recording.
 Leaving-state fixtures are labelled synthetic cases, not observed mainnet proof.
 
-`packages/ui` owns the screens, badge, styles, tokens, bundled fonts and synthetic fixture
-states. Fixtures are explicitly labelled and contain no invented mainnet proof.
+Every screen is reachable from `/`: welcome and sign-in, My squads, create (with the privacy
+notice first), the invite page at `/s/<token>` (and `/join/<token>`), the squad page at
+`/squads/<id>` with its member list, and a **public proof view at `/proof/<shortId>`** that
+needs no session, no wallet and no JavaScript, and prints the RPC call to repeat.
+A member's own shortfall is shown to them and masked for everyone else, because the gap
+between a commitment and an active balance is a balance.
+
+`packages/ui` owns the screens, badge, styles, Nimiq design tokens, self-hosted Mulish and
+Fira Mono, and the labelled fixture states; it stays pure, with every animation a function of
+a `t` prop in seconds (so Remotion can render it frame by frame) and no timers, fetches or
+clocks inside it. Fixtures contain no invented mainnet proof.
 `apps/video` is an empty placeholder with no Remotion dependency.
 
-Not built: the squad page and member list, the goal-day planner and leaving steps,
-Mode A payments and their on-chain check, pool-aware validator choice, fiat and
-earned-so-far figures, mainnet evidence, Remotion and real-phone
-verification. Deployment is configured as described above but has never been run:
-no Vercel build, no Neon database and no migration has happened. This is not the
-complete P0 app.
+Not built: the goal-day planner and the three leaving steps (set-active-stake, retire,
+remove), Mode A payments and their on-chain check, pool-aware validator choice, fiat and
+earned-so-far figures, mainnet evidence, Remotion and real-phone verification of the new
+screens. This is not the complete P0 app.
 
-Not yet verified, even where the code exists: no database has been migrated or
-written to, no staking or payment transaction has been signed, sent or tracked on
-any network, and nothing has run on a real phone inside Nimiq Pay. Pinned
-dependencies, the lockfile and the full gate were verified (see `docs/PROGRESS.md`).
+Not yet verified by this repository's own runs: no staking or payment transaction has been
+signed, sent or tracked on any network by any test here, and nothing in this slice has run on
+a real phone inside Nimiq Pay. The builder reports the app deployed on Vercel against a Neon
+database with migrations `001` and `002` applied, and sign-in working there inside Nimiq Pay
+on testnet (2026-11-07); migration `003-invite-token.sql` is new in this slice and still has
+to be applied. Pinned dependencies, the lockfile and the full gate were verified
+(see `docs/PROGRESS.md`).

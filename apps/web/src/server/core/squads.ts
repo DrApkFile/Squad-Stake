@@ -9,6 +9,9 @@ export interface Squad {
   id: string; shortId: string; name: string; mode: 'A' | 'B';
   targetLuna: number | null; recipient: string | null;
   goalAt: number; organiser: string; state: SquadState;
+  /** The plaintext invite token, so a member can share the link again (migration 003).
+   * Null for squads created before that migration. */
+  inviteToken: string | null;
 }
 export interface Membership {
   squadId: string; address: string; personalTargetLuna: number | null;
@@ -20,6 +23,15 @@ export interface TrackedTx {
   expected: { valueLuna: number }; state: TxState; checkedAt: number | null;
 }
 export interface Commitment { squadId: string; committedLuna: number }
+/** One row of "My squads": the squad, what the viewer committed, and the squad's own totals.
+ * The totals are our record of commitments, not a chain read — only the squad page says
+ * "backed", and only after reading the chain. */
+export interface SquadSummary {
+  squad: Squad;
+  committedLuna: number;
+  memberCount: number;
+  squadCommittedLuna: number;
+}
 
 /** The member's rows, already locked for the life of one database transaction. */
 export interface LockedMember {
@@ -35,9 +47,16 @@ export interface SquadStore {
   /** Joins or re-joins; a re-join starts from a zero commitment (§7.8 removed it). */
   joinMembership(membership: NewMembership): Promise<boolean>;
   markLeft(squadId: string, address: string, at: number): Promise<boolean>;
+  getSquadByShortId(shortId: string): Promise<Squad | null>;
   /** Read-only views for screens; the invariant uses withMemberLock instead. */
   countActiveMembers(squadId: string): Promise<number>;
   activeCommitments(address: string): Promise<readonly Commitment[]>;
+  /** The roster, members who left included: PRD §7.4 lists LEFT as a status. */
+  listMembers(squadId: string): Promise<readonly Membership[]>;
+  squadsForAddress(address: string): Promise<readonly SquadSummary[]>;
+  /** This member's most recent transaction for this squad that has no verdict yet, so the
+   * roster can say "pending" instead of implying the commitment is settled (Q10). */
+  latestOpenTrackedTx(squadId: string, address: string): Promise<TrackedTx | null>;
   withMemberLock<T>(address: string, run: (locked: LockedMember) => Promise<T>): Promise<T>;
   insertTrackedTx(tx: TrackedTx): Promise<boolean>;
   getTrackedTx(hash: string): Promise<TrackedTx | null>;
@@ -77,13 +96,15 @@ export function createSquadService(deps: SquadDeps) {
         targetLuna: input.mode === 'A' ? input.targetLuna : null,
         recipient: input.mode === 'A' ? input.recipient : null,
         goalAt: input.goalAt, organiser, state: 'OPEN',
+        inviteToken,
         inviteTokenHash: deps.hash(inviteToken),
       };
       await deps.store.insertSquad(squad, {
         squadId: squad.id, address: organiser,
         personalTargetLuna: input.mode === 'B' ? input.personalTargetLuna : null,
       });
-      // The raw invite token is returned once and never stored (FAILURE_MODES).
+      // Returned here for the share step, and kept so a member can share it again later
+      // (migration 003 explains why that is safe for an invite token).
       return { ok: true, id: squad.id, shortId: squad.shortId, inviteToken };
     },
 

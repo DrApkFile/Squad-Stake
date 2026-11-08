@@ -8,6 +8,7 @@ import type { ChainTransaction, RpcResult, Staker, StakerState } from '../../app
 export const ADDRESSES = {
   alice: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V',
   bob: 'NQ94 B3PE JCBF 9JSU 5XHG BNVB UNT8 TEUT 4KGD',
+  carol: 'NQ38 2JRM 4YDV 1PCB 9CSM 7V3H KQ0E 5NTG XB4L',
 } as const;
 export const HASHES = {
   create: 'a'.repeat(64), add: 'b'.repeat(64), other: 'c'.repeat(64),
@@ -67,6 +68,39 @@ export function memoryStore() {
       if (!membership || membership.leftAt !== null) return false;
       memberships.set(key(squadId, address), { ...membership, leftAt: at, committedLuna: 0 });
       return true;
+    },
+    async getSquadByShortId(shortId) {
+      for (const squad of squads.values()) if (squad.shortId === shortId) return { ...squad };
+      return null;
+    },
+    async listMembers(squadId) {
+      // Insertion order stands in for `ORDER BY joined_at, address`; members who left are
+      // included, because PRD §7.4 lists LEFT as a status.
+      return [...memberships.values()]
+        .filter((membership) => membership.squadId === squadId)
+        .map((membership) => ({ ...membership }));
+    },
+    async squadsForAddress(address) {
+      const mine = [...memberships.values()]
+        .filter((membership) => membership.address === address && membership.leftAt === null);
+      return mine.flatMap((membership) => {
+        const squad = squads.get(membership.squadId);
+        if (!squad) return [];
+        const roster = [...memberships.values()]
+          .filter((other) => other.squadId === squad.id && other.leftAt === null);
+        return [{
+          squad: { ...squad },
+          committedLuna: membership.committedLuna,
+          memberCount: roster.length,
+          squadCommittedLuna: roster.reduce((total, other) => total + other.committedLuna, 0),
+        }];
+      });
+    },
+    async latestOpenTrackedTx(squadId, address) {
+      const open = [...trackedTxs.values()].filter((tracked) => tracked.squadId === squadId
+        && tracked.address === address && (tracked.state === 'SUBMITTED' || tracked.state === 'UNKNOWN'));
+      const last = open.at(-1);
+      return last ? { ...last } : null;
     },
     async countActiveMembers(squadId) {
       return [...memberships.values()]
@@ -150,6 +184,58 @@ export function harness(options: { balance?: number | null; transaction?: ChainT
     cachedReads: () => cachedReads,
     setBalance: (value: number | null) => { balance = value; },
     advance: (milliseconds: number) => { now += milliseconds; },
+    at: () => now,
+  };
+}
+
+/**
+ * A squad with a roster, for the squad page and the proof view (PRD §7.4). Per-address active
+ * balances and read times are scripted, and any address can be made unreadable, so a failed
+ * read is testable without a network.
+ */
+export function detailHarness(options: { head?: number | null } = {}) {
+  const memory = memoryStore();
+  const now = Date.parse('2026-11-07T12:00:00Z');
+  let head: number | null = options.head ?? 16_040_000;
+  const balances = new Map<string, number | null>();
+  const unreadable = new Set<string>();
+  const readAt = new Map<string, number>();
+  let stakerReads = 0;
+
+  const rpc = {
+    async getBlockNumber(): Promise<RpcResult<number>> {
+      if (head === null) {
+        return { ok: false as const, code: 'RPC_ERROR' as const,
+          rpcError: { code: -32603, message: 'Internal error' } };
+      }
+      return { ok: true as const, data: head, metadata: null, readAt: now };
+    },
+    async getStakerByAddress(address: string): Promise<RpcResult<StakerState>> {
+      stakerReads++;
+      if (unreadable.has(address)) {
+        return { ok: false as const, code: 'TIMEOUT' as const };
+      }
+      const balance = balances.get(address) ?? null;
+      const at = readAt.get(address) ?? now;
+      if (balance === null) {
+        return { ok: true as const, data: { status: 'NOT_STAKING' }, metadata: null, readAt: at };
+      }
+      return { ok: true as const,
+        data: { status: 'STAKING', staker: staker(balance, { address }) },
+        metadata: null, readAt: at };
+    },
+  };
+  return {
+    ...memory,
+    deps: { store: memory.store, rpc, now: () => now },
+    squads: createSquadService({ store: memory.store, now: () => now, uuid: randomUUID,
+      shortId: () => 'k3m9p2qr', inviteToken: () => 'f'.repeat(32),
+      hash: (value: string) => createHash('sha256').update(value).digest('hex') }),
+    setBalance: (address: string, balance: number | null) => { balances.set(address, balance); },
+    setReadAt: (address: string, at: number) => { readAt.set(address, at); },
+    breakRead: (address: string) => { unreadable.add(address); },
+    setHead: (value: number | null) => { head = value; },
+    stakerReads: () => stakerReads,
     at: () => now,
   };
 }

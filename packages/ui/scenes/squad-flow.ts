@@ -30,7 +30,7 @@ export const createSquadScenes: readonly { id: string; props: CreateSquadScreenP
   { id: 'create-shared', props: { minGoalDate, values: {
     ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
     recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
-  }, created: { shortId: 'k3m9p2qr', inviteUrl: 'https://squad.example/s/sample-invite-token' } } },
+  }, created: { shortId: 'k3m9p2qr', inviteUrl: 'https://squad.example/s/sample-invite-token', squadUrl: '/squads/sample' } } },
   { id: 'create-busy', props: { minGoalDate, busy: true, values: {
     ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
     recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
@@ -59,7 +59,8 @@ export const joinCommitScenes: readonly { id: string; props: JoinCommitSheetProp
     message: 'That is more than your stake can back.',
     nextAction: 'Commit your free amount, or add stake first.' } } },
   { id: 'commit-no-read', props: { ...sheet, readAt: null, state: { status: 'failed', changedAnything: false,
-    message: 'Refresh unavailable', nextAction: 'Try refreshing shortly.' } } },
+    message: 'The chain could not be read just now.',
+    nextAction: 'Nothing is lost. Refresh in a moment.' } } },
   { id: 'commit-committed', props: { ...sheet,
     state: { status: 'committed', committedLuna: demoCommitmentLuna, freeLuna: demoFreeLuna } } },
   { id: 'commit-together-mode', props: { ...sheet, squad: demoTogetherSquad,

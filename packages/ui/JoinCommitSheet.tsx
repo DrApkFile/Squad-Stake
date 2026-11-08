@@ -1,4 +1,5 @@
-import { daysBetween, formatDay, formatLuna } from './format';
+import { daysBetween, formatDay, formatLuna, readAge } from './format';
+import { ScreenHeader } from './ScreenHeader';
 
 export type JoinCommitState =
   | { status: 'not-staking'; minimumLuna: number }
@@ -10,6 +11,8 @@ export type JoinCommitState =
   | { status: 'committed'; committedLuna: number; freeLuna: number };
 
 export interface JoinCommitSheetProps {
+  /** Where the back control goes; see ScreenHeader. */
+  back?: { label: string; href: string } | undefined;
   squad: { name: string; mode: 'A' | 'B'; targetLuna: number | null; goalAt: number; memberCount: number };
   /** NIM as typed; the container converts to luna. */
   amountNim: string;
@@ -20,25 +23,26 @@ export interface JoinCommitSheetProps {
   onAmountChange?: (value: string) => void;
   onCommit?: () => void;
   onApprove?: () => void;
+  /** Re-check a tracked transaction by hand. Offered once automatic polling has given up, so
+   * nothing is ever resent: this reads the chain, it does not call the wallet again
+   * (briefing/FAILURE_MODES.md, "after a timeout or submission error, check status before
+   * resending"). */
+  onRefresh?: () => void;
+  /** Polling ran for its two minutes without a verdict. */
+  stalled?: boolean;
   demoLabel?: string;
-}
-
-function readAge(readAt: number | null, now: number) {
-  if (readAt === null) return 'Chain read: —';
-  const seconds = Math.max(0, Math.floor((now - readAt) / 1000));
-  return `Checked ${seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min`} ago`;
 }
 
 /** Screen 6. One sheet for every outcome of joining and committing (PRD §7.3). */
 export function JoinCommitSheet({
-  squad, amountNim, state, now, readAt, onAmountChange, onCommit, onApprove, demoLabel,
+  squad, amountNim, state, now, readAt, onAmountChange, onCommit, onApprove, onRefresh,
+  stalled = false, demoLabel, back,
 }: JoinCommitSheetProps) {
   const busy = state.status === 'waiting' || state.status === 'pending';
   const done = state.status === 'committed';
   const days = daysBetween(now, squad.goalAt);
   return <main className="sheet" aria-busy={busy}>
-    <header className="brand"><span className="brand-mark" aria-hidden="true">s.</span> Squad Stake</header>
-    {demoLabel && <p className="demo-label">{demoLabel}</p>}
+    <ScreenHeader back={back} demoLabel={demoLabel} />
     <div className="sheet-body">
       <p className="eyebrow">{squad.mode === 'A' ? 'SHARED GOAL' : 'TOGETHER GOALS'}</p>
       <h1>{squad.name}</h1>
@@ -80,6 +84,8 @@ export function JoinCommitSheet({
           <p className="status-title">Waiting for the chain</p>
           <p>{state.confirmations} of {state.requiredConfirmations} confirmations. A hash is not
             success, so your commitment is saved once the chain confirms it.</p>
+          {stalled && <p>Still unconfirmed after two minutes. Nothing was resent — check again
+            when you like.</p>}
         </>}
         {state.status === 'failed' && <>
           <p className="status-title">{state.message}</p>
@@ -101,6 +107,7 @@ export function JoinCommitSheet({
         : <button className="primary-button" onClick={onCommit} disabled={busy || done}>
           {busy ? 'Waiting…' : done ? 'Committed' : 'Commit'}
         </button>}
+      {stalled && <button className="secondary-button" onClick={onRefresh}>Check status again</button>}
       <p className="fine-print">Squad Stake cannot move your NIM. Only your approval can.</p>
     </footer>
   </main>;

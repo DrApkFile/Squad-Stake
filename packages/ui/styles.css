@@ -1,66 +1,613 @@
 @import './tokens.css';
+
+/*
+ * Every colour, size, radius and easing below comes from tokens.css, which cites Nimiq's own
+ * sources. Two button shapes exist on purpose (Nimiq Pay DESIGN.md): `.primary-button` is the
+ * rounded-lg rectangle that commits a flow step or moves money, `.gradient-button` is the pill
+ * for navigation and entry. Nothing here animates a layout property, and nothing animates on a
+ * timer: motion that depends on time is driven by a `t` prop through custom properties.
+ */
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font-sans); font-size: var(--font-md); }
+
+body {
+  margin: 0;
+  background-color: var(--page);
+  background-image: var(--page-image);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--font-md);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+}
+
 button, a { -webkit-tap-highlight-color: transparent; }
 button { font: inherit; }
-.sign-in { width: 100%; max-width: 480px; min-width: 375px; min-height: 100svh; margin: auto; padding: calc(var(--space-6) + var(--safe-top)) var(--space-5) calc(var(--space-5) + var(--safe-bottom)); display: flex; flex-direction: column; background: var(--page); color: var(--ink); }
-.brand { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-brand); font-weight: var(--weight-bold); }
-.brand-mark { display: grid; place-items: center; width: 36px; height: 36px; background: var(--button-bg); color: var(--button-ink); border-radius: var(--radius-sm); }
-.sign-in-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: var(--space-5) 0; }
-.squad-symbol { position: relative; height: 140px; width: 170px; margin-bottom: var(--space-6); }
-.squad-symbol i { position: absolute; width: 88px; height: 88px; border-radius: var(--radius-round); background: var(--accent-secondary); top: 44px; left: 0; }
-.squad-symbol i:nth-child(2) { background: var(--accent-tertiary); left: 80px; }
-.squad-symbol i:nth-child(3) { background: var(--accent); top: 0; left: 40px; }
-.eyebrow { font-size: var(--font-xs); letter-spacing: var(--tracking-eyebrow); font-weight: var(--weight-bold); line-height: var(--leading-body); margin: 0 0 var(--space-4); }
-.sign-in h1 { font-size: var(--font-display); line-height: var(--leading-display); letter-spacing: var(--tracking-display); margin: 0 0 var(--space-5); }
-.intro { font-size: var(--font-lg); line-height: var(--leading-body); color: var(--muted); margin: 0; }
-.sign-in-status { min-height: 96px; padding-top: var(--space-6); font-size: var(--font-sm); line-height: var(--leading-body); color: var(--muted); }
-.sign-in-status p { margin: 0 0 var(--space-2); }
-.status-title { font-weight: var(--weight-bold); color: var(--ink); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-numeric);
+  overflow-wrap: anywhere;
+}
+
+/* --- Screen roots ------------------------------------------------------- */
+.sign-in, .sheet {
+  width: 100%;
+  max-width: 480px;
+  min-width: 375px;
+  /* A screen never scrolls sideways on a phone, whatever a child does: the goal ticker's strip
+     is 1,005 px wide by design and is clipped by its own window, and this is the backstop for
+     anything like it. `clip` cuts the horizontal axis only, so the page still scrolls down
+     normally (`hidden` would turn the element into a vertical scroll box). */
+  overflow-x: clip;
+  min-height: 100svh;
+  margin: auto;
+  padding: calc(var(--space-6) + var(--safe-top)) var(--space-5)
+    calc(var(--space-6) + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  background-color: var(--page);
+  background-image: var(--page-image);
+  color: var(--ink);
+}
+.member-scene {
+  width: 100%;
+  min-width: 375px;
+  height: 100%;
+  min-height: 844px;
+  padding: calc(var(--space-6) + var(--safe-top)) var(--space-5)
+    calc(var(--space-6) + var(--safe-bottom));
+  background-color: var(--page);
+  background-image: var(--page-image);
+  color: var(--ink);
+}
+.member-scene-body { padding-top: var(--space-12); }
+.sign-in-body, .sheet-body { flex: 1; display: flex; flex-direction: column; padding: var(--space-5) 0; }
+.sign-in-footer, .sheet-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+
+/* --- Header ------------------------------------------------------------- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-brand);
+  font-weight: var(--weight-semibold);
+  min-height: 44px;
+}
+.brand-tag { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); }
+.brand-tag[data-pushed='yes'] { margin-left: auto; font-size: var(--font-sm); color: var(--muted); }
+.brand-tag[data-pushed='yes'] .brand-word {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  background: var(--mark-bg);
+  background-image: var(--mark-bg-image);
+  color: var(--mark-ink);
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-bold);
+  font-size: var(--font-sm);
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  margin-left: calc(var(--space-3) * -1);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+}
+.back-link:hover { background: var(--wash); }
+.back-link:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+.demo-label {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  margin: var(--space-2) 0 0;
+}
+
+/* --- Type --------------------------------------------------------------- */
+.eyebrow {
+  font-size: var(--font-xs);
+  letter-spacing: 0.09em;
+  font-weight: var(--weight-bold);
+  color: var(--muted);
+  margin: 0 0 var(--space-4);
+}
+.sign-in h1, .sheet h1, .member-scene h1 {
+  font-size: var(--font-headline);
+  line-height: var(--leading-headline);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-5);
+  overflow-wrap: anywhere;
+}
+.section-title {
+  font-size: var(--font-lg);
+  font-weight: var(--weight-semibold);
+  margin: var(--space-8) 0 var(--space-3);
+}
+.intro {
+  font-size: var(--font-md);
+  line-height: var(--leading-body);
+  color: var(--muted);
+  margin: 0 0 var(--space-5);
+}
+.sheet .intro { margin: 0 0 var(--space-4); }
+.fine-print {
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: var(--leading-body);
+  margin: var(--space-3) 0 0;
+}
+.fine-print-left { text-align: left; margin: var(--space-4) 0 0; }
+/* Numbers and addresses are Fira Mono (DESIGN.md "Numeric Font"). */
+.address, .member-amount, .member-address, .orbit-total, .squad-card-figure, .field-input-mono {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-numeric);
+}
 .address { overflow-wrap: anywhere; }
-.primary-button { display: flex; align-items: center; justify-content: center; gap: var(--space-3); width: 100%; min-height: 56px; padding: var(--space-4); border: 0; border-radius: var(--radius-lg); background: var(--button-bg); color: var(--button-ink); text-decoration: none; font-weight: var(--weight-bold); cursor: pointer; }
+
+/* --- Typewriter --------------------------------------------------------- */
+.typewriter {
+  font-size: var(--font-headline);
+  line-height: var(--leading-headline);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-4);
+  min-height: 3.2em;
+}
+.typewriter-emphasis { color: var(--emphasis); }
+.typewriter-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.1em;
+  background: var(--accent);
+  opacity: var(--cursor-opacity, 1);
+}
+.typewriter-cursor[data-done='yes'] { opacity: 0.35; }
+
+/* --- Entrances (progress arrives as --enter, 0..1) ---------------------- */
+[style*='--enter'] {
+  opacity: var(--enter, 1);
+  transform: translateY(calc((1 - var(--enter, 1)) * 10px));
+}
+
+/* --- Orbit -------------------------------------------------------------- */
+.orbit { margin: 0 0 var(--space-5); }
+.orbit-field {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+.orbit-ring-layer { position: absolute; inset: 0; }
+.orbit-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ring-size);
+  aspect-ratio: 1;
+  border-radius: var(--radius-round);
+  transform: translate(-50%, -50%);
+  /* 1 px ring: a gold arc fading out both ways, masked to the disc's edge. The ring turns by
+     moving the gradient's start angle, not by rotating the box: a rotated square box would
+     stick out of the 340 px field by its diagonal (measured at 390 px, 2026-11-07), while the
+     circle it paints would not. Seat positions carry the same angle themselves. */
+  background: conic-gradient(from var(--ring-angle, 0deg),
+    transparent 0%, var(--accent) 43%, transparent 86%);
+  -webkit-mask-image: radial-gradient(circle farthest-side, transparent calc(100% - 1px), #000 calc(100% - 1px));
+  mask-image: radial-gradient(circle farthest-side, transparent calc(100% - 1px), #000 calc(100% - 1px));
+}
+.orbit-seat {
+  position: absolute;
+  left: var(--seat-x, 50%);
+  top: var(--seat-y, 50%);
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: var(--radius-round);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  opacity: var(--enter, 1);
+}
+.orbit-seat[data-tone='BACKED'] { box-shadow: 0 0 10px 2px rgba(33, 188, 165, 0.55); }
+.orbit-seat[data-tone='SHORT'] { box-shadow: 0 0 10px 2px rgba(252, 135, 2, 0.55); }
+.orbit-seat[data-tone='UNSTAKING'] { box-shadow: 0 0 10px 2px rgba(12, 166, 254, 0.55); }
+.orbit-seat[data-tone='READY'] { box-shadow: 0 0 10px 2px rgba(44, 199, 143, 0.55); }
+.orbit-seat[data-tone='NEUTRAL'] { box-shadow: 0 0 8px 1px var(--wash-strong); }
+.orbit-seat-face, .orbit-seat-face svg, .orbit-seat-blank {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.orbit-seat-blank { background: var(--wash-strong); }
+.orbit-centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.orbit-total {
+  margin: 0;
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-display);
+}
+.orbit-total[data-size='lg'] { font-size: 2.5rem; }
+.orbit-total[data-size='md'] { font-size: 1.875rem; }
+.orbit-total[data-size='sm'] { font-size: 1.375rem; }
+.orbit-of {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-xs);
+  color: var(--muted);
+}
+.orbit-goal {
+  margin: var(--space-4) 0 0;
+  text-align: center;
+  font-size: var(--font-lg);
+  font-weight: var(--weight-semibold);
+}
+/* The welcome screen has to fit its one action on a 390 × 844 phone without scrolling, so its
+   orbit is smaller than a squad page's (measured 2026-11-08). */
+.sign-in-orbit { margin: 0 0 var(--space-3); }
+.sign-in-orbit .orbit { margin: 0; }
+.sign-in-orbit .orbit-field { max-width: 216px; }
+.sign-in { padding-top: calc(var(--space-5) + var(--safe-top)); }
+.sign-in .sign-in-body { padding: var(--space-4) 0; }
+
+/* --- Ticker ------------------------------------------------------------- */
+.ticker { margin-top: var(--space-4); }
+.ticker-caption {
+  margin: 0 0 var(--space-1);
+  text-align: center;
+  font-size: var(--font-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--faint);
+}
+.ticker-window {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+.ticker-strip {
+  display: flex;
+  width: max-content;
+  gap: var(--space-5);
+  transform: translateX(calc(var(--ticker-offset, 0) * -50%));
+}
+.ticker-item {
+  white-space: nowrap;
+  font-size: var(--font-sm);
+  color: var(--muted);
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background-color: var(--money-bg);
+  background-image: var(--money-bg-image);
+  color: var(--money-ink);
+  text-decoration: none;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+.primary-button:active { background-image: var(--money-bg-image-pressed); }
 .primary-button:disabled { opacity: var(--disabled-opacity); cursor: default; }
 .primary-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
-.fine-print { text-align: center; color: var(--muted); font-size: var(--font-xs); line-height: var(--leading-body); margin: var(--space-4) 0 0; }
-.demo-label { color: var(--muted); font-size: var(--font-xs); margin: var(--space-3) 0 0; }
-.scene-gallery { padding: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-5); }
-.scene-gallery h1 { width: 100%; font-size: var(--font-brand); }
-.scene-gallery figure { margin: 0; }
-.scene-gallery figcaption { padding: var(--space-3) 0; color: var(--muted); }
-.scene-frame { width: 390px; height: 844px; overflow: hidden; border-radius: var(--radius-lg); --safe-top: 0px; --safe-bottom: 0px; }
-.scene-frame .sign-in { height: 844px; min-height: 844px; }
-.member-scene { width: 100%; min-width: 375px; height: 100%; min-height: 844px; padding: calc(var(--space-6) + var(--safe-top)) var(--space-5) calc(var(--space-5) + var(--safe-bottom)); background: var(--page); color: var(--ink); }
-.member-scene-body { padding-top: var(--space-8); }
-.member-scene h1 { font-size: var(--font-display); line-height: var(--leading-display); letter-spacing: var(--tracking-display); margin: 0 0 var(--space-6); }
-.member-status { padding: var(--space-5); background: var(--surface); border-radius: var(--radius-lg); line-height: var(--leading-body); overflow-wrap: anywhere; }
-.member-status-label { font-weight: var(--weight-bold); font-size: var(--font-brand); margin: 0 0 var(--space-3); }
-.member-status-detail { font-size: var(--font-md); margin: 0 0 var(--space-5); }
-.member-status-age { font-size: var(--font-xs); color: var(--muted); margin: 0; }
-.sheet { width: 100%; max-width: 480px; min-width: 375px; min-height: 100svh; margin: auto; padding: calc(var(--space-6) + var(--safe-top)) var(--space-5) calc(var(--space-5) + var(--safe-bottom)); display: flex; flex-direction: column; background: var(--page); color: var(--ink); }
-.scene-frame .sheet { height: 844px; min-height: 844px; overflow-y: auto; }
-.sheet-body { flex: 1; display: flex; flex-direction: column; padding: var(--space-5) 0; }
-.sheet h1 { font-size: var(--font-display); line-height: var(--leading-display); letter-spacing: var(--tracking-display); margin: 0 0 var(--space-5); overflow-wrap: anywhere; }
-.sheet .intro { margin: 0 0 var(--space-4); }
-.sheet-footer { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-4); }
+
+.secondary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-3) var(--space-6);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--wash);
+  color: var(--ink);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+.secondary-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
+.secondary-button:disabled { opacity: var(--disabled-opacity); cursor: default; }
+
+.gradient-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-4) var(--space-6);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--wash);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+  overflow: hidden;
+}
+.gradient-button-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 3px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    var(--border-arc-a),
+    var(--border-arc-b),
+    var(--border-arc-a)
+  );
+  /* Two masks composited so only the 3 px padding ring paints. -webkit-mask-composite: xor is
+     the WKWebView spelling, which Nimiq Pay needs on iOS. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.gradient-button::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  background: var(--accent);
+  transform: translateX(-101%);
+  transition: transform var(--duration-reveal) var(--ease-emphasis);
+}
+.gradient-button:active::before,
+.gradient-button[data-pressed='yes']::before { transform: translateX(0); }
+.gradient-button:active .gradient-button-label,
+.gradient-button[data-pressed='yes'] .gradient-button-label { color: var(--accent-ink); }
+.gradient-button-label { position: relative; z-index: 1; }
+.gradient-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
+.gradient-button:disabled { opacity: var(--disabled-opacity); cursor: default; }
+
+/* --- Status ------------------------------------------------------------- */
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-round);
+  vertical-align: 0.02em;
+  background: var(--status-neutral);
+}
+.status-dot[data-tone='BACKED'] { background: var(--status-backed); }
+.status-dot[data-tone='SHORT'] { background: var(--status-short); }
+.status-dot[data-tone='UNSTAKING'] { background: var(--status-unstaking); }
+.status-dot[data-tone='READY'] { background: var(--status-ready); }
+
+.member-status {
+  padding: var(--space-5);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+}
+.member-status-label {
+  font-weight: var(--weight-bold);
+  font-size: var(--font-lg);
+  margin: 0 0 var(--space-3);
+}
+.member-status-detail { font-size: var(--font-md); margin: 0 0 var(--space-5); color: var(--muted); }
+.member-status-age {
+  font-size: var(--font-xs);
+  font-family: var(--font-mono);
+  color: var(--faint);
+  margin: 0;
+}
+
+.banner {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(252, 135, 2, 0.1);
+  font-size: var(--font-sm);
+  line-height: var(--leading-body);
+  color: var(--muted);
+}
+.banner p { margin: 0; }
+.banner-title {
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  margin-bottom: var(--space-1) !important;
+}
+
+/* --- Member list -------------------------------------------------------- */
+.member-list { list-style: none; margin: 0; padding: 0; }
+.member-row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.member-row:last-child { border-bottom: 0; }
+.member-face {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-round);
+  overflow: hidden;
+  background: var(--surface);
+}
+.member-main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.member-name { font-weight: var(--weight-semibold); }
+.member-row[data-you='yes'] .member-name { color: var(--emphasis); }
+.member-address {
+  font-size: var(--font-xs);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.member-state { font-size: var(--font-sm); color: var(--muted); }
+.member-state-label { color: var(--ink); }
+.member-pending { font-size: var(--font-xs); color: var(--status-short); }
+.member-figures { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+.member-amount { font-size: var(--font-sm); }
+.member-age { font-size: var(--font-xs); font-family: var(--font-mono); color: var(--faint); }
+
+/* --- Squad cards -------------------------------------------------------- */
+.card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.squad-card {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: var(--space-4);
+  align-items: center;
+  min-height: 96px;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  text-decoration: none;
+}
+.squad-card:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+/* The card's orbit is a picture of the squad, not a readout: the figures are in the card's
+   own words beside it, so the centre total and the goal caption are left out and the seats
+   shrink with the field. */
+.squad-card-orbit { display: block; width: 84px; }
+.squad-card-orbit .orbit { margin: 0; }
+.squad-card-orbit .orbit-field { max-width: 84px; }
+.squad-card-orbit .orbit-centre, .squad-card-orbit .orbit-goal { display: none; }
+.squad-card-orbit .orbit-seat { width: 16px; height: 16px; margin: -8px 0 0 -8px; }
+.squad-card-main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.squad-card-name { font-size: var(--font-lg); font-weight: var(--weight-semibold); }
+.squad-card-meta { font-size: var(--font-xs); color: var(--muted); }
+.squad-card-figure { font-size: var(--font-sm); }
+
+/* --- Sheet status and lists --------------------------------------------- */
+.sign-in-status { min-height: 64px; padding-top: var(--space-3); font-size: var(--font-sm); line-height: var(--leading-body); color: var(--muted); }
+.sign-in-status p { margin: 0 0 var(--space-2); }
 .sheet-status { min-height: 92px; padding-top: var(--space-5); font-size: var(--font-sm); line-height: var(--leading-body); color: var(--muted); }
 .sheet-status p { margin: 0 0 var(--space-2); }
+.status-title { font-weight: var(--weight-bold); color: var(--ink); }
 .notice-list { margin: 0 0 var(--space-5); font-size: var(--font-sm); line-height: var(--leading-body); }
 .notice-list dt { font-weight: var(--weight-bold); margin-top: var(--space-4); }
-.notice-list dd { margin: var(--space-1) 0 0; color: var(--muted); }
-.fine-print-left { text-align: left; margin: 0 0 var(--space-5); }
+.notice-list dd { margin: var(--space-1) 0 0; color: var(--muted); overflow-wrap: anywhere; }
+
+/* --- Forms -------------------------------------------------------------- */
 .field { display: block; margin-bottom: var(--space-4); }
-.field-label { display: block; font-size: var(--font-xs); font-weight: var(--weight-bold); letter-spacing: var(--tracking-eyebrow); margin-bottom: var(--space-2); }
-.field-input { width: 100%; min-height: 48px; padding: var(--space-3) var(--space-4); border: 2px solid var(--surface); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; }
-.field-input:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+.field-label {
+  display: block;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  margin-bottom: var(--space-2);
+}
+.field-input {
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--wash-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+.field-input:focus-visible { outline: 0; border-color: var(--outline); color: var(--emphasis); }
 .field-input:disabled { opacity: var(--disabled-opacity); }
 .field-input-mono { overflow-wrap: anywhere; }
 .field-hint { display: block; margin-top: var(--space-2); font-size: var(--font-xs); line-height: var(--leading-body); color: var(--muted); }
 .mode-choice { margin: 0 0 var(--space-4); padding: 0; border: 0; }
-.mode-option { display: grid; grid-template-columns: 24px 1fr; align-items: start; gap: var(--space-2) var(--space-3); min-height: 44px; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-2); background: var(--surface); border: 2px solid var(--surface); border-radius: var(--radius-sm); }
+.mode-option {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  background: var(--surface);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
 .mode-option-on { border-color: var(--outline); }
-.mode-option input { grid-row: span 2; width: 20px; height: 20px; accent-color: var(--button-bg); }
+.mode-option input { grid-row: span 2; width: 20px; height: 20px; accent-color: var(--money-bg); }
 .mode-title { font-weight: var(--weight-bold); font-size: var(--font-sm); }
 .mode-detail { grid-column: 2; font-size: var(--font-xs); line-height: var(--leading-body); color: var(--muted); }
-.secondary-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: var(--space-3); border: 2px solid var(--button-bg); border-radius: var(--radius-lg); background: transparent; color: var(--ink); font-weight: var(--weight-bold); cursor: pointer; }
-.secondary-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
-.secondary-button:disabled { opacity: var(--disabled-opacity); cursor: default; }
+
+/* --- Dev scene gallery -------------------------------------------------- */
+.scene-gallery { padding: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-5); }
+.scene-gallery h1 { width: 100%; font-size: var(--font-lg); }
+.scene-gallery figure { margin: 0; }
+.scene-gallery figcaption { padding: var(--space-3) 0; color: var(--muted); font-family: var(--font-mono); font-size: var(--font-xs); }
+.scene-frame {
+  width: 390px;
+  height: 844px;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background-color: var(--page);
+  background-image: var(--page-image);
+  --safe-top: 0px;
+  --safe-bottom: 0px;
+}
+.secondary-button-quiet { align-self: flex-start; margin-top: var(--space-2); }
+.scene-frame[data-width='375'] { width: 375px; }
+/* One frame alone (?scene=…), which is what the measurement script screenshots: no gallery
+ * padding, so the frame's own edges are the viewport's and overflow is measurable. */
+.scene-single { margin: 0; padding: 0; }
+.scene-single .scene-frame { border-radius: 0; }
+.scene-frame .sign-in, .scene-frame .sheet { height: 844px; min-height: 844px; overflow-y: auto; }
+
+/* --- Reduced motion -----------------------------------------------------
+ * Time-driven motion is already frozen by the host, which feeds a fixed `t`. What is left here
+ * is press and hover feedback, which collapses to no transition (Nimiq Pay DESIGN.md: decorative
+ * motion must honour prefers-reduced-motion).
+ */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

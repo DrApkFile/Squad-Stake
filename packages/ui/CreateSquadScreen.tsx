@@ -1,3 +1,5 @@
+import { ScreenHeader } from './ScreenHeader';
+
 export interface CreateSquadValues {
   name: string;
   mode: 'A' | 'B';
@@ -8,12 +10,15 @@ export interface CreateSquadValues {
   goalDate: string;
 }
 export interface CreateSquadScreenProps {
+  /** Where the back control goes; see ScreenHeader. */
+  back?: { label: string; href: string } | undefined;
   values: CreateSquadValues;
   /** Earliest allowed goal date (YYYY-MM-DD), computed from `now` by the container. */
   minGoalDate: string;
   error?: { message: string; nextAction: string };
-  /** Set once the squad exists: the form is replaced by the share step. */
-  created?: { shortId: string; inviteUrl: string };
+  /** Set once the squad exists: the form is replaced by the share step. `squadUrl` is where
+   * the creator goes next; `inviteUrl` is what they hand to the squad. */
+  created?: { shortId: string; inviteUrl: string; squadUrl: string };
   busy?: boolean;
   onChange?: (patch: Partial<CreateSquadValues>) => void;
   onSubmit?: () => void;
@@ -22,13 +27,12 @@ export interface CreateSquadScreenProps {
 
 /** Screen 4. Controlled: every value and the minimum date come in as props. */
 export function CreateSquadScreen({
-  values, minGoalDate, error, created, busy = false, onChange, onSubmit, demoLabel,
+  values, minGoalDate, error, created, busy = false, onChange, onSubmit, demoLabel, back,
 }: CreateSquadScreenProps) {
   const modeA = values.mode === 'A';
   if (created) {
     return <main className="sheet">
-      <header className="brand"><span className="brand-mark" aria-hidden="true">s.</span> Squad Stake</header>
-      {demoLabel && <p className="demo-label">{demoLabel}</p>}
+    <ScreenHeader back={back} demoLabel={demoLabel} />
       <div className="sheet-body">
         <p className="eyebrow">SQUAD {created.shortId.toUpperCase()}</p>
         <h1>{values.name}<br />is ready.</h1>
@@ -38,13 +42,12 @@ export function CreateSquadScreen({
         <p className="field-hint">Anyone with the link can join, so share it only with your squad.</p>
       </div>
       <footer className="sheet-footer">
-        <a className="primary-button" href={created.inviteUrl}>Open the squad</a>
+        <a className="primary-button" href={created.squadUrl}>Open the squad</a>
       </footer>
     </main>;
   }
   return <main className="sheet" aria-busy={busy}>
-    <header className="brand"><span className="brand-mark" aria-hidden="true">s.</span> Squad Stake</header>
-    {demoLabel && <p className="demo-label">{demoLabel}</p>}
+    <ScreenHeader back={back} demoLabel={demoLabel} />
     <div className="sheet-body">
       <p className="eyebrow">NEW SQUAD</p>
       <h1>What are you<br />saving for?</h1>

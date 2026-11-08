@@ -68,8 +68,11 @@ is normal. `init()` plain Error = not in Nimiq Pay. Every user-visible error is 
    are **hand-written, realistic sample data** in `packages/ui/scenes/demo/` — the video is a
    how-to walkthrough, so sample squads and amounts are written by hand and labelled as samples.
    Never show invented usage statistics or traction numbers as if real.
-6. Animations are driven by a `progress` (0–1) or `now` prop, never by timers inside components,
-   so Remotion can render each frame deterministically.
+6. Animations are driven by a `progress` (0–1), `now`, or **`t` (seconds since the scene
+   started)** prop, never by timers inside components, so Remotion can render each frame
+   deterministically. `t` is the convention for the moving components (orbit, typewriter,
+   count-up, ticker, gradient border); `apps/web/src/hooks/use-scene-time.ts` supplies it in
+   the app, the video passes `frame / fps`, and `REDUCED_MOTION_T` is the frozen instant.
 7. Canonical viewport: **390 × 844**. Every scene must look right there in light and dark.
 8. Nimiq Pay's approval sheet is not our UI: never recreate it. The video shows a neutral
    "Approve in Nimiq Pay" step or real phone footage for that moment.

@@ -2,23 +2,23 @@
 
 import { useState } from 'react';
 import { JoinCommitSheet, type JoinCommitState } from '@squad-stake/ui';
-import { LUNA_PER_NIM } from '../config/constants';
+import { LUNA_PER_NIM, STAKING_FEES_LUNA } from '../config/constants';
 import { catalogError, errors } from '../core/errors/catalog';
 import { commitResponse, joinSquadResponse, trackedTxResponse } from '../core/squad-contract';
 import { planStakingAction } from '../core/staking-actions';
+import { useTxPoll } from '../hooks/use-tx-poll';
 import { sendStakingAction } from '../wallet/staking';
 import type { JoinView } from '../core/view-contract';
 
-const POLL_INTERVAL_MS = 5_000;
-const POLL_ATTEMPTS = 24;
 const toLuna = (nim: string) => /^\d{1,9}(\.\d{1,5})?$/.test(nim.trim())
   ? Math.round(Number(nim) * LUNA_PER_NIM) : null;
-const wait = (ms: number) => new Promise((resolve) => { setTimeout(resolve, ms); });
-
 export function JoinCommitContainer({ view, token, now }: {
   view: JoinView; token: string; now: number;
 }) {
   const [amountNim, setAmountNim] = useState('');
+  const poll = useTxPoll();
+  /** The transaction being followed, so the manual re-check knows what to ask about. */
+  const [pendingTx, setPendingTx] = useState<{ hash: string; amountLuna: number } | null>(null);
   const [state, setState] = useState<JoinCommitState>(() => {
     if (view.member === null) return { status: 'failed', changedAnything: false,
       message: errors.CHAIN_UNAVAILABLE.message, nextAction: errors.CHAIN_UNAVAILABLE.nextAction };
@@ -46,8 +46,9 @@ export function JoinCommitContainer({ view, token, now }: {
     const result = commitResponse.parse(await response.json());
     if (!result.ok) {
       if (result.code === 'OVER_COMMITTED' && result.freeLuna !== null) {
+        const action = view.member?.activeBalanceLuna === null ? 'create' : 'add';
         setState({ status: 'needs-stake', shortfallLuna: result.shortfallLuna ?? 0,
-          action: view.member?.activeBalanceLuna === null ? 'create' : 'add', feeLuna: 0 });
+          action, feeLuna: STAKING_FEES_LUNA[action] });
         return;
       }
       return fail(result.code);
@@ -56,19 +57,18 @@ export function JoinCommitContainer({ view, token, now }: {
     setState({ status: 'committed', committedLuna: result.committedLuna, freeLuna: result.freeLuna });
   }
 
-  /** Bounded polling: route handlers are short-lived, so the client asks (ARCHITECTURE). */
+  /** The shared bounded poll (5 s × 24). It never calls the wallet, so nothing is resent;
+   * after the window the sheet offers "Check status again" (PRD Q10, FAILURE_MODES). */
   async function awaitInclusion(hash: string, amountLuna: number) {
-    for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
-      const checked = trackedTxResponse.parse(await (await fetch(`/api/tx/${hash}`)).json());
-      if (!checked.ok) return fail(checked.code);
-      if (checked.state === 'INCLUDED_OK') return commit(amountLuna, hash);
-      if (checked.state === 'INCLUDED_FAILED') return fail('TX_FAILED', true);
-      setState({ status: 'pending', confirmations: checked.confirmations ?? 0,
-        requiredConfirmations: checked.requiredConfirmations });
-      await wait(POLL_INTERVAL_MS);
-    }
-    // Still unknown after the window: never reported as failed (PRD §8).
-    fail('TX_OUTCOME_UNKNOWN', true);
+    setPendingTx({ hash, amountLuna });
+    const verdict = await poll.follow(hash, (tracked) => {
+      setState({ status: 'pending', confirmations: tracked.confirmations ?? 0,
+        requiredConfirmations: tracked.requiredConfirmations });
+    });
+    if (verdict === null) return;              // Still unknown: the sheet says so, and waits.
+    if (verdict.state === 'INCLUDED_FAILED') return fail('TX_FAILED', true);
+    setPendingTx(null);
+    await commit(amountLuna, hash);
   }
 
   async function approve() {
@@ -99,6 +99,10 @@ export function JoinCommitContainer({ view, token, now }: {
 
   return <JoinCommitSheet squad={view.squad} amountNim={amountNim} state={state} now={now} readAt={readAt}
     onAmountChange={setAmountNim}
+    stalled={poll.stalled}
+    {...(pendingTx ? { onRefresh: () => void guarded(() =>
+      awaitInclusion(pendingTx.hash, pendingTx.amountLuna)) } : {})}
+    back={{ label: 'Home', href: '/squads' }}
     onCommit={() => void guarded(async () => {
       const amountLuna = toLuna(amountNim);
       if (amountLuna === null) return fail('INVALID_INPUT');
