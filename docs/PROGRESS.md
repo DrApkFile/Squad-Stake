@@ -799,3 +799,118 @@ written procedure, not an observed one.
 - Neon through the pooler, including the concurrent-commit refusal and the three new queries.
 - The mock chain provider (`?chain=mock`) and Remotion.
 - Consider passing the §7.6 refusal code (not a boolean) into `deriveLeavingSteps`.
+
+## Original logo, and the Vercel build that was failing — 2026-11-09
+
+No protected file was touched. The whole slice is `packages/ui/brand/`, two scripts, the
+metadata wiring and one test file.
+
+### The deploy of `bc8d748` was failing, so production still showed the old mark
+Reported from the Vercel dashboard: commit `bc8d748` ("ui revamp"), production, **Build
+Failed**, `pnpm build` exited 1 in 24 s at "Linting and checking validity of types":
+
+```
+./app/manifest.ts:23:9
+Type error: Type '"any maskable"' is not assignable to type
+'"any" | "maskable" | "monochrome" | undefined'. Did you mean '"maskable"'?
+```
+
+The web app manifest spec allows `purpose` to be a space-separated list, but Next's
+`MetadataRoute.Manifest` types it as one member of the enum. `app/manifest.ts` now lists each
+icon size twice, once per purpose, which says the same thing to a launcher and typechecks.
+
+Because that build never completed, the live site was still serving the **last successful**
+deployment, which predates the logo — that is why the landing page still showed the old `s.`
+hexagon tile. The tile itself is gone from the source and from `HEAD`: `ScreenHeader.tsx` was
+its only home, and nothing in the repository renders a single-letter mark now.
+
+This was my own failure to re-run the gate after adding `app/manifest.ts`; the previous
+session reported typecheck as "not re-run since", and this is what it would have caught.
+A second instance of the same gap: `tests/unit/brand.test.ts` destructured
+`String.matchAll`, which is `string | undefined` under `noUncheckedIndexedAccess`. Both are
+fixed and `pnpm typecheck` now exits 0.
+
+### The mark
+Original geometry, drawn in code, no imitation of Nimiq's hexagon or the Nimiq Pay mark:
+a warm goal at the centre, three member discs on a ring that breaks at each seat — a group
+around one shared goal, each keeping their own part. Two colours plus Nimiq's warm gradient.
+
+- `packages/ui/brand/shapes.ts` is the **single source of the drawing**. `LogoMark`, `Logo`,
+  `AppIcon` (React) and `svg.ts` (string serialiser for the exported files) all read it, so
+  the app and the assets cannot drift. A test compares them shape for shape.
+- Five tones (`tone.ts`): full colour on dark, full colour on light, one-colour white,
+  one-colour navy, and `colour-current` whose ink is `currentColor` — used **only** in the
+  app, so one header drawing serves both themes; the export script never asks for it.
+- The lockup's "Squad Stake" is **outlines, not live text**: `scripts/build-wordmark.mjs`
+  converts the exact Mulish 700 `.woff2` this repo self-hosts into a path
+  (`woff2_decompress` to TTF, then a `glyf`/`cmap`/`loca`/`hmtx` reader written in the
+  script — **no new dependency**) and writes `packages/ui/brand/wordmark.ts`, which is
+  checked in, so the gate never needs the tool. 11 glyphs, advance 6039/1000 em. The
+  generated file carries the SHA-256 of the font it came from, and a test asserts that hash
+  is present and that no `<text>` or `font-family` survives in the mark.
+- `ScreenHeader` now renders `Logo` (no back control) or `LogoMark` alone (beside one),
+  replacing the `s.` tile on every screen. The dead `--mark-*` tokens are gone from
+  `tokens.css`.
+
+### Exported assets — `pnpm brand:export` (`scripts/export-brand.mjs`)
+Rasters are screenshots of the generated SVGs taken with the system Chromium this repo
+already drives for scene measurement, so no image library entered the project; the `.ico` is
+assembled by hand (header + directory + embedded PNG payloads). All in
+`apps/web/public/brand/`:
+
+| File | Bytes |
+|---|---|
+| `logo.svg` / `logo-on-dark.svg` | 7,222 each |
+| `logo-white.svg` / `logo-navy.svg` | 7,057 each |
+| `logo-mark.svg` / `logo-mark-on-dark.svg` | 859 each |
+| `logo-mark-white.svg` / `logo-mark-navy.svg` | 694 each |
+| `app-icon.svg` | 959 |
+| `icon-16.png` · `icon-32.png` · `icon-180.png` | 544 · 1,244 · 14,429 |
+| `icon-192.png` · `icon-512.png` · `icon-1024.png` | 15,449 · 78,571 · 233,465 |
+| `logo-on-dark.png` · `logo.png` (256 px tall) | 32,151 · 42,691 |
+| `favicon.ico` (16 + 32) | 1,826 |
+
+Wired into `app/layout.tsx` (`metadata.icons`) and the new `app/manifest.ts`. I inspected
+`icon-512.png`, `icon-32.png` and `logo.png` by eye; the rest are generated from the same
+shapes and pinned by the staleness test below.
+
+### Two Chromium scripts were leaking profiles
+`measure-scenes.mjs` and `export-brand.mjs` never removed their `--user-data-dir`, which left
+~165 MB per run in a RAM-backed `/tmp` (32 stale profiles, ~3.1 GB, found today). Both now
+wait for the child to exit and then remove the profile with retries (removing it mid-flush
+fails `ENOTEMPTY`), and the browser-start timeout is 20 s → 60 s, because a tool timing out
+on its own browser says nothing about the thing being measured.
+
+### What ran
+- `pnpm typecheck` — exit 0 (after the two fixes above).
+- `pnpm lint` — exit 0.
+- `pnpm test` — **129 unit tests**, 0 failures, 0 skips (was 123; +6 brand).
+- `pnpm test:adversarial` — **34 tests**, 0 failures, 0 skips.
+- `pnpm build` — exit 0, compiled clean, **26 routes**, `/manifest.webmanifest` prerendered
+  static. This is the command Vercel ran and failed.
+- `pnpm test:production` — Q16 guards pass. `pnpm secrets` — pass.
+  `pnpm deps:check` — 19 exact pins across 5 manifests, all ≥ 14 days old.
+- `pnpm check:tracked` — **exit 1**, because this slice is uncommitted. The human commits.
+  Nothing else in the gate failed.
+- New `tests/unit/brand.test.ts` (6): React vs exported-file geometry for all four tones and
+  the icon's safe area; brand-colours-only painting, and no gradient reference in a
+  one-colour variant; 16 px survivability (stroke ≥ 6 units, discs proud of the links,
+  nothing touching the box edge); wordmark provenance by font hash; Q17 determinism of the
+  three brand scenes; and a **staleness guard** comparing all nine
+  `apps/web/public/brand/*.svg` files to what the serialiser produces today, so an edit to
+  the shapes without a re-export fails the gate.
+
+### Not verified by this slice
+`pnpm check:scenes` **has not run** since the header changed, so every frame in
+`.cache/scenes/` still shows the old `s.` tile and no screen has been re-measured with the
+new header box. The three brand scenes (`brand-logo`, `brand-mark`, `brand-icon`) have never
+been measured or screenshotted. The machine's `/tmp` is a RAM-backed tmpfs still holding the
+stale Chromium profiles described above plus two orphaned browsers, and ~1.4 GB of 7.7 GB is
+free, so the browser could not be started; the cleanup needs the operator. Nothing here has
+been deployed, so the Vercel fix is verified only by `pnpm build` locally.
+
+### Next
+- Free `/tmp`, then `pnpm check:scenes` over every scene (the header moved on all of them)
+  plus the three brand scenes, and look at the welcome, squad page and brand frames.
+- Re-deploy and confirm the production landing page shows the new mark.
+- Then the full UI restyle against `docs/design/style1.png` and `style2.png`.

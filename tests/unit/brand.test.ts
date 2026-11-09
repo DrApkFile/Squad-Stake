@@ -40,8 +40,11 @@ test('brand: every variant paints with the colours its tone names, and nothing e
   for (const tone of ['colour-dark', 'colour-light', 'colour-current', 'white',
     'navy'] satisfies BrandTone[]) {
     const svg = render(Logo, { tone, id: 'x' });
-    for (const [, colour] of svg.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)) {
-      if (colour === 'none' || colour.startsWith('url(')) continue;
+    for (const match of svg.matchAll(/(?:fill|stroke|stop-color)="([^"]+)"/g)) {
+      // The group is `[^"]+`, so it always participated; `noUncheckedIndexedAccess` cannot
+      // know that, and a silent `?? ''` would turn a missing paint into a passing assertion.
+      const colour = match[1];
+      if (colour === undefined || colour === 'none' || colour.startsWith('url(')) continue;
       assert.ok(allowed.has(colour), `${tone} paints with ${colour}, which is not a brand colour`);
     }
     const colours = toneColours(tone);
