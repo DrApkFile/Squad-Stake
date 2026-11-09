@@ -1,12 +1,17 @@
-import { FINALITY_CONFIRMATIONS } from '../../config/constants';
 import { leaveBy } from '../../core/leave-by';
-import type { MemberStatusWire, SquadMemberWire, SquadView } from '../../core/view-contract';
-import type { RpcResult, StakerState } from './chain';
+import type {
+  MemberStatusWire, PendingWire, SquadMemberWire, SquadView, YourExit,
+} from '../../core/view-contract';
+import type { RpcResult, Staker, StakerState } from './chain';
 import { memberEarned, type EarnedDeps } from './member-earned';
+import { memberRelease, type MemberRelease, type MemberReleaseRpc } from './member-release';
 import { deriveMemberStatus } from './member-status';
 import type { MemberStatus } from './member-status';
+import { pendingView, stakeEffectSeen } from './pending-view';
 import { paidRoster, type PaidRoster, type RosterStore, type SettleRpc } from './settle';
-import type { Membership, Squad } from './squads';
+import type { Membership, Squad, TrackedTx } from './squads';
+import { exitStageOf, stageTotals } from './squad-stages';
+import type { TrackResult } from './tx-tracker';
 
 /**
  * Screen 5 and screen 10, read on the server (PRD §7.4): every member's commitment, the status
@@ -14,22 +19,32 @@ import type { Membership, Squad } from './squads';
  *
  * This module is a pure core: the store, the chain and the clock come in as dependencies.
  */
-export interface DetailRpc extends SettleRpc {
+export interface DetailRpc extends SettleRpc, MemberReleaseRpc {
   getBlockNumber(): Promise<RpcResult<number>>;
   getStakerByAddress(address: string): Promise<RpcResult<StakerState>>;
 }
 export interface DetailStore extends RosterStore {
   getSquadByShortId(shortId: string): Promise<Squad | null>;
   activeCommitments(address: string): Promise<readonly { squadId: string; committedLuna: number }[]>;
-  latestOpenTrackedTx(squadId: string, address: string): Promise<{ state: string } | null>;
+  latestOpenTrackedTx(squadId: string, address: string): Promise<TrackedTx | null>;
   /** This member's tracked transactions for this squad: a finished `remove` is what turns a
    * chain-derived status into WITHDRAWN (PRD §7.4, which lists it). */
-  listTrackedTxs(squadId: string, address: string): Promise<readonly { kind: string; state: string }[]>;
+  listTrackedTxs(squadId: string, address: string): Promise<readonly TrackedTx[]>;
 }
 export interface DetailDeps {
   store: DetailStore;
   rpc: DetailRpc;
   now(): number;
+  /**
+   * The tracker, so an open transaction on this page is actually checked against the chain.
+   * Without it a tracked row stays SUBMITTED for ever and the page contradicts the staker
+   * record it shows beside it — the defect found on testnet (docs/PROGRESS.md 2026-11-09).
+   * Advancing the row here is also what makes WITHDRAWN reachable, since `overlay` below wants
+   * a `remove` settled as INCLUDED_OK.
+   *
+   * Optional so the pure-core tests can leave it out; `squad-view.ts` always supplies it.
+   */
+  tracker?: { check(hash: string): Promise<TrackResult> } | undefined;
   /**
    * PRD §9.12, optional: when present, the row of the member looking at the page carries what
    * their stake has earned since joining. Nobody else's row does — earned growth plus the
@@ -51,6 +66,37 @@ function toWire(status: MemberStatus, isViewer: boolean): MemberStatusWire {
   return { status: 'SHORT', shortBy: isViewer ? status.shortBy : null };
 }
 
+/**
+ * What an open tracked transaction may say on this page. The verdict and the count come from
+ * the tracker's own read of that transaction; the effect comes from the staker record this row
+ * already holds. `pending-view.ts` then refuses to pair "nothing confirmed" with an effect the
+ * chain is already showing.
+ */
+async function pendingFor(
+  openTx: TrackedTx | null,
+  txs: readonly TrackedTx[],
+  staker: Staker | null,
+  deps: DetailDeps,
+): Promise<{ pending: PendingWire | null; settledState: TrackedTx['state'] | null }> {
+  if (openTx === null) return { pending: null, settledState: null };
+  const checked = deps.tracker === undefined ? null : await deps.tracker.check(openTx.hash);
+  const settled = checked !== null && checked.ok ? checked : null;
+  const pending = pendingView({
+    state: settled?.state ?? openTx.state,
+    confirmations: settled?.confirmations ?? null,
+    effectSeen: stakeEffectSeen({
+      kind: openTx.kind,
+      staker,
+      retiredEarlier: txs.some((tx) => tx.kind === 'retire' && tx.state === 'INCLUDED_OK'),
+    }),
+  });
+  // The settled verdict goes back to the caller, not only into `pending`: `txs` was read
+  // before this check, so `overlay` would otherwise judge WITHDRAWN on the row's *previous*
+  // state and only grant it on the next page load. Found against real Postgres on
+  // 2026-11-09: a `remove` settling to INCLUDED_OK left the member NOT_STAKING for one load.
+  return { pending, settledState: settled?.state ?? null };
+}
+
 async function memberRow(
   squad: Squad,
   membership: Membership,
@@ -58,15 +104,18 @@ async function memberRow(
   headBlock: number | null,
   paid: PaidRoster | null,
   deps: DetailDeps,
-): Promise<SquadMemberWire> {
+): Promise<{ wire: SquadMemberWire; release: MemberRelease | null }> {
   const isYou = viewer !== null && membership.address === viewer;
   const base = { address: membership.address, committedLuna: membership.committedLuna, isYou,
     earned: null };
   // A member who left keeps no commitment and needs no chain read (PRD §7.4 lists LEFT).
   if (membership.leftAt !== null) {
-    return { ...base, status: { status: 'LEFT' }, readAt: membership.leftAt, pending: null };
+    return { wire: { ...base, status: { status: 'LEFT' }, readAt: membership.leftAt, pending: null },
+      release: null };
   }
-  if (headBlock === null) return { ...base, status: null, readAt: null, pending: null };
+  if (headBlock === null) {
+    return { wire: { ...base, status: null, readAt: null, pending: null }, release: null };
+  }
 
   const [staker, commitments, openTx, txs] = await Promise.all([
     deps.rpc.getStakerByAddress(membership.address),
@@ -74,9 +123,26 @@ async function memberRow(
     deps.store.latestOpenTrackedTx(squad.id, membership.address),
     deps.store.listTrackedTxs(squad.id, membership.address),
   ]);
-  const pending = openTx === null
-    ? null
-    : { confirmations: null, requiredConfirmations: FINALITY_CONFIRMATIONS };
+  const record = staker.ok && staker.data.status === 'STAKING' ? staker.data.staker : null;
+  const { pending, settledState } = await pendingFor(openTx, txs, record, deps);
+  // The tracked rows as they stand *after* that check, so the overlay below sees the verdict
+  // this request just established rather than the one the page was loaded with.
+  const settledTxs = settledState === null || openTx === null ? txs
+    : txs.map((tx) => (tx.hash === openTx.hash ? { ...tx, state: settledState } : tx));
+  /**
+   * The release is derived for the member looking at the page only. It costs several chain
+   * reads (the inactivation's inclusion block, the election and reporting-window policies, and
+   * the validator if the stake is delegated), and it is their own banner and their own
+   * countdown that need it. Every other row keeps `releaseBlock: null` and says the release
+   * time is unknown, exactly as before — honest, and the page stays one read per member.
+   */
+  const release = isYou && record !== null && record.inactiveBalance > 0
+    ? await memberRelease({
+      unstakeHash: txs.filter((tx) => tx.kind === 'unstake').at(-1)?.hash,
+      headBlock,
+      delegation: record.delegation,
+    }, deps)
+    : null;
   const earned = isYou && deps.earned !== undefined
     ? await memberEarned({
       address: membership.address,
@@ -88,20 +154,27 @@ async function memberRow(
       chainRead: staker.ok,
     }, deps.earned)
     : null;
-  if (!staker.ok) return { ...base, earned, status: null, readAt: null, pending };
+  if (!staker.ok) {
+    return { wire: { ...base, earned, status: null, readAt: null, pending }, release: null };
+  }
 
   const status = deriveMemberStatus({
     staker: staker.data.status === 'STAKING' ? staker.data.staker : null,
     commitments: commitments.map((commitment) => commitment.committedLuna),
     headBlock,
-    // The release block is not derived here. A staker's `inactiveFrom` is already an effective
-    // election block, so it must not be fed to calculateRelease as an inclusion block, and
-    // guessing is worse than saying nothing: unknown release stays UNSTAKING (docs/PROGRESS.md,
-    // 2026-11-06). The planner (PRD §7.5) computes it from the inactivation transaction.
-    releaseBlock: null,
+    // A staker's `inactiveFrom` is never used here: it is already an effective election block
+    // and must not be fed to calculateRelease as an inclusion block (confirmed live on testnet
+    // 2026-11-09, where it read 43,167 blocks after the inactivation's own block). The block
+    // below comes from `member-release.ts`, which counts from the inactivation transaction —
+    // and it is null for everyone but the viewer, so their row still says "unknown" rather
+    // than a guess (docs/PROGRESS.md 2026-11-06).
+    releaseBlock: release?.releaseBlock ?? null,
   });
-  return { ...base, earned, status: overlay(status, isYou, txs, paid, membership.address),
-    readAt: staker.readAt, pending };
+  return {
+    wire: { ...base, earned, status: overlay(status, isYou, settledTxs, paid, membership.address),
+      readAt: staker.readAt, pending },
+    release,
+  };
 }
 
 /**
@@ -134,13 +207,24 @@ async function buildView(squad: Squad, viewer: string | null, deps: DetailDeps):
   // Mode A only; `paidRoster` answers null for Mode B, where nobody pays anybody (PRD §4).
   const paid = await paidRoster(squad.id, { store: deps.store, rpc: deps.rpc });
   const members: SquadMemberWire[] = [];
+  let yourRelease: MemberRelease | null = null;
   for (const membership of memberships) {
-    members.push(await memberRow(squad, membership, viewer, headBlock, paid, deps));
+    const row = await memberRow(squad, membership, viewer, headBlock, paid, deps);
+    members.push(row.wire);
+    if (row.wire.isYou) yourRelease = row.release;
   }
   const active = members.filter((member) => member.status?.status !== 'LEFT');
   const reads = active.map((member) => member.readAt).filter((at): at is number => at !== null);
   const backedReads = active.filter((member) => member.status !== null);
+  const you = members.find((member) => member.isYou && member.status?.status !== 'LEFT');
   return {
+    yourExit: you === undefined ? null : {
+      stage: exitStageOf(you.status),
+      committedLuna: you.committedLuna,
+      release: yourRelease,
+      headBlock,
+    } satisfies YourExit,
+    stages: stageTotals(members),
     squadId: squad.id,
     squad: {
       name: squad.name, shortId: squad.shortId, mode: squad.mode,

@@ -4,6 +4,7 @@ import { EARNED_TX_PAGE, MINIMUM_STAKE_LUNA, SPREAD_SAMPLE_LIMIT } from '../../c
 import type { JoinView, PoolWire } from '../../core/view-contract';
 import type { EarnedDeps, EarnedPool } from '../core/member-earned';
 import { isActive } from '../core/squads';
+import { createTxTracker } from '../core/tx-tracker';
 import { squadDetail, squadProof, type DetailDeps, type DetailResult } from '../core/squad-detail';
 import { chooseValidator, choosePoolValidator } from '../core/validator-choice';
 import { poolDirectory, type Pool } from './pool-directory';
@@ -143,17 +144,37 @@ function earnedDeps(): EarnedDeps {
 
 function detailDeps(): DetailDeps {
   const rpc = nimiqRpc();
+  const detailRpc: DetailDeps['rpc'] = {
+    getBlockNumber: () => rpc.getBlockNumber(),
+    getStakerByAddress: (address) => rpc.getStakerByAddress(address),
+    getValidatorByAddress: (address) => rpc.getValidatorByAddress(address),
+    getElectionBlockAfter: (block) => rpc.getElectionBlockAfter(block),
+    getBlockAfterReportingWindow: (block) => rpc.getBlockAfterReportingWindow(block),
+    getBlockAfterJail: (block) => rpc.getBlockAfterJail(block),
+    // The paid roster reads one transaction per payer, so it asks for the 60 s cache
+    // (rpc.ts explains why this method's default is the other way round).
+    getTransactionByHash: (hash, options) => rpc.getTransactionByHash(hash, options),
+  };
   return {
     earned: earnedDeps(),
     store: squadStore,
-    rpc: {
-      getBlockNumber: () => rpc.getBlockNumber(),
-      getStakerByAddress: (address) => rpc.getStakerByAddress(address),
-      // The paid roster reads one transaction per payer, so it asks for the 60 s cache
-      // (rpc.ts explains why this method's default is the other way round).
-      getTransactionByHash: (hash, options) => rpc.getTransactionByHash(hash, options),
-    },
+    rpc: detailRpc,
     now: Date.now,
+    /**
+     * The tracker, so an open transaction is checked against the chain when this page is read
+     * rather than only while a client happens to be polling `/api/tx/:hash`.
+     *
+     * Its transaction read deliberately goes through the 60 s cache, unlike the tracker's own
+     * default of a fresh read (`rpc.ts`): this is a display path that may be reached once per
+     * member per page load, and on the **public** proof view by anyone at all, so it must not
+     * turn page views into uncached node traffic. The client's poll keeps the fresh read, which
+     * is the path that needs to see confirmations climb.
+     */
+    tracker: createTxTracker({
+      store: squadStore,
+      rpc: { getTransactionByHash: (hash) => rpc.getTransactionByHash(hash, { fresh: false }) },
+      now: Date.now,
+    }),
   };
 }
 

@@ -66,7 +66,7 @@ export function TxStatusScene({ demoLabel, ...props }: TxStatusProps & { demoLab
   const s = strings(props.lang ?? DEFAULT_LANG);
   return (
     <main className="sheet">
-      <ScreenHeader demoLabel={demoLabel} />
+      <ScreenHeader title={s.common.titleTx} demoLabel={demoLabel} lang={props.lang ?? DEFAULT_LANG} />
       <div className="sheet-body">
         <p className="eyebrow">{s.tx.sceneEyebrow}</p>
         <h1>{s.tx.sceneHeadingTop}<br />{s.tx.sceneHeadingBottom}</h1>

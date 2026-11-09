@@ -109,7 +109,7 @@ export function LeavingSteps(props: LeavingStepsProps) {
 
   return (
     <main className="sheet" aria-busy={busy}>
-      <ScreenHeader back={back} demoLabel={demoLabel} />
+      <ScreenHeader back={back} title={s.common.titleLeaving} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
         <p className="eyebrow">{s.leaving.eyebrow(squad.shortId.toUpperCase())}</p>
         <h1>{s.leaving.headingTop}<br />{s.leaving.headingBottom}</h1>

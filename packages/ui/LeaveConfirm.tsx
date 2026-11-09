@@ -25,7 +25,7 @@ export function LeaveConfirm({
 }: LeaveConfirmProps) {
   const s = strings(lang);
   return <main className="sheet" aria-busy={busy}>
-    <ScreenHeader back={back} demoLabel={demoLabel} />
+    <ScreenHeader back={back} title={s.common.titleLeave} demoLabel={demoLabel} lang={lang} />
     <div className="sheet-body">
       <p className="eyebrow">{s.leave.eyebrow}</p>
       <h1>{s.leave.headingTop}<br />{s.leave.headingBottom(squad.name)}</h1>

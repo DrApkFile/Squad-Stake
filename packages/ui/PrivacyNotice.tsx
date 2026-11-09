@@ -15,7 +15,7 @@ export function PrivacyNotice({
 }: PrivacyNoticeProps) {
   const s = strings(lang);
   return <main className="sheet" aria-busy={busy}>
-    <ScreenHeader back={back} demoLabel={demoLabel} />
+    <ScreenHeader back={back} title={s.common.titlePrivacy} demoLabel={demoLabel} lang={lang} />
     <div className="sheet-body">
       <p className="eyebrow">{s.privacy.eyebrow}</p>
       <h1>{s.privacy.headingTop}<br />{s.privacy.headingBottom}</h1>

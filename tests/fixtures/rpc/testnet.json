@@ -389,6 +389,107 @@
         },
         "id": 1
       }
+    },
+    "leavingStaker": {
+      "method": "getStakerByAddress",
+      "params": [
+        "NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8"
+      ],
+      "recordedAt": "2026-11-09T06:48:51.141403Z",
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": {
+            "address": "NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8",
+            "balance": 0,
+            "delegation": "NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S",
+            "inactiveBalance": 11000000,
+            "inactiveFrom": 16251210,
+            "retiredBalance": 0
+          },
+          "metadata": {
+            "blockNumber": 16290408,
+            "blockHash": "1c2d97e9328b7552def25bd6d3d66740d016743469f4107e99a208d2425d8828"
+          }
+        },
+        "id": 100
+      }
+    },
+    "leavingUnstakeTx": {
+      "method": "getTransactionByHash",
+      "params": [
+        "0ad4e4a120a7f88c7f5df55304e9804ff53804017f37c43082c4f346e2627a91"
+      ],
+      "recordedAt": "2026-11-09T06:48:51.141403Z",
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": {
+            "hash": "0ad4e4a120a7f88c7f5df55304e9804ff53804017f37c43082c4f346e2627a91",
+            "blockNumber": 16208043,
+            "timestamp": 1794124571585,
+            "confirmations": 82366,
+            "size": 273,
+            "relatedAddresses": [
+              "NQ77 0000 0000 0000 0000 0000 0000 0000 0001",
+              "NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8"
+            ],
+            "from": "NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8",
+            "fromType": 0,
+            "to": "NQ77 0000 0000 0000 0000 0000 0000 0000 0001",
+            "toType": 3,
+            "value": 0,
+            "fee": 0,
+            "senderData": "",
+            "recipientData": "08000000000000000000a837543404febab2d99fffd948bba4622be672a47de1622da0cdc47b263e52b7007184e03ed13815a87652002ff15bcb1fda049df943904d354c56a8805ba23645a6fbd0ca3e98148910f73a464d2520d2a31e07b63aa54ffd31ca2e95d1a32a06",
+            "flags": 2,
+            "validityStartHeight": 16208042,
+            "proof": "00a837543404febab2d99fffd948bba4622be672a47de1622da0cdc47b263e52b70040d3a336d3b3ebcea0cc45e6b98169b93d4b11fe9928333289e0574b99142d0052f777953db34740064a31272ff96801dab16bffb259674d5d942965140fd008",
+            "networkId": 5,
+            "executionResult": true
+          },
+          "metadata": null
+        },
+        "id": 101
+      }
+    },
+    "failedRetireTx": {
+      "method": "getTransactionByHash",
+      "params": [
+        "70a282c066550f00283f01be6d95c8c8341e44cc839ae45e231dc0a4d4a879b6"
+      ],
+      "recordedAt": "2026-11-09T06:48:51.141403Z",
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "data": {
+            "hash": "70a282c066550f00283f01be6d95c8c8341e44cc839ae45e231dc0a4d4a879b6",
+            "blockNumber": 16172568,
+            "timestamp": 1794089096584,
+            "confirmations": 117842,
+            "size": 273,
+            "relatedAddresses": [
+              "NQ77 0000 0000 0000 0000 0000 0000 0000 0001",
+              "NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8"
+            ],
+            "from": "NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8",
+            "fromType": 0,
+            "to": "NQ77 0000 0000 0000 0000 0000 0000 0000 0001",
+            "toType": 3,
+            "value": 0,
+            "fee": 0,
+            "senderData": "",
+            "recipientData": "090000000001312d0000a837543404febab2d99fffd948bba4622be672a47de1622da0cdc47b263e52b7005ccc6e905603ca154e648cd1654bddd09f29c349ec0093db79a316599368d31018f33ac5a2d5b0f9bf181ff342ae3e29958be43b09855b30d84974d1a2d97f04",
+            "flags": 2,
+            "validityStartHeight": 16172566,
+            "proof": "00a837543404febab2d99fffd948bba4622be672a47de1622da0cdc47b263e52b700da63fefce31de3f2477711ebdac695dc0b0237e776e6e85d909f2bea25b2676c9349eb0a8b6c4f3894201f5026aba985a96b539c8a6ab0a1b285b66d69baf70f",
+            "networkId": 5,
+            "executionResult": false
+          },
+          "metadata": null
+        },
+        "id": 102
+      }
     }
   }
 }

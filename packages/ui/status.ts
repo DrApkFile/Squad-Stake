@@ -19,9 +19,18 @@ export type MemberStatusView =
 
 export type MemberStatusName = MemberStatusView['status'];
 
-/** The word beside the dot, in the viewer's language (packages/ui/i18n). */
-export function statusLabel(status: MemberStatusName, lang: Lang = DEFAULT_LANG) {
-  return strings(lang).status[status];
+/**
+ * The word beside the dot, in the viewer's language (packages/ui/i18n).
+ *
+ * `technical` picks the chain's own vocabulary — "Backed", "Unstaking", "Ready to retire" —
+ * which the public proof view keeps, because its reader is checking a staking contract. Every
+ * other screen gets the words a member would use for the same fact: "Saved", "Leaving".
+ */
+export function statusLabel(
+  status: MemberStatusName, lang: Lang = DEFAULT_LANG, technical = false,
+) {
+  const set = strings(lang);
+  return technical ? set.status[status] : set.statusPlain[status];
 }
 
 const TONES: Record<MemberStatusName, SquadStatusTone> = {

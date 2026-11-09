@@ -69,6 +69,11 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
         commitments: fresh.commitments,
         squadId: fresh.squadId,
         amountLuna: toLuna(amountNim) ?? 0,
+        // From the plan just re-read, so a page left open while an earlier inactivation landed
+        // cannot send a second one (`ALREADY_LEAVING`).
+        inactiveBalanceLuna: fresh.stake?.inactiveLuna ?? 0,
+        retiredBalanceLuna: fresh.stake?.retiredLuna ?? 0,
+        unstakeOpen: fresh.steps.start.state === 'pending',
       });
     }
     if (kind === 'retire') {
@@ -130,6 +135,9 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
     commitments: plan.commitments,
     squadId: plan.squadId,
     amountLuna: toLuna(amountNim) ?? plan.shareLuna,
+    inactiveBalanceLuna: plan.stake?.inactiveLuna ?? 0,
+    retiredBalanceLuna: plan.stake?.retiredLuna ?? 0,
+    unstakeOpen: plan.steps.start.state === 'pending',
   });
   const props: LeavingStepsProps = {
     squad: plan.squad,

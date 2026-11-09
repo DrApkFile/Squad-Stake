@@ -58,7 +58,7 @@ export function JoinCommitSheet({
   const creating = state.status === 'not-staking'
     || (state.status === 'needs-stake' && state.action === 'create');
   return <main className="sheet" aria-busy={busy}>
-    <ScreenHeader back={back} demoLabel={demoLabel} />
+    <ScreenHeader back={back} title={s.common.titleJoin} demoLabel={demoLabel} lang={lang} />
     <div className="sheet-body">
       <p className="eyebrow">{squad.mode === 'A' ? s.common.eyebrowModeA : s.common.eyebrowModeB}</p>
       <h1>{squad.name}</h1>

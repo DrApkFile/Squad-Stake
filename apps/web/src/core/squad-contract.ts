@@ -89,7 +89,10 @@ const squadMemberBody = z.object({
   status: memberStatusBody.nullable(),
   readAt: z.number().int().nullable(),
   isYou: z.boolean(),
+  // `phase` is what the row may say; INCLUDED_CONFIRMING means the chain already shows the
+  // transaction's effect, so no zero count may be claimed (server/core/pending-view.ts).
   pending: z.object({
+    phase: z.enum(['FINAL', 'INCLUDED_CONFIRMING', 'FAILED', 'SUBMITTED', 'UNKNOWN']),
     confirmations: z.number().int().nullable(),
     requiredConfirmations: z.number().int(),
   }).strict().nullable(),
@@ -106,6 +109,27 @@ const squadViewBody = z.object({
   memberCount: z.number().int().nonnegative(),
   committedLuna: z.number().int().nonnegative(),
   backedLuna: z.number().int().nonnegative().nullable(),
+  // PRD §7.4 counted by stage, so a member who is leaving on schedule is not reported as a
+  // failure. `missingLuna` is only SHORT and not-staking shares.
+  stages: z.object({
+    backedLuna: z.number().int().nonnegative(),
+    leavingLuna: z.number().int().nonnegative(),
+    readyLuna: z.number().int().nonnegative(),
+    withdrawnLuna: z.number().int().nonnegative(),
+    paidLuna: z.number().int().nonnegative(),
+    missingLuna: z.number().int().nonnegative(),
+    unreadLuna: z.number().int().nonnegative(),
+    coveredLuna: z.number().int().nonnegative(),
+  }).strict().nullable(),
+  yourExit: z.object({
+    stage: z.enum(['none', 'leaving', 'ready', 'withdrawn', 'paid']),
+    committedLuna: z.number().int().nonnegative(),
+    release: z.object({
+      releaseBlock: z.number().int(), remainingBlocks: z.number().int(),
+      estimatedReleaseAt: z.number().int(), jailed: z.boolean(),
+    }).strict().nullable(),
+    headBlock: z.number().int().nullable(),
+  }).strict().nullable(),
   readAt: z.number().int().nullable(),
   leaveBy: z.number().int(),
   chainUnavailable: z.boolean(),

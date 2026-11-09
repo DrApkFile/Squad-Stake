@@ -2,10 +2,13 @@ import { MemberList } from './MemberList';
 import { GradientBorderButton } from './GradientBorderButton';
 import { OrbitSquad } from './OrbitSquad';
 import { ScreenHeader } from './ScreenHeader';
+import { InfoButton, InfoSheet } from './InfoSheet';
 import { countdown, daysBetween, formatDay, formatLuna, formatMoment, readAge } from './format';
 import { fiatLine, fiatNote, type FiatRate } from './fiat';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { statusTone } from './status';
+import { exitBanner, leavingHint, stageLine, type StageTotalsView, type YourExitView }
+  from './progress';
 import type { MemberRowView } from './MemberList';
 import type { OrbitMember } from './OrbitSquad';
 
@@ -22,6 +25,18 @@ export interface SquadScreenProps {
   /** Σ commitments that the chain currently backs — PRD §7.4 "Squad total = Σ backed amounts".
    * `null` means no member has been read yet, and renders as "—". */
   backedLuna: number | null;
+  /**
+   * The same commitments split by the stage each share has reached. The orbit's centre shows
+   * `coveredLuna` — every stage the chain accounts for — so a member who is leaving on
+   * schedule is not reported as a missing share (packages/ui/progress.ts). Null before any
+   * member has been read, and then the centre renders "—".
+   */
+  stages?: StageTotalsView | null | undefined;
+  /**
+   * The viewer's own exit. Anything but `stage: 'none'` replaces the leave-by banner with the
+   * countdown and renders **no** start control, because leaving has already started.
+   */
+  yourExit?: YourExitView | null | undefined;
   /** Σ commitments on record, backed or not. */
   committedLuna: number;
   /** goal − 24 h − 2 h (PRD §7.5). The banner appears from three days before it, which is a
@@ -58,6 +73,16 @@ export interface SquadScreenProps {
   /** True once the container has put the invite link on the clipboard. */
   shared?: boolean | undefined;
   onShare?: (() => void) | undefined;
+  onCopyInvite?: (() => void) | undefined;
+  onCopyProof?: ((url: string) => void) | undefined;
+  proofCopied?: boolean | undefined;
+  /**
+   * The ⓘ sheet, if one is open. The container owns which one, so this component stays pure
+   * and the video can render any frame of the rise by passing `openedT` and `t`.
+   */
+  info?: { title: string; body: string; openedT: number } | null | undefined;
+  onOpenInfo?: ((key: 'leaveBy') => void) | undefined;
+  onCloseInfo?: (() => void) | undefined;
   onLeave?: (() => void) | undefined;
   onRefresh?: (() => void) | undefined;
   t?: number | undefined;
@@ -85,6 +110,8 @@ export function SquadScreen({
   squad,
   members,
   backedLuna,
+  stages = null,
+  yourExit = null,
   committedLuna,
   leaveBy,
   now,
@@ -102,6 +129,12 @@ export function SquadScreen({
   error,
   shared = false,
   onShare,
+  onCopyInvite,
+  onCopyProof,
+  proofCopied = false,
+  info,
+  onOpenInfo,
+  onCloseInfo,
   onLeave,
   onRefresh,
   t = 0,
@@ -111,19 +144,28 @@ export function SquadScreen({
 }: SquadScreenProps) {
   const s = strings(lang);
   const days = daysBetween(now, squad.goalAt);
-  const showLeaveBy = leaveBy - now <= THREE_DAYS_MS;
   const completed = state === 'COMPLETED';
   const you = members.find((member) => member.isYou);
+  // Leaving has already started: the banner reports where the stake is, and the control that
+  // starts it is not rendered at all (the second defect found on testnet, docs/PROGRESS.md
+  // 2026-11-09). Only a member with nothing in the pipeline is offered the start.
+  const exit = exitBanner(yourExit, now, lang);
+  const showLeaveBy = exit === null && leaveBy - now <= THREE_DAYS_MS && !completed;
+  // The centre counts every stage the chain accounts for, not active stake alone.
+  const orbitTotal = stages === null ? backedLuna : stages.coveredLuna;
   return (
     <main className="sheet" aria-busy={loading}>
-      <ScreenHeader back={back} demoLabel={demoLabel} />
+      <ScreenHeader back={back} title={squad.name} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
         <p className="eyebrow">{squad.mode === 'A' ? s.common.eyebrowModeA : s.common.eyebrowModeB}</p>
+        {/* The name is in the top bar, so the orbit no longer repeats it: on a 390 px screen
+            that was a whole line spent on the same three words. */}
         <OrbitSquad
-          goal={squad.name}
+          goal=""
           members={orbitMembers(members, s.common.you)}
-          backedLuna={loading ? null : backedLuna}
+          backedLuna={loading ? null : orbitTotal}
           targetLuna={squad.targetLuna}
+          totalWord="saved"
           t={t}
           lang={lang}
         />
@@ -135,9 +177,9 @@ export function SquadScreen({
           )}
         </p>
         <p className="member-status-age">
-          {backedLuna === null
+          {stages === null
             ? s.common.backedTotalUnread
-            : s.squad.backedLine(formatLuna(backedLuna, lang))}
+            : stageLine(stages, { leavingHint: leavingHint(yourExit, now, lang) }, lang)}
           {' · '}
           {readAge(readAt, now, lang)}
         </p>
@@ -156,7 +198,19 @@ export function SquadScreen({
           </button>
         )}
 
-        {showLeaveBy && !completed && (
+        {exit !== null && (
+          <div className="banner" data-tone={exit.tone} role="note">
+            <p className="banner-title">{exit.title}</p>
+            {exit.note !== null && <p>{exit.note}</p>}
+            <p className="banner-action">
+              <a className="secondary-button secondary-button-quiet" href={leavingUrl}>
+                {s.exit.viewProgress}
+              </a>
+            </p>
+          </div>
+        )}
+
+        {showLeaveBy && (
           <div className="banner" data-tone="SHORT" role="note">
             <p className="banner-title">
               {s.squad.leaveByTitle(formatMoment(leaveBy, tzOffsetMinutes, lang))}
@@ -164,11 +218,12 @@ export function SquadScreen({
                 ? s.squad.leaveByLeft(countdown(leaveBy - now, lang))
                 : s.squad.leaveByPassed}
             </p>
-            <p>{s.squad.leaveByBody}</p>
+            <p>{s.squad.leaveByShort}</p>
             <p className="banner-action">
               <a className="secondary-button secondary-button-quiet" href={leavingUrl}>
                 {s.squad.startLeaving}
               </a>
+              <InfoButton label={s.common.moreInfo} onOpen={() => onOpenInfo?.('leaveBy')} />
             </p>
           </div>
         )}
@@ -187,16 +242,20 @@ export function SquadScreen({
           </div>
         )}
 
-        <h2 className="section-title">{s.common.membersSection}</h2>
-        <MemberList members={members} now={now} lang={lang} />
+        {/* Each group of the page is a card, the way a phone app stacks them, rather than a
+            run of headings down one scroll. */}
+        <section className="card">
+          <h2 className="card-title">{s.common.membersSection}</h2>
+          <MemberList members={members} now={now} lang={lang} />
+        </section>
 
         {squad.mode === 'A' && squad.recipient !== null && (
-          <p className="fine-print fine-print-left">{s.squad.recipientNote(squad.recipient)}</p>
+          <p className="meta">{s.squad.recipientNote(squad.recipient)}</p>
         )}
 
         {payments !== null && (
-          <>
-            <h2 className="section-title">{s.common.paymentsSection}</h2>
+          <section className="card">
+            <h2 className="card-title">{s.common.paymentsSection}</h2>
             <p className="member-status-age">
               {s.common.paidOf(payments.paid, payments.owing)}
             </p>
@@ -220,36 +279,49 @@ export function SquadScreen({
                 {s.common.payMyShare}
               </a>
             )}
-          </>
+          </section>
         )}
 
-        <h2 className="section-title">{s.common.shareSection}</h2>
-        {inviteUrl === null ? (
-          <p className="field-hint">{s.squad.inviteMissing}</p>
-        ) : (
-          <>
-            <p className="field-input field-input-mono">{inviteUrl}</p>
-            <p className="field-hint">
-              {shared ? s.squad.inviteCopied : s.squad.inviteHint}
-            </p>
-          </>
-        )}
-        <p className="fine-print fine-print-left">
-          {s.squad.proofNote} <span className="mono">{proofUrl}</span>
-        </p>
+        {/* The invite link is never printed. A link on screen invites a member to select it by
+            hand on a phone, and it is the one string here that must not be mistyped; the
+            share sheet and the clipboard both carry it exactly. */}
+        <section className="card">
+          <h2 className="card-title">{s.common.shareSection}</h2>
+          {inviteUrl === null ? (
+            <p className="meta">{s.squad.inviteMissing}</p>
+          ) : (
+            <>
+              <GradientBorderButton label={s.squad.shareInvite} onClick={onShare} t={t} />
+              <button className="link-button" type="button" onClick={onCopyInvite}>
+                {shared ? s.common.copied : s.common.copyLink}
+              </button>
+              <p className="meta">{s.squad.inviteHint}</p>
+            </>
+          )}
+        </section>
+        {/* The public view is worth sharing with someone outside the squad, so the link is
+            still available — as a copy, like the invite, rather than as printed text. */}
+        <section className="card">
+          <h2 className="card-title">{s.common.titleProof}</h2>
+          <p className="meta">{s.squad.proofNote}</p>
+          <button className="link-button" type="button"
+            onClick={() => onCopyProof?.(proofUrl)}>
+            {proofCopied ? s.common.copied : s.common.copyLink}
+          </button>
+        </section>
         {fiat !== null && <p className="fine-print fine-print-left">{fiatNote(fiat, now, lang)}</p>}
       </div>
-      <footer className="sheet-footer">
+      <footer className="action-bar">
         <a className="primary-button" href={commitUrl}>
           {you === undefined || you.committedLuna === 0
             ? s.squad.commitMine
             : s.squad.changeCommitment}
         </a>
-        {inviteUrl !== null && <GradientBorderButton label={s.squad.shareInvite} onClick={onShare} t={t} />}
         {onLeave && (
           <button className="secondary-button" onClick={onLeave}>{s.squad.leaveSquad}</button>
         )}
       </footer>
+      <InfoSheet info={info} t={t} onClose={onCloseInfo} lang={lang} />
     </main>
   );
 }

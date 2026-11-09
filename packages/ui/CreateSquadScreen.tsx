@@ -43,7 +43,7 @@ export function CreateSquadScreen({
   const modeA = values.mode === 'A';
   if (created) {
     return <main className="sheet">
-    <ScreenHeader back={back} demoLabel={demoLabel} />
+    <ScreenHeader back={back} title={s.common.titleNewSquad} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
         <p className="eyebrow">{s.create.squadEyebrow(created.shortId.toUpperCase())}</p>
         <h1>{values.name}<br />{s.create.readyHeadingTail}</h1>
@@ -57,7 +57,7 @@ export function CreateSquadScreen({
     </main>;
   }
   return <main className="sheet" aria-busy={busy}>
-    <ScreenHeader back={back} demoLabel={demoLabel} />
+    <ScreenHeader back={back} title={s.common.titleNewSquad} demoLabel={demoLabel} lang={lang} />
     <div className="sheet-body">
       <p className="eyebrow">{s.create.eyebrow}</p>
       <h1>{s.create.headingTop}<br />{s.create.headingBottom}</h1>

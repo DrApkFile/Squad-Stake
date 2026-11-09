@@ -84,34 +84,53 @@ button { font: inherit; }
 }
 
 /* --- Header ------------------------------------------------------------- */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--font-brand);
-  font-weight: var(--weight-semibold);
-  min-height: 44px;
-}
-/* The logo's ink is `currentColor` (packages/ui/brand/tone.ts), so the header's own colour
-   is what makes it legible in either theme; its warm centre stays gold in both. */
-.brand-tag { position: relative; display: inline-flex; align-items: center; color: var(--ink); }
-.brand-tag[data-pushed='yes'] { margin-left: auto; }
-.brand-tag svg { display: block; }
-.back-link {
-  display: inline-flex;
+.topbar {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
-  padding: var(--space-2) var(--space-3);
-  margin-left: calc(var(--space-3) * -1);
-  border-radius: var(--radius-pill);
-  color: var(--ink);
-  font-size: var(--font-sm);
-  font-weight: var(--weight-bold);
-  text-decoration: none;
+  min-height: 48px;
 }
-.back-link:hover { background: var(--wash); }
-.back-link:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+.topbar-lead, .topbar-trail {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+/* The chevron's tap area is wider than its glyph, so the lead column alone is pulled into the
+   gutter and the icon lines up with the text below. Pulling the whole bar clipped the mark. */
+.topbar-lead { margin-left: calc(var(--space-3) * -1); }
+.topbar-trail { justify-content: flex-end; }
+.topbar .topbar-title {
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-md);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  /* One line, centred, truncated rather than wrapped: a top bar that grows a second line
+     pushes the whole screen down on a 375 px phone. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-trail svg { display: block; }
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+.icon-button:active { background: var(--wash); }
+.icon-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+
 .demo-label {
   color: var(--muted);
   font-size: var(--font-xs);
@@ -338,6 +357,9 @@ button { font: inherit; }
   background: var(--wash);
   color: var(--ink);
   font-weight: var(--weight-bold);
+  /* Several of these are anchors (View progress, Start leaving, Pay my share) and were
+     inheriting the browser's underline, which made a filled control read as a sentence. */
+  text-decoration: none;
   cursor: pointer;
 }
 .secondary-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
@@ -424,9 +446,13 @@ button { font: inherit; }
   margin: 0 0 var(--space-3);
 }
 .member-status-detail { font-size: var(--font-md); margin: 0 0 var(--space-5); color: var(--muted); }
+/* The stage line and the read age beside it are sentences about figures, not the figures
+   themselves, so they are set in the text face and sized as metadata. Monospace stays on the
+   amounts, addresses and hashes that people compare character by character. */
 .member-status-age {
   font-size: var(--font-xs);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  line-height: 1.45;
   color: var(--faint);
   margin: 0;
 }
@@ -480,7 +506,9 @@ button { font: inherit; }
 .member-pending { font-size: var(--font-xs); color: var(--status-short); }
 .member-figures { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
 .member-amount { font-size: var(--font-sm); }
-.member-age { font-size: var(--font-xs); font-family: var(--font-mono); color: var(--faint); }
+/* A read age is metadata, not a figure to read digit by digit, so it is set in the text
+   face: monospace is reserved for amounts, addresses and hashes. */
+.member-age { font-size: var(--font-xs); font-family: var(--font-sans); color: var(--faint); }
 
 /* --- Squad cards -------------------------------------------------------- */
 .card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
@@ -643,7 +671,19 @@ button { font: inherit; }
 }
 .tx-status p { margin: 0 0 var(--space-2); }
 .tx-status-hash { font-size: var(--font-xs); overflow-wrap: anywhere; color: var(--faint); }
-.back-link-inline { display: inline-flex; padding: var(--space-2) 0; min-height: 44px; }
+/* An inline link out to the block explorer. It is a link, not a button, so it keeps its
+   underline: the rule against underlines applies inside buttons, where an underline makes a
+   control look like prose. */
+.back-link-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) 0;
+  min-height: 44px;
+  color: var(--ink);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
+}
+.back-link-inline:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
 
 .payment-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
 .payment-row {
@@ -829,3 +869,167 @@ button { font: inherit; }
   color: rgb(255 255 255 / 65%);
 }
 .mark-band[data-band='light'] .mark-slot-size { color: rgb(0 0 0 / 45%); }
+
+/* --- Native shell: cards, action bar, info sheet, skeletons ---------------
+   The screens read as a phone app rather than a document: content sits in cards and tappable
+   rows, the main action is pinned above the home indicator, and long explanations live behind
+   an ⓘ instead of filling the page. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: space-between;
+}
+.card-title {
+  margin: 0;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* A whole row is the target, so the tap area is the full width of the card rather than the
+   width of the words — the difference between a web link and an app row. */
+.row-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  margin: 0 calc(var(--space-4) * -1);
+  width: calc(100% + var(--space-4) * 2);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+.row-button:active { background: var(--wash); }
+.row-button:focus-visible { outline: 3px solid var(--outline); outline-offset: -3px; }
+.row-button-value { margin-left: auto; color: var(--muted); font-weight: var(--weight-regular); }
+
+/* Metadata — read ages, estimates, hints. The normal text face, small and quiet: monospace is
+   reserved for amounts, addresses and hashes, which are read digit by digit. */
+.meta {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-xs);
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+/* The main action, pinned inside the safe area. `position: sticky` keeps it in the normal flow,
+   so the content above can still scroll past it and nothing is covered at the end of the page. */
+.action-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 calc(var(--space-4) + var(--safe-bottom));
+  margin-top: var(--space-5);
+  background: linear-gradient(to bottom, transparent, var(--page) var(--space-4));
+}
+
+.info-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: calc(var(--space-2) * -1) calc(var(--space-3) * -1) calc(var(--space-2) * -1) 0;
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.info-button:active { background: var(--wash); color: var(--ink); }
+.info-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+
+.info-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  /* Both the dim and the rise are driven by --info-progress, which the component computes from
+     `t`; there is no transition or @keyframes, so a rendered frame is a pure function of t. */
+  background: rgb(0 0 0 / calc(0.44 * var(--info-progress, 1)));
+}
+.info-sheet {
+  width: 100%;
+  max-height: 80%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) calc(var(--space-5) + var(--safe-bottom));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface);
+  transform: translateY(calc((1 - var(--info-progress, 1)) * 100%));
+}
+.info-grip {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--hairline);
+}
+.info-title { margin: 0; font-size: var(--font-md); font-weight: var(--weight-bold); }
+.info-body { margin: 0; color: var(--muted); line-height: 1.55; }
+
+/* A shape where the figure will be, instead of an em dash standing in for it. The block does
+   not pulse: an animation here would have to come from a timer, and `packages/ui` has none. */
+.skeleton {
+  display: inline-block;
+  min-width: 4ch;
+  height: 1em;
+  vertical-align: -0.12em;
+  border-radius: var(--radius-sm);
+  background: var(--wash);
+}
+.skeleton-line { display: block; width: 100%; height: 0.9em; margin: var(--space-2) 0; }
+.skeleton-line-short { width: 60%; }
+
+/* Pressed states on the controls that did not have one. */
+.secondary-button:active { background: var(--hairline); }
+.gradient-button:active { background: var(--hairline); }
+.squad-card:active { background: var(--wash); }
+.link-button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  margin-left: calc(var(--space-3) * -1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--money-bg);
+  font: inherit;
+  font-weight: var(--weight-bold);
+  /* No underline inside a control: it is a button, and an underline makes it read as prose. */
+  text-decoration: none;
+  cursor: pointer;
+}
+.link-button:active { background: var(--wash); }
+.link-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 2px; }
+/* The centre figure's placeholder matches the digits it stands in for, so the ring does not
+   jump when the first read lands. */
+.orbit-total-skeleton { width: 5ch; height: 0.8em; }

@@ -36,7 +36,7 @@ export function planStakingAction(input: {
 export interface SquadCommitment { squadId: string; name: string; committedLuna: number }
 
 export type LeavingBlocked = 'NOT_STAKING' | 'INVALID_AMOUNT' | 'AMOUNT_EXCEEDS_STAKE'
-  | 'NOT_RELEASABLE' | 'NOTHING_TO_RETIRE' | 'NOTHING_TO_WITHDRAW';
+  | 'NOT_RELEASABLE' | 'NOTHING_TO_RETIRE' | 'NOTHING_TO_WITHDRAW' | 'ALREADY_LEAVING';
 
 export type LeavingAction =
   | { kind: 'set-active-stake'; newActiveBalanceLuna: number; feeLuna: number }
@@ -67,8 +67,32 @@ export function planLeaving(input: {
   /** The squad they are leaving for; its own commitment is not listed as collateral damage. */
   squadId: string;
   amountLuna: number;
+  /**
+   * The rest of the member's **fresh** staker record, and whether an inactivation of theirs is
+   * still open. Required, not optional: a caller that forgot to pass them would silently lose
+   * the guard below, which is the whole point of it.
+   */
+  inactiveBalanceLuna: number;
+  retiredBalanceLuna: number;
+  unstakeOpen: boolean;
 }): LeavingStep {
   if (input.activeBalanceLuna === null) return { kind: 'blocked', reason: 'NOT_STAKING' };
+  /**
+   * Leaving has already started, so there is nothing to start again.
+   *
+   * Found on testnet: the squad page kept offering "Start leaving" to a member who was already
+   * UNSTAKING (docs/PROGRESS.md 2026-11-09). Hiding the control fixes the screen, but a second
+   * inactivation must be impossible rather than merely unoffered — it would lower the active
+   * balance again, cost another fee, and on the chain it is a *replacement* active balance
+   * (`sendSetActiveStakeTransaction` takes the resulting balance, not a delta), so sending one
+   * from a stale page could inactivate an amount the member never chose.
+   *
+   * The screen-level gate in `server/core/leave-steps.ts` keeps step one out of `available`
+   * for the same reasons; this is the one that holds when the screen is bypassed.
+   */
+  if (input.unstakeOpen || input.inactiveBalanceLuna > 0 || input.retiredBalanceLuna > 0) {
+    return { kind: 'blocked', reason: 'ALREADY_LEAVING' };
+  }
   if (!Number.isSafeInteger(input.amountLuna) || input.amountLuna <= 0) {
     return { kind: 'blocked', reason: 'INVALID_AMOUNT' };
   }

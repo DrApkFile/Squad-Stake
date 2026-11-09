@@ -2,9 +2,9 @@ import { leaveBy, leaveByShowFrom } from '../../core/leave-by';
 import type { SquadCommitment } from '../../core/staking-actions';
 import type { ChainTransaction, ReleaseRpc, RpcResult, StakerState, Validator } from './chain';
 import { deriveLeavingSteps, type LeavingSteps } from './leave-steps';
+import { memberRelease } from './member-release';
 import { checkPayment, type PaymentVerdict } from './payment-check';
 import { paidRoster, type RosterStore } from './settle';
-import { calculateRelease } from './release';
 import type { Membership, Squad, TrackedTx } from './squads';
 
 /**
@@ -66,35 +66,12 @@ function latest(txs: readonly TrackedTx[], kind: TrackedTx['kind']) {
   return txs.filter((tx) => tx.kind === kind).at(-1);
 }
 
-/**
- * Release is counted from the **inclusion block of the inactivation transaction**, read back
- * from the chain by hash. A staker's `inactiveFrom` is already an effective election block and
- * must never be fed to `calculateRelease` as an inclusion block (docs/PROGRESS.md 2026-11-06).
- * With no tracked inactivation there is no inclusion block, so the release stays unknown.
- */
-async function releaseFor(
+/** The release derivation itself lives in `member-release.ts`, shared with the squad page's
+ * countdown (§7.4) so the two screens cannot disagree about the same member's date. */
+const releaseFor = (
   unstakeHash: string | undefined, headBlock: number, delegation: string | null, deps: PlanDeps,
-): Promise<LeavePlanView['release']> {
-  if (unstakeHash === undefined) return null;
-  // An inclusion block never changes, so this read may come from the 60 s cache.
-  const transaction = await deps.rpc.getTransactionByHash(unstakeHash, { fresh: false });
-  if (!transaction.ok || transaction.data.blockNumber === undefined) return null;
-  let validator: Pick<Validator, 'jailedFrom'> | null = null;
-  if (delegation !== null) {
-    const read = await deps.rpc.getValidatorByAddress(delegation);
-    // A validator we cannot read may be jailed, and a jailed one releases later (Q07), so an
-    // unreadable validator leaves the release unknown rather than promising the early date.
-    if (!read.ok) return null;
-    validator = read.data;
-  }
-  const release = await calculateRelease(
-    { inclusionBlock: transaction.data.blockNumber, headBlock, validator },
-    { rpc: deps.rpc, now: deps.now },
-  );
-  if (!release.ok) return null;
-  return { releaseBlock: release.releaseBlock, remainingBlocks: release.remainingBlocks,
-    estimatedReleaseAt: release.estimatedReleaseAt, jailed: release.jailed };
-}
+): Promise<LeavePlanView['release']> =>
+  memberRelease({ unstakeHash, headBlock, delegation }, deps);
 
 /** One payment, judged against §7.6 from a fresh read of its own transaction. An unreadable
  * transaction is "not confirmed yet", never a failure (PRD §8, UNKNOWN never times out). */

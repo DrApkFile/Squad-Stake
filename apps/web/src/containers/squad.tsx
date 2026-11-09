@@ -39,6 +39,19 @@ export function SquadContainer({
   demoLabel?: string | undefined;
 }) {
   const t = useSceneTime();
+
+  /**
+   * Which ⓘ sheet is open, and the scene time it opened at. The time is what drives the rise
+   * (packages/ui/InfoSheet.tsx); keeping it here leaves the component pure, so the video can
+   * render any frame of the transition by passing the same two numbers.
+   */
+  const [infoKey, setInfoKey] = useState<'leaveBy' | null>(null);
+  const [infoOpenedT, setInfoOpenedT] = useState(0);
+  const openInfo = useCallback((key: 'leaveBy') => {
+    setInfoKey(key);
+    setInfoOpenedT(t);
+  }, [t]);
+  const closeInfo = useCallback(() => setInfoKey(null), []);
   const lang = useLang(initialLang);
   // PRD §9.11: the estimate arrives after mount, because only Nimiq Pay knows the currency.
   const hostRate = useFiat();
@@ -82,16 +95,50 @@ export function SquadContainer({
   const inviteUrl = view.inviteToken === null ? null : `${inviteBase}/s/${view.inviteToken}`;
   const proofUrl = `${inviteBase}/proof/${view.squad.shortId}`;
 
-  const share = useCallback(async () => {
-    if (inviteUrl === null) return;
+  /**
+   * The phone's own share sheet, which is where a link belongs on a phone: it reaches the
+   * messaging app the squad already uses, and the member never has to select a URL by hand.
+   *
+   * `navigator.share` exists only in a secure context and only on some platforms, and it
+   * rejects with `AbortError` when the person simply dismisses the sheet — which is not a
+   * failure and must not be reported as one. Anything else falls through to the clipboard, so
+   * there is always a way to send the link even though it is never printed on screen.
+   */
+  const copy = useCallback(async () => {
+    if (inviteUrl === null) return false;
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setShared(true);
+      return true;
     } catch {
-      // No clipboard permission: the link is on screen in full, so there is nothing to recover.
       setShared(false);
+      return false;
     }
   }, [inviteUrl]);
+
+  const share = useCallback(async () => {
+    if (inviteUrl === null) return;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: view.squad.name, url: inviteUrl });
+        return;
+      } catch (error) {
+        // Dismissing the sheet is a decision, not an error: leave the screen as it was.
+        if (error instanceof Error && error.name === 'AbortError') return;
+      }
+    }
+    await copy();
+  }, [copy, inviteUrl, view.squad.name]);
+
+  const [proofCopied, setProofCopied] = useState(false);
+  const copyProof = useCallback(async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setProofCopied(true);
+    } catch {
+      setProofCopied(false);
+    }
+  }, []);
 
   const leave = useCallback(async () => {
     if (leaving) return;
@@ -154,6 +201,8 @@ export function SquadContainer({
     squad: view.squad,
     members,
     backedLuna: view.backedLuna,
+    stages: view.stages,
+    yourExit: view.yourExit,
     committedLuna: view.committedLuna,
     leaveBy: view.leaveBy,
     now,
@@ -168,6 +217,18 @@ export function SquadContainer({
     payUrl: view.squad.mode === 'A' ? `/squads/${view.squadId}/pay` : null,
     shared,
     onShare: share,
+    onCopyInvite: copy,
+    onCopyProof: copyProof,
+    proofCopied,
+    // The words come from the catalogue here, not inside the sheet, so the sheet stays a
+    // dumb surface and every language renders through the same component.
+    info: infoKey === null ? null : {
+      title: strings(lang).squad.leaveByInfoTitle,
+      body: strings(lang).squad.leaveByInfoBody,
+      openedT: infoOpenedT,
+    },
+    onOpenInfo: openInfo,
+    onCloseInfo: closeInfo,
     onLeave: () => setConfirmLeave(true),
     onRefresh: refresh,
     t,

@@ -39,9 +39,13 @@ test('Q08 the banner window opens three days before the deadline and reads in th
   assert.equal(countdown(-5_000), 'any moment now');
 });
 
+/** A member who has not started leaving: the state every one of these cases assumes. The
+ * guard against a second inactivation has its own test below. */
+const notLeavingYet = { inactiveBalanceLuna: 0, retiredBalanceLuna: 0, unstakeOpen: false };
+
 test('§7.5 starting to leave sends the resulting active balance and names the squads it costs', () => {
   const plan = planLeaving({ activeBalanceLuna: 350_000_000, commitments, squadId,
-    amountLuna: 200_000_000 });
+    amountLuna: 200_000_000, ...notLeavingYet });
   assert.equal(plan.kind, 'set-active-stake');
   assert.ok(plan.kind === 'set-active-stake');
   // The provider takes the balance that should remain, not the amount removed.
@@ -54,7 +58,7 @@ test('§7.5 starting to leave sends the resulting active balance and names the s
 
   // Enough spare stake to cover everything: no warning and no squad named.
   const spare = planLeaving({ activeBalanceLuna: 600_000_000, commitments, squadId,
-    amountLuna: 200_000_000 });
+    amountLuna: 200_000_000, ...notLeavingYet });
   assert.ok(spare.kind === 'set-active-stake');
   assert.equal(spare.shortfallLuna, 0);
   assert.deepEqual(spare.affected, []);
@@ -70,8 +74,8 @@ test('§7.5 an impossible leaving amount is refused before the wallet is opened'
     { input: { activeBalanceLuna: 100, amountLuna: 101 }, reason: 'AMOUNT_EXCEEDS_STAKE' },
   ] as const;
   for (const { input, reason } of cases) {
-    assert.deepEqual(planLeaving({ ...input, commitments, squadId }), { kind: 'blocked', reason },
-      `${input.amountLuna}`);
+    assert.deepEqual(planLeaving({ ...notLeavingYet, ...input, commitments, squadId }),
+      { kind: 'blocked', reason }, `${input.amountLuna}`);
   }
 });
 

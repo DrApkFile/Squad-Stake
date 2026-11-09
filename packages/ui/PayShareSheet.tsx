@@ -52,7 +52,7 @@ export function PayShareSheet({
   const explorer = (hash: string) => (explorerBase === null ? null : `${explorerBase}${hash}`);
   return (
     <main className="sheet" aria-busy={busy}>
-      <ScreenHeader back={back} demoLabel={demoLabel} />
+      <ScreenHeader back={back} title={s.common.titlePay} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
         <p className="eyebrow">{s.pay.eyebrow(squad.shortId.toUpperCase())}</p>
         <h1>{formatLuna(shareLuna, lang)}<br />{s.pay.headingTail}</h1>

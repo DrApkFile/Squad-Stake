@@ -30,3 +30,29 @@ The transport tests change only the JSON-RPC id to correlate with each request.
 blocks into `packages/ui/scenes/chain-recording.json`. Member scenes explicitly
 label all derived states as synthetic testnet fixtures. None is mainnet demo
 evidence or a claim that a wallet action succeeded.
+
+## The leaving staker (recorded 2026-11-09)
+
+`leavingStaker`, `leavingUnstakeTx` and `failedRetireTx` were captured on 2026-11-09, each with
+its own `recordedAt`, for the squad-page defects reported from a testnet phone run.
+
+They are one real staker's real exit, found by reading the staking contract's own transaction
+history (`getTransactionsByAddress` on `NQ77 0000 … 0001`) and following it back to the sender:
+
+- `leavingStaker` — `NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8`, **mid-exit**: active 0,
+  `inactiveBalance` 11,000,000 luna, `inactiveFrom` 16,251,210, retired 0.
+- `leavingUnstakeTx` — `0ad4e4a1…`, that same member's `setActiveStake` (incoming staking data
+  type `08`), included at block 16,208,043, `executionResult: true`, 82,366 confirmations when
+  recorded. This is the pair the "0 of 60 confirmations" regression test runs on: a visible
+  effect beside a long-confirmed transaction.
+- `failedRetireTx` — `70a282c0…`, a `retireStake` (type `09`) from the same address with
+  **`executionResult: false`**: a real included-but-failed retire before release. Until this
+  recording, that branch of the tracker was only ever tested from derived fixtures.
+
+Note what these two records prove together, and what AGENTS.md invariant 5 depends on:
+`inactiveFrom` (16,251,210) is **43,167 blocks after** the inactivation's own inclusion block
+(16,208,043), so it is an effective election block and must never be passed to
+`calculateRelease` as an inclusion block.
+
+Confirmation counts grow with the chain, so the recorded numbers are the counts at
+`recordedAt`; the tests assert they are past finality, not that they are still exact.

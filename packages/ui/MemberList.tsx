@@ -1,5 +1,6 @@
 import { earnedAmountText, earnedWhyText, type EarnedView } from './earned';
 import { formatLuna, readAge } from './format';
+import { pendingText, type PendingView } from './pending';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { StatusDot } from './StatusDot';
 import { statusLabel, statusTone } from './status';
@@ -17,7 +18,7 @@ export interface MemberRowView {
   readAt: number | null;
   isYou: boolean;
   /** A tracked transaction of this member's that has not reached a verdict yet. */
-  pending?: { confirmations: number | null; requiredConfirmations: number } | null | undefined;
+  pending?: PendingView | null | undefined;
   /** PRD §9.12: what this member's stake has earned since they joined, measured on the chain,
    * or a reason it cannot be measured. Absent when the screen does not ask for it. */
   earned?: EarnedView | null | undefined;
@@ -28,11 +29,14 @@ export interface MemberListProps {
   now: number;
   /** The proof view prints addresses in full, because that is what a reader re-checks. */
   showFullAddress?: boolean | undefined;
+  /** The public proof view sets this: its reader is checking a staking contract, so it keeps
+   * the chain's own vocabulary while every other screen uses the member's. */
+  technical?: boolean | undefined;
   lang?: Lang | undefined;
 }
 
 export function MemberList({
-  members, now, showFullAddress = false, lang = DEFAULT_LANG,
+  members, now, showFullAddress = false, technical = false, lang = DEFAULT_LANG,
 }: MemberListProps) {
   const s = strings(lang);
   return (
@@ -53,17 +57,18 @@ export function MemberList({
             <span className="member-state">
               {member.status === null || member.readAt === null ? (
                 <>
-                  <StatusDot tone="NEUTRAL" label={s.status.notReadYet} />{' '}
+                  <StatusDot tone="NEUTRAL" label={(technical ? s.status : s.statusPlain).notReadYet} />{' '}
                   <span className="member-state-label">{s.common.unknownValue}</span>
                 </>
               ) : (
                 <>
                   <StatusDot tone={statusTone(member.status.status)}
-                    label={statusLabel(member.status.status, lang)} />{' '}
+                    label={statusLabel(member.status.status, lang, technical)} />{' '}
                   <span className="member-state-label">
                     {member.status.status === 'SHORT' && member.status.shortBy !== null
-                      ? s.status.shortBy(formatLuna(member.status.shortBy, lang))
-                      : statusLabel(member.status.status, lang)}
+                      ? (technical ? s.status : s.statusPlain)
+                        .shortBy(formatLuna(member.status.shortBy, lang))
+                      : statusLabel(member.status.status, lang, technical)}
                   </span>
                 </>
               )}
@@ -85,10 +90,11 @@ export function MemberList({
               </details>
             )}
             {member.pending && (
-              <span className="member-pending">
-                {s.memberList.pending(
-                  member.pending.confirmations ?? 0, member.pending.requiredConfirmations,
-                )}
+              // Worded by packages/ui/pending.ts, which never prints an unread count as a
+              // digit. `?? 0` here is what produced "0 of 60 confirmations" beside a member
+              // the chain already showed as UNSTAKING (docs/PROGRESS.md 2026-11-09).
+              <span className="member-pending" data-phase={member.pending.phase}>
+                {pendingText(member.pending, lang)}
               </span>
             )}
           </span>

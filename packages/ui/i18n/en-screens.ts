@@ -74,8 +74,8 @@ export const enScreens = {
     notStakingTitle: 'You are not staking yet',
     notStakingBody: (minimum: string) =>
       `Create a staker with at least ${minimum} to back your commitment. It stays yours and it earns.`,
-    readyTitle: 'Backed by your stake',
-    readyBody: (free: string) => `${free} of your active stake is free to commit.`,
+    readyTitle: 'Ready to save',
+    readyBody: (free: string) => `${free} of your savings is free to commit.`,
     needsStakeTitle: (shortfall: string) => `${shortfall} more stake needed`,
     needsCreateBody: (fee: string) => `Create a staker in Nimiq Pay (fee ${fee}), then commit.`,
     needsAddBody: (fee: string) => `Add to your stake in Nimiq Pay (fee ${fee}), then commit.`,
@@ -84,7 +84,7 @@ export const enScreens = {
       `${confirmations} of ${required} confirmations. A hash is not success, so your commitment is saved once the chain confirms it.`,
     stalled: 'Still unconfirmed after two minutes. Nothing was resent — check again when you like.',
     committedTitle: (amount: string) => `Committed ${amount}`,
-    committedBody: (free: string) => `Backed by your own stake. ${free} still free.`,
+    committedBody: (free: string) => `Covered by your own savings. ${free} still free.`,
     createStaker: 'Create staker in Nimiq Pay',
     addStake: 'Add stake in Nimiq Pay',
     commit: 'Commit',
@@ -94,11 +94,13 @@ export const enScreens = {
   squad: {
     intro: (committed: string, members: string, goalDay: string) =>
       `${committed} committed by ${members}. ${goalDay}.`,
-    backedLine: (amount: string) => `${amount} of that is backed by active stake`,
     leaveByTitle: (moment: string) => `Start leaving by ${moment}`,
     leaveByLeft: (remaining: string) => ` — ${remaining} left`,
     leaveByPassed: ' — that has passed',
     leaveByBody: 'Unstaking takes up to a day on the Nimiq chain, so a stake you want liquid on goal day has to start leaving before then. Nothing starts by itself.',
+    leaveByShort: 'Unstaking takes about a day, so start before goal day.',
+    leaveByInfoTitle: 'Why start early?',
+    leaveByInfoBody: 'Nimiq releases staked NIM only after the reporting window that follows the next election block — about a day on this chain, and longer if your validator is jailed. Nothing starts by itself: your stake stays where it is until you tap Start leaving and approve it in Nimiq Pay. Starting the day before goal day leaves no room for that wait.',
     startLeaving: 'Start leaving',
     completeTitle: 'This squad is complete',
     completeBody: 'Every member who committed has paid, and each payment was checked on-chain.',
@@ -107,7 +109,7 @@ export const enScreens = {
     inviteMissing: 'This squad was created before invite links could be shown again, so its link cannot be recovered. New members need a link from whoever created it.',
     inviteCopied: 'Invite link copied.',
     inviteHint: 'Anyone with this link can join, so share it only with your squad.',
-    proofNote: 'Anyone can check this squad without signing in:',
+    proofNote: 'Anyone can check this squad without signing in.',
     commitMine: 'Commit my share',
     changeCommitment: 'Change my commitment',
     shareInvite: 'Share invite',
@@ -127,9 +129,51 @@ export const enScreens = {
     createSquad: 'Create squad',
   },
 
-  memberList: {
-    pending: (confirmations: number, required: number) =>
-      `Transaction pending · ${confirmations} of ${required} confirmations`,
+  /**
+   * A transaction in flight. `confirmingUnread` and `submitted` exist so a count nobody read
+   * is worded instead of printed as a zero (packages/ui/pending.ts).
+   */
+  /**
+   * PRD §7.4 by stage. Leaving, ready, withdrawn and paid all still count toward the squad's
+   * progress; only `missing` is a share the chain says is not there (packages/ui/progress.ts).
+   */
+  stages: {
+    saved: (amount: string) => `${amount} saved`,
+    leaving: (amount: string) => `${amount} leaving`,
+    ready: (amount: string) => `${amount} ready to withdraw`,
+    withdrawn: (amount: string) => `${amount} withdrawn`,
+    paid: (amount: string) => `${amount} paid`,
+    missing: (amount: string) => `${amount} missing`,
+    unread: (amount: string) => `${amount} not read`,
+    readyIn: (duration: string) => `(ready in ~${duration})`,
+    readyNow: '(ready now)',
+  },
+
+  /** The leave-by banner once leaving has started: where the member's stake is, never an
+   * invitation to start again. */
+  exit: {
+    unlocksIn: (amount: string, duration: string) => `Your ${amount} unlocks in about ${duration}`,
+    unlockNote: 'The chain decides when. Nothing to do until then.',
+    unlockUnknown: (amount: string) => `Your ${amount} is on its way out`,
+    unlockUnknownNote: 'The release time is not known yet.',
+    readyTitle: (amount: string) => `Your ${amount} is ready to withdraw`,
+    readyNote: 'Finish the steps to get it back in your wallet.',
+    withdrawnTitle: (amount: string) => `Your ${amount} is back in your wallet`,
+    paidTitle: (amount: string) => `Your ${amount} share is paid`,
+    jailed: 'Your validator is jailed, so the release is later than usual.',
+    viewProgress: 'View progress',
+  },
+
+  pending: {
+    final: 'Confirmed on the chain',
+    failed: 'That transaction failed',
+    confirming: (confirmations: number, required: number) =>
+      `On the chain · ${confirmations} of ${required} confirmations`,
+    confirmingUnread: 'On the chain · confirming',
+    submitted: 'Sent · waiting for the chain',
+    submittedCount: (confirmations: number, required: number) =>
+      `Sent · ${confirmations} of ${required} confirmations`,
+    unknown: 'Checking the chain',
   },
 
   proof: {
@@ -266,9 +310,9 @@ export const enScreens = {
 
   memberStatus: {
     waitingRead: 'Waiting for a chain read.',
-    backed: 'Your active stake covers your commitments.',
+    backed: 'Your savings cover your commitments.',
     shortMasked: 'This stake is below the commitment. The squad sees short, not the balance.',
-    shortYours: 'Your active stake is below your total commitments.',
+    shortYours: 'Your savings are below your total commitments.',
     releaseUnknown: 'Release estimate: —',
     waitingBlock: (block: string) => `Waiting for block ${block}.`,
     waitingConfirmation: 'Waiting for chain confirmation.',
@@ -283,6 +327,7 @@ export const enScreens = {
   },
 
   orbit: {
+    wordSaved: 'saved',
     wordBacked: 'backed',
     wordCommitted: 'committed',
     total: (word: string) => `NIM ${word}`,

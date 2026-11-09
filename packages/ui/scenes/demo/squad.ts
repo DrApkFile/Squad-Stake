@@ -1,4 +1,5 @@
 import { shortAddress } from '../../format';
+import { stageTotalsOf } from '../../progress';
 import { templateGoalDates } from '../../templates';
 import { demoIdenticonList } from './identicons';
 import type { FiatRate } from '../../fiat';
@@ -108,6 +109,9 @@ export const demoCommittedTotal = COMMITMENTS.reduce((sum, amount) => sum + amou
 export const demoBackedTotal = demoRoster
   .filter((member) => member.status?.status === 'BACKED')
   .reduce((sum, member) => sum + member.committedLuna, 0);
+/** The same commitments by stage (PRD §7.4): this sample squad has one member leaving and one
+ * genuinely short, so the line reads as a journey rather than a pass/fail. */
+export const demoStages = stageTotalsOf(demoRoster);
 
 export const demoSquadPage = {
   name: demoSharedSquad.name,

@@ -42,6 +42,8 @@ const FLAGS: Record<keyof Strings['errors'], ErrorFlags> = {
   NOT_A_MEMBER: { retryable: false, changedAnything: false },
   STALE_READ: { retryable: true, changedAnything: false },
   LEAVE_BLOCKED: { retryable: true, changedAnything: false },
+  // Nothing was sent: the planner refused before the wallet opened.
+  ALREADY_LEAVING: { retryable: false, changedAnything: false },
   NOT_RELEASABLE: { retryable: true, changedAnything: false },
   NOTHING_TO_RETIRE: { retryable: false, changedAnything: false },
   NOTHING_TO_WITHDRAW: { retryable: false, changedAnything: false },

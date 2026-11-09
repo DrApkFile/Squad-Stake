@@ -3,6 +3,7 @@ import { ScreenHeader } from './ScreenHeader';
 import { formatDay, formatLuna, readAge } from './format';
 import { fiatLine, fiatNote, type FiatRate } from './fiat';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
+import { stageLine, type StageTotalsView } from './progress';
 import type { MemberRowView } from './MemberList';
 
 export interface ProofScreenProps {
@@ -14,7 +15,13 @@ export interface ProofScreenProps {
     goalAt: number;
   };
   members: readonly MemberRowView[];
-  backedLuna: number | null;
+  /**
+   * PRD §7.4's squad total, by stage: the public view says the same thing as the member's page,
+   * so a share that is leaving on schedule is still counted under its own name
+   * (packages/ui/progress.ts). Null before any member has been read, and then the line says so
+   * rather than showing a total built out of nothing.
+   */
+  stages: StageTotalsView | null;
   committedLuna: number;
   now: number;
   readAt: number | null;
@@ -39,7 +46,7 @@ export interface ProofScreenProps {
 export function ProofScreen({
   squad,
   members,
-  backedLuna,
+  stages,
   committedLuna,
   now,
   readAt,
@@ -56,7 +63,8 @@ export function ProofScreen({
     <main className="sheet">
       {/* A reader may have arrived from anywhere, so the way out is forward: the app itself.
           The label says that, rather than repeating the brand line beside it. */}
-      <ScreenHeader back={{ label: s.common.openSquadStake, href: '/' }} demoLabel={demoLabel} />
+      <ScreenHeader back={{ label: s.common.openSquadStake, href: '/' }}
+        title={s.common.titleProof} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
         <p className="eyebrow">{s.proof.eyebrow(squad.shortId.toUpperCase())}</p>
         <h1>{squad.name}</h1>
@@ -72,9 +80,9 @@ export function ProofScreen({
           )}
         </p>
         <p className="member-status-age">
-          {backedLuna === null
+          {stages === null
             ? s.common.backedTotalUnread
-            : s.proof.backedLine(formatLuna(backedLuna, lang))}
+            : stageLine(stages, {}, lang)}
           {' · '}
           {readAge(readAt, now, lang)}
         </p>
@@ -84,12 +92,14 @@ export function ProofScreen({
           </p>
         )}
 
-        <h2 className="section-title">{s.common.membersSection}</h2>
-        <MemberList members={members} now={now} lang={lang} showFullAddress />
+        <section className="card">
+          <h2 className="card-title">{s.common.membersSection}</h2>
+          <MemberList members={members} now={now} lang={lang} showFullAddress technical />
+        </section>
 
         {payments !== null && (
-          <>
-            <h2 className="section-title">{s.common.paymentsSection}</h2>
+          <section className="card">
+            <h2 className="card-title">{s.common.paymentsSection}</h2>
             <p className="member-status-age">
               {s.proof.paidToLine(payments.paid, payments.owing)}{' '}
               <span className="mono">{payments.recipient}</span>
@@ -106,13 +116,14 @@ export function ProofScreen({
                 </li>
               ))}
             </ul>
-            <p className="field-hint">
+            <p className="meta">
               {s.proof.paymentsNote(`sq:${squad.shortId}`)}
             </p>
-          </>
+          </section>
         )}
 
-        <h2 className="section-title">{s.proof.checkTitle}</h2>
+        <section className="card">
+        <h2 className="card-title">{s.proof.checkTitle}</h2>
         <dl className="notice-list">
           <dt>{s.proof.readTerm}</dt>
           <dd>{s.proof.readBody(verify.method, verify.endpoint)}</dd>
@@ -123,8 +134,9 @@ export function ProofScreen({
           <dt>{s.proof.jsonTerm}</dt>
           <dd className="mono">{`curl -s ${apiUrl}`}</dd>
         </dl>
-        {fiat !== null && <p className="fine-print fine-print-left">{fiatNote(fiat, now, lang)}</p>}
-        <p className="fine-print fine-print-left">{s.proof.fineprint}</p>
+        </section>
+        {fiat !== null && <p className="meta">{fiatNote(fiat, now, lang)}</p>}
+        <p className="meta">{s.proof.fineprint}</p>
       </div>
     </main>
   );

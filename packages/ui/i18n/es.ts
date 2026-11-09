@@ -37,14 +37,14 @@ export const es: Strings = {
     backSquads: 'Mis grupos',
     backSquad: 'Grupo',
     openSquadStake: 'Abrir Squad Stake',
-    refreshChain: 'Volver a leer la cadena',
-    checkStatusAgain: 'Comprobar de nuevo',
+    refreshChain: 'Actualizar',
+    checkStatusAgain: 'Actualizar',
     waiting: 'Esperando…',
     approveInPay: 'Apruébalo en Nimiq Pay',
     nothingSentUntilApprove: 'No se envía nada hasta que lo apruebes.',
     nothingChanged: 'Nada ha cambiado.',
     unknownValue: '—',
-    backedTotalUnread: 'Total respaldado: — · aún sin lectura de la cadena',
+    backedTotalUnread: 'Sin comprobar todavía',
     cannotMoveNim: 'Squad Stake no puede mover tus NIM. Solo tu aprobación puede.',
     neverHolds: 'Squad Stake nunca guarda tus NIM. Solo tu aprobación los mueve.',
     membersSection: 'Miembros',
@@ -55,6 +55,54 @@ export const es: Strings = {
     paymentNone: 'Aún sin pagar',
     paymentUncounted: 'Pago aún no contado',
     payMyShare: 'Pagar mi parte',
+    titleSquads: 'Mis escuadras',
+    titleSquad: 'Escuadra',
+    titleNewSquad: 'Nueva escuadra',
+    titleJoin: 'Unirse a la escuadra',
+    titleLeaving: 'Saliendo',
+    titlePay: 'Pagar mi parte',
+    titleProof: 'Prueba pública',
+    titlePrivacy: 'Privacidad',
+    titleLeave: 'Salir de la escuadra',
+    titleTx: 'Transacción',
+    copyLink: 'Copiar enlace',
+    copied: 'Copiado',
+    moreInfo: 'Más sobre esto',
+    close: 'Cerrar',
+  },
+
+  /**
+
+   * The same statuses in the words a member uses. The technical set above stays on the
+
+   * proof page, which is written for someone checking the chain rather than saving on it.
+
+   */
+
+  statusPlain: {
+
+    BACKED: 'Ahorrado',
+
+    SHORT: 'Falta',
+
+    UNSTAKING: 'Saliendo',
+
+    RELEASABLE: 'Listo para confirmar',
+
+    RETIRED: 'Listo para retirar',
+
+    NOT_STAKING: 'Aún sin ahorrar',
+
+    LEFT: 'Salió de la escuadra',
+
+    WITHDRAWN: 'De vuelta en tu monedero',
+
+    PAID: 'Pagado',
+
+    notReadYet: 'Sin comprobar todavía',
+
+    shortBy: (amount) => `Faltan ${amount}`,
+
   },
 
   status: {
@@ -100,6 +148,7 @@ export const es: Strings = {
     NOT_A_MEMBER: { message: 'No estás en este grupo.', nextAction: 'Abre el enlace de invitación, o mira la prueba pública.' },
     STALE_READ: { message: 'Esta es una lectura antigua de la cadena.', nextAction: 'Actualiza para volver a leer la cadena.' },
     LEAVE_BLOCKED: { message: 'Este grupo no ha podido dejarte salir.', nextAction: 'Actualiza el grupo e inténtalo otra vez. Tu stake está intacto.' },
+    ALREADY_LEAVING: { message: 'Ya has empezado a salir.', nextAction: 'Sigue los pasos que empezaste. No se envió nada dos veces.' },
     NOT_RELEASABLE: { message: 'Este stake aún no está liberado.', nextAction: 'Espera a que acabe la cuenta atrás y luego confirma.' },
     NOTHING_TO_RETIRE: { message: 'No hay saldo en retirada que confirmar.', nextAction: 'Empieza a salir primero.' },
     NOTHING_TO_WITHDRAW: { message: 'No hay nada retirado que recoger.', nextAction: 'Confirma la retirada primero.' },
@@ -181,8 +230,8 @@ export const es: Strings = {
     notStakingTitle: 'Todavía no tienes stake',
     notStakingBody: (minimum) =>
       `Crea un staker con al menos ${minimum} para respaldar tu compromiso. Siguen siendo tuyos y generan.`,
-    readyTitle: 'Respaldado por tu stake',
-    readyBody: (free) => `${free} de tu stake activo están libres para comprometer.`,
+    readyTitle: 'Listo para ahorrar',
+    readyBody: (free) => `${free} de tus ahorros están libres para comprometer.`,
     needsStakeTitle: (shortfall) => `Faltan ${shortfall} de stake`,
     needsCreateBody: (fee) => `Crea un staker en Nimiq Pay (comisión ${fee}) y luego comprométete.`,
     needsAddBody: (fee) => `Añade a tu stake en Nimiq Pay (comisión ${fee}) y luego comprométete.`,
@@ -191,7 +240,7 @@ export const es: Strings = {
       `${confirmations} de ${required} confirmaciones. Un hash no es un éxito, así que tu compromiso se guarda cuando la cadena lo confirma.`,
     stalled: 'Sigue sin confirmar tras dos minutos. No se ha reenviado nada: vuelve a comprobarlo cuando quieras.',
     committedTitle: (amount) => `Comprometidos ${amount}`,
-    committedBody: (free) => `Respaldado por tu propio stake. Siguen libres ${free}.`,
+    committedBody: (free) => `Cubierto por tus propios ahorros. Siguen libres ${free}.`,
     createStaker: 'Crear staker en Nimiq Pay',
     addStake: 'Añadir stake en Nimiq Pay',
     commit: 'Comprometer',
@@ -200,11 +249,13 @@ export const es: Strings = {
 
   squad: {
     intro: (committed, members, goalDay) => `${committed} comprometidos por ${members}. ${goalDay}.`,
-    backedLine: (amount) => `${amount} de eso están respaldados por stake activo`,
     leaveByTitle: (moment) => `Empieza a salir antes de ${moment}`,
     leaveByLeft: (remaining) => ` — quedan ${remaining}`,
     leaveByPassed: ' — ya ha pasado',
     leaveByBody: 'Salir de un stake tarda hasta un día en la cadena de Nimiq, así que un stake que quieras líquido el día de la meta tiene que empezar a salir antes. Nada empieza por sí solo.',
+    leaveByShort: 'Retirar tarda cerca de un día; empieza antes del día objetivo.',
+    leaveByInfoTitle: '¿Por qué empezar antes?',
+    leaveByInfoBody: 'Nimiq libera el NIM en stake solo tras la ventana de reporte que sigue al siguiente bloque de elección: cerca de un día en esta cadena, y más si tu validador está encarcelado. Nada empieza solo: tu stake sigue donde está hasta que pulses Empezar a salir y lo apruebes en Nimiq Pay. Empezar la víspera del día objetivo no deja margen para esa espera.',
     startLeaving: 'Empezar a salir',
     completeTitle: 'Este grupo está completo',
     completeBody: 'Todas las personas que se comprometieron han pagado, y cada pago se ha comprobado en la cadena.',
@@ -213,7 +264,7 @@ export const es: Strings = {
     inviteMissing: 'Este grupo se creó antes de que los enlaces de invitación se pudieran volver a mostrar, así que su enlace no se puede recuperar. Quien lo creó tendrá que dar uno nuevo.',
     inviteCopied: 'Enlace de invitación copiado.',
     inviteHint: 'Cualquiera con este enlace puede unirse, así que compártelo solo con tu grupo.',
-    proofNote: 'Cualquiera puede comprobar este grupo sin iniciar sesión:',
+    proofNote: 'Cualquiera puede comprobar esta escuadra sin iniciar sesión.',
     commitMine: 'Comprometer mi parte',
     changeCommitment: 'Cambiar mi compromiso',
     shareInvite: 'Compartir invitación',
@@ -232,9 +283,41 @@ export const es: Strings = {
     createSquad: 'Crear grupo',
   },
 
-  memberList: {
-    pending: (confirmations, required) =>
-      `Transacción pendiente · ${confirmations} de ${required} confirmaciones`,
+  stages: {
+    saved: (amount) => `${amount} guardados`,
+    leaving: (amount) => `${amount} saliendo`,
+    ready: (amount) => `${amount} listos para retirar`,
+    withdrawn: (amount) => `${amount} retirados`,
+    paid: (amount) => `${amount} pagados`,
+    missing: (amount) => `faltan ${amount}`,
+    unread: (amount) => `${amount} sin leer`,
+    readyIn: (duration) => `(listos en ~${duration})`,
+    readyNow: '(listos ya)',
+  },
+
+  exit: {
+    unlocksIn: (amount, duration) => `Tus ${amount} se liberan en unas ${duration}`,
+    unlockNote: 'La cadena decide cuándo. No hay nada que hacer hasta entonces.',
+    unlockUnknown: (amount) => `Tus ${amount} están saliendo`,
+    unlockUnknownNote: 'Todavía no se conoce la hora de liberación.',
+    readyTitle: (amount) => `Tus ${amount} están listos para retirar`,
+    readyNote: 'Termina los pasos para recuperarlos en tu monedero.',
+    withdrawnTitle: (amount) => `Tus ${amount} ya están en tu monedero`,
+    paidTitle: (amount) => `Tu parte de ${amount} está pagada`,
+    jailed: 'Tu validador está penalizado, así que la liberación tarda más.',
+    viewProgress: 'Ver el progreso',
+  },
+
+  pending: {
+    final: 'Confirmada en la cadena',
+    failed: 'Esa transacción falló',
+    confirming: (confirmations, required) =>
+      `En la cadena · ${confirmations} de ${required} confirmaciones`,
+    confirmingUnread: 'En la cadena · confirmando',
+    submitted: 'Enviada · esperando la cadena',
+    submittedCount: (confirmations, required) =>
+      `Enviada · ${confirmations} de ${required} confirmaciones`,
+    unknown: 'Consultando la cadena',
   },
 
   proof: {
@@ -370,9 +453,9 @@ export const es: Strings = {
 
   memberStatus: {
     waitingRead: 'Esperando una lectura de la cadena.',
-    backed: 'Tu stake activo cubre tus compromisos.',
+    backed: 'Tus ahorros cubren tus compromisos.',
     shortMasked: 'Este stake está por debajo del compromiso. El grupo ve que falta, no el saldo.',
-    shortYours: 'Tu stake activo está por debajo de tus compromisos totales.',
+    shortYours: 'Tus ahorros están por debajo de tus compromisos totales.',
     releaseUnknown: 'Estimación de liberación: —',
     waitingBlock: (block) => `Esperando el bloque ${block}.`,
     waitingConfirmation: 'Esperando la confirmación de la cadena.',
@@ -387,6 +470,7 @@ export const es: Strings = {
   },
 
   orbit: {
+    wordSaved: 'guardados',
     wordBacked: 'respaldados',
     wordCommitted: 'comprometidos',
     total: (word) => `NIM ${word}`,

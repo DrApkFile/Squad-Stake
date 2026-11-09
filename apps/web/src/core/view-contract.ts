@@ -43,11 +43,24 @@ export interface SquadMemberWire {
   status: MemberStatusWire | null;
   readAt: number | null;
   isYou: boolean;
-  /** A tracked transaction with no verdict yet. A hash is not success (PRD Q10). */
-  pending: { confirmations: number | null; requiredConfirmations: number } | null;
+  /**
+   * A tracked transaction that has not settled yet. A hash is not success (PRD Q10).
+   * `phase` carries what the row may say: `INCLUDED_CONFIRMING` means the chain already shows
+   * the transaction's effect, so the row can never claim a zero count
+   * (`src/server/core/pending-view.ts`). A null `confirmations` means "not read" and must be
+   * worded, never printed as a digit.
+   */
+  pending: PendingWire | null;
   /** PRD §9.12: what this member's stake has earned since joining, measured on the chain,
    * or the reason it cannot be measured. */
   earned: EarnedWire | null;
+}
+
+/** The wire twin of `server/core/pending-view.ts`'s result. */
+export interface PendingWire {
+  phase: 'FINAL' | 'INCLUDED_CONFIRMING' | 'FAILED' | 'SUBMITTED' | 'UNKNOWN';
+  confirmations: number | null;
+  requiredConfirmations: number;
 }
 
 /** The wire twin of `server/core/earned.ts`'s result; `EarnedView` in packages/ui words it. */
@@ -56,6 +69,41 @@ export type EarnedWire =
   | { known: false; reason: EarnedReasonWire };
 export type EarnedReasonWire = 'NOT_STAKING' | 'NO_POOL_DATA' | 'PAYOUT_ADDRESS_UNKNOWN'
   | 'PAYS_NOTHING' | 'OUTSIDE_STAKE' | 'UNTRACKED_DEPOSIT' | 'LEAVING' | 'CHAIN_UNAVAILABLE';
+
+/**
+ * Every member's share counted once, under the stage the chain says it has reached. The stages
+ * are a journey, not a success/failure pair: `backed` (saved), `leaving` (inactivating),
+ * `ready` (released or retired, waiting to be withdrawn), `withdrawn`, `paid`.
+ */
+export interface StageTotals {
+  backedLuna: number;
+  leavingLuna: number;
+  readyLuna: number;
+  withdrawnLuna: number;
+  paidLuna: number;
+  /** SHORT or not staking: the only shares that are genuinely absent. */
+  missingLuna: number;
+  /** Members whose chain read failed. Not counted as missing — nobody read them. */
+  unreadLuna: number;
+  /** backed + leaving + ready + withdrawn + paid. */
+  coveredLuna: number;
+}
+
+export type ExitStage = 'none' | 'leaving' | 'ready' | 'withdrawn' | 'paid';
+
+export interface YourExit {
+  stage: ExitStage;
+  /** The viewer's own commitment: what is in the exit, and what the countdown is about. */
+  committedLuna: number;
+  /**
+   * Derived from the inactivation's inclusion block (`server/core/member-release.ts`), never
+   * from the staker's `inactiveFrom`. Null while it cannot be derived, and the screen then
+   * says the release time is unknown rather than guessing one.
+   */
+  release: { releaseBlock: number; remainingBlocks: number; estimatedReleaseAt: number;
+    jailed: boolean } | null;
+  headBlock: number | null;
+}
 
 export interface SquadView {
   squadId: string;
@@ -71,6 +119,19 @@ export interface SquadView {
   /** Σ commitments the chain currently backs — PRD §7.4 "Squad total = Σ backed amounts".
    * Null when no member could be read. */
   backedLuna: number | null;
+  /**
+   * The same commitments, split by the stage each member's share has reached, so a member who
+   * is leaving on schedule is not reported as a failure. Null when no member could be read.
+   *
+   * `coveredLuna` is every stage except `missing` and `unread`: a share only counts as missing
+   * when the member is actually short of it (SHORT, or not staking at all).
+   */
+  stages: StageTotals | null;
+  /**
+   * The viewer's own exit, for the leave-by banner (PRD §7.5). Null for a non-member;
+   * `stage: 'none'` is the only stage that may be offered "Start leaving".
+   */
+  yourExit: YourExit | null;
   /** The oldest chain read behind this page, so the age shown is the worst case. */
   readAt: number | null;
   /** PRD §7.5: goal − 26 h. */

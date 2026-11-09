@@ -98,9 +98,11 @@ test('Q17 §9.9 a pending step is never success, and a failed one says the chain
   assert.match(failed.markup, /That transaction failed/);
   assert.match(failed.markup, /included in a block but did not execute\. Nothing moved/);
   // Every state keeps the one re-read control, because every figure above it is a chain read.
+  // Its word is now "Refresh": "Check the chain again" described the mechanism rather than
+  // the member's intent, and plain words are the rule outside the proof page.
   for (const scene of leavingScenes) {
     assert.match(render(LeavingSteps, { ...scene.props, demoLabel: DEMO_LABEL }),
-      /Check the chain again/, scene.id);
+      /Refresh/, scene.id);
   }
 });
 

@@ -91,7 +91,11 @@ test('Q10 a member with an open transaction shows pending, and a member who left
   const result = await squadDetail(id, ADDRESSES.alice, h.deps);
   assert.ok(result.ok);
   const bob = result.view.members.find((member) => member.address === ADDRESSES.bob);
-  assert.deepEqual(bob?.pending, { confirmations: null, requiredConfirmations: 60 });
+  // The hash was never on this chain, so the tracker's read fails and the row says so. It is
+  // UNKNOWN, not "0 of 60": a count nobody read is never printed as a digit, and no elapsed
+  // time turns an unreadable transaction into a failure (Q10, pending-view.ts).
+  assert.deepEqual(bob?.pending,
+    { phase: 'UNKNOWN', confirmations: null, requiredConfirmations: 60 });
   const carol = result.view.members.find((member) => member.address === ADDRESSES.carol);
   assert.deepEqual(carol?.status, { status: 'LEFT' });
   assert.equal(carol?.committedLuna, 0);

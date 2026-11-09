@@ -28,9 +28,14 @@ export interface OrbitSquadProps {
   t?: number | undefined;
   /** No rotation and no count-up: the small preview on a list card. */
   still?: boolean | undefined;
-  /** What the centre figure is. A squad page reads the chain and says "backed"; a list card
-   * only knows our record of commitments and says "committed" (PRD §7.4, §9.3). */
-  totalWord?: 'backed' | 'committed' | undefined;
+  /**
+   * What the centre figure is. The squad page passes `saved`, whose figure is every share the
+   * chain accounts for at any stage of the plan — saving, leaving, ready, withdrawn or paid —
+   * because a member leaving on schedule is progress, not a hole in the total (PRD §7.4).
+   * `backed` is active stake alone, and a list card that has made no chain read at all says
+   * `committed`, our own record (PRD §9.3).
+   */
+  totalWord?: 'saved' | 'backed' | 'committed' | undefined;
   lang?: Lang | undefined;
 }
 
@@ -68,7 +73,11 @@ export function OrbitSquad({
   const rings = ringCountFor(members.length);
   const byRing = seatsByRing(members, rings);
   const shown = backedLuna === null ? null : still ? backedLuna : countUp(t, backedLuna);
-  const total = shown === null ? s.common.unknownValue : formatNim(shown, lang);
+  // `null` means nothing has been read yet. The centre shows a block of the figure's size
+  // rather than an em dash, which reads as a value of its own (AGENTS.md "Never fabricate"
+  // asks for no invented number; a skeleton makes no claim at all).
+  const unread = shown === null;
+  const total = unread ? s.common.unknownValue : formatNim(shown, lang);
   // The centre figure steps down a size rather than overflowing the ring on a big total.
   const size = total.length <= 6 ? 'lg' : total.length <= 9 ? 'md' : 'sm';
 
@@ -126,10 +135,13 @@ export function OrbitSquad({
           );
         })}
         <div className="orbit-centre">
-          <p className="orbit-total" data-size={size}>{total}</p>
+          <p className="orbit-total" data-size={size}>
+            {unread ? <span className="skeleton orbit-total-skeleton" aria-label={total} /> : total}
+          </p>
           <p className="orbit-of">
             {(() => {
-              const word = totalWord === 'backed' ? s.orbit.wordBacked : s.orbit.wordCommitted;
+              const word = totalWord === 'saved' ? s.orbit.wordSaved
+                : totalWord === 'backed' ? s.orbit.wordBacked : s.orbit.wordCommitted;
               return targetLuna === null
                 ? s.orbit.total(word)
                 : s.orbit.totalOfTarget(word, formatNim(targetLuna, lang));

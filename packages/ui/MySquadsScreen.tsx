@@ -54,11 +54,27 @@ export function MySquadsScreen({
   const s = strings(lang);
   return (
     <main className="sheet" aria-busy={loading}>
-      <ScreenHeader demoLabel={demoLabel} />
+      <ScreenHeader title={s.common.titleSquads} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
         <p className="eyebrow">{s.mySquads.eyebrow}</p>
         <h1>{squads.length === 0 ? s.mySquads.headingEmpty : s.mySquads.heading}</h1>
-        {loading && <p className="intro">{s.common.unknownValue}</p>}
+        {/* While the list is loading, the shape of the list: an em dash here reads as "none",
+            which is a different and wrong answer to "which squads am I in?". */}
+        {loading && (
+          <ul className="card-list" aria-hidden="true">
+            {[0, 1].map((row) => (
+              <li key={row}>
+                <span className="squad-card">
+                  <span className="skeleton squad-card-orbit" />
+                  <span className="squad-card-main">
+                    <span className="skeleton skeleton-line" />
+                    <span className="skeleton skeleton-line skeleton-line-short" />
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         {!loading && squads.length === 0 && !error && (
           <p className="intro">{s.mySquads.introEmpty}</p>
         )}

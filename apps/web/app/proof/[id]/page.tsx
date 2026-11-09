@@ -38,7 +38,7 @@ export default async function ProofPage({ params }: { params: Promise<{ id: stri
         // and this page is public (src/server/core/member-earned.ts).
         earned: null,
       }))}
-      backedLuna={view.backedLuna}
+      stages={view.stages}
       committedLuna={view.committedLuna}
       now={Date.now()}
       readAt={view.readAt}

@@ -243,6 +243,8 @@ export function detailHarness(options: { head?: number | null } = {}) {
   const readAt = new Map<string, number>();
   const transactions = new Map<string, ChainTransaction>();
   const delegations = new Map<string, string | null>();
+  const records = new Map<string, Staker>();
+  let validatorRecord: Validator | null = recorded.validator.response.result.data as Validator;
   let stakerReads = 0;
 
   const rpc = {
@@ -267,8 +269,15 @@ export function detailHarness(options: { head?: number | null } = {}) {
       if (unreadable.has(address)) {
         return { ok: false as const, code: 'TIMEOUT' as const };
       }
-      const balance = balances.get(address) ?? null;
       const at = readAt.get(address) ?? now;
+      // A whole record set by `setStaker` wins, so a test can give a member inactive or
+      // retired stake; `setBalance` stays the short way to set an active balance only.
+      const record = records.get(address);
+      if (record !== undefined) {
+        return { ok: true as const, data: { status: 'STAKING', staker: record },
+          metadata: null, readAt: at };
+      }
+      const balance = balances.get(address) ?? null;
       if (balance === null) {
         return { ok: true as const, data: { status: 'NOT_STAKING' }, metadata: null, readAt: at };
       }
@@ -277,14 +286,43 @@ export function detailHarness(options: { head?: number | null } = {}) {
           staker: staker(balance, { address, delegation: delegations.get(address) ?? null }) },
         metadata: null, readAt: at };
     },
+    async getValidatorByAddress(): Promise<RpcResult<Validator>> {
+      if (validatorRecord === null) return { ok: false as const, code: 'TIMEOUT' as const };
+      return { ok: true as const, data: validatorRecord, metadata: null, readAt: now };
+    },
+    // The release answers are the **recorded testnet** ones, like planHarness's, so the squad
+    // page's countdown is checked against arithmetic a real node produced.
+    async getElectionBlockAfter(_block: number): Promise<RpcResult<number>> {
+      return { ok: true as const, data: recorded.election.response.result.data,
+        metadata: null, readAt: now };
+    },
+    async getBlockAfterReportingWindow(_block: number): Promise<RpcResult<number>> {
+      return { ok: true as const, data: recorded.window.response.result.data,
+        metadata: null, readAt: now };
+    },
+    async getBlockAfterJail(_block: number): Promise<RpcResult<number>> {
+      return { ok: true as const, data: recorded.jail.response.result.data,
+        metadata: null, readAt: now };
+    },
   };
   return {
     ...memory,
-    deps: { store: memory.store, rpc, now: () => now },
+    rpc,
+    // The real tracker, so an open transaction on the page is checked against the chain the
+    // way production checks it, instead of the row being read straight out of the store.
+    deps: { store: memory.store, rpc, now: () => now,
+      tracker: createTxTracker({ store: memory.store, rpc, now: () => now }) },
+    /** Without the tracker: what the page can say when only the stored row is available. */
+    depsWithoutTracker: { store: memory.store, rpc, now: () => now },
     squads: createSquadService({ store: memory.store, now: () => now, uuid: randomUUID,
       shortId: () => 'k3m9p2qr', inviteToken: () => 'f'.repeat(32),
       hash: (value: string) => createHash('sha256').update(value).digest('hex') }),
     setBalance: (address: string, balance: number | null) => { balances.set(address, balance); },
+    /** A whole staker record, for inactive and retired stake (a member mid-exit). */
+    setStaker: (address: string, record: Staker | null) => {
+      if (record === null) records.delete(address); else records.set(address, record);
+    },
+    setValidator: (record: Validator | null) => { validatorRecord = record; },
     setDelegation: (address: string, validator: string | null) => {
       delegations.set(address, validator);
     },

@@ -914,3 +914,354 @@ been deployed, so the Vercel fix is verified only by `pnpm build` locally.
   plus the three brand scenes, and look at the welcome, squad page and brand frames.
 - Re-deploy and confirm the production landing page shows the new mark.
 - Then the full UI restyle against `docs/design/style1.png` and `style2.png`.
+
+## Three defects from the testnet phone run — 2026-11-09 (Slice A)
+
+Plan: `~/.claude/plans/quizzical-swinging-magpie.md` (approved). Of the protected critical path
+only `apps/web/src/core/staking-actions.ts` was modified (A2 below, with a `docs/DECISIONS.md`
+entry); `member-status.ts`, `release.ts`, `commitments.ts`, `tx-tracker.ts`, `payment-check.ts`,
+`rpc-schemas.ts` and every existing file in `src/wallet/` are unchanged — `git status` was
+filtered on those paths to prove it.
+
+**Asked first: had Batch 2 or the redesign already changed this code?** No. `tx-tracker.ts` has
+not been touched since `dc094b6`. `squad-detail.ts`, `SquadScreen.tsx`, `MemberList.tsx` and
+`containers/squad.tsx` were last touched by `ee338bc`, and `git show ee338bc` on those paths
+shows only the `lang` prop, the `earned` field and re-worded strings — the `pending`,
+`backedLuna` and banner logic was byte-identical in behaviour. The `style1.png`/`style2.png`
+restyle has not started. So all three findings were live defects.
+
+### 1 · "Transaction pending · 0 of 60 confirmations" — root cause, and it was none of the four guesses
+Not a wrong hash, not a miscount, not a missing field, not a stale node. Verified against the
+live testnet node: a real `setActiveStake` returns `executionResult: true` and a six-figure
+confirmation count, so the field is present and correct. The fault was ours, in three places:
+
+1. `squad-detail.ts` built `pending` from `latestOpenTrackedTx`, which returns only `{ state }`
+   out of Postgres, and **hardcoded `confirmations: null`**. The squad page never read the
+   transaction at all.
+2. `MemberList.tsx` rendered `member.pending.confirmations ?? 0` — printing *unknown* as the
+   digit **0**. The "0" was never a count; it was a null with a `?? 0` on it, which is exactly
+   what AGENTS.md "Never fabricate" forbids.
+3. **Nothing ever advanced the row.** `tracker.check` ran only from `GET /api/tx/:hash`, which
+   only `useTxPoll` calls, and `containers/squad.tsx` did not use it. `tracked_txs.state` stayed
+   `SUBMITTED` forever and a reload could not fix it, while `MemberStatusBadge` read the staker
+   record directly and correctly said UNSTAKING — hence the contradiction the phone showed.
+
+**Latent fourth bug from the same cause:** `overlay()` grants WITHDRAWN only when a `remove` tx
+reached `INCLUDED_OK`, so with nothing advancing tracked state WITHDRAWN could never appear.
+
+Fixed with a new pure module `apps/web/src/server/core/pending-view.ts`, deliberately **not**
+inside the protected `tx-tracker.ts`: the tracker sees one transaction and must stay the single
+judge of execution and finality, and a transaction legitimately has 0 confirmations for a moment
+after inclusion. What is impossible is 0 confirmations *while its effect is on the chain*, and
+only the caller sees both. `stakeEffectSeen` derives that per kind from the staker record the row
+already read (`unstake` → inactive > 0, retired > 0, or no staker left; `retire` → retired > 0;
+`remove` → the staker is gone, or retired fell to 0 after a tracked retire). `create`, `add` and
+`pay` are **never** inferred from a balance — an active balance cannot tell this app's deposit
+from any other transfer, and guessing is what caused the bug. `squad-detail.ts` now takes a
+`tracker` dep and calls `check(hash)` for an open tx, so the real verdict and count reach the
+row *and* the DB row advances, which is also what makes WITHDRAWN reachable. `packages/ui/pending.ts`
+words a null count instead of printing a digit.
+
+### 2 · "Start leaving" offered after leaving had started
+`SquadScreen` keyed the banner off time alone. It now takes the viewer's own exit stage, and any
+stage but `none` replaces the invitation with the countdown ("Your 150 NIM unlocks in about
+14 h 12 min") plus a *View progress* link, rendering **no** start control. The real guard is in
+`planLeaving` (`src/core/staking-actions.ts`, the one protected file touched): a new
+`ALREADY_LEAVING` refusal when inactive > 0, retired > 0, or an unstake is still open, with the
+three inputs **required** rather than optional so a caller cannot silently lose the guard. This
+matters beyond the screen: `sendSetActiveStakeTransaction` takes the *resulting* active balance,
+not a delta, so a second send from a stale page could inactivate an amount the member never chose.
+The release estimate the squad page used to pass as `null` now comes from a shared
+`server/core/member-release.ts`, lifted out of `leave-plan.ts`, so the squad page's countdown and
+the leaving screen's cannot disagree.
+
+### 3 · "0 NIM backed" while a member was leaving on schedule
+`server/core/squad-stages.ts` (mirrored for fixtures and the video by `packages/ui/progress.ts`)
+splits the squad total into backed / leaving / ready (RELEASABLE + RETIRED) / withdrawn / paid /
+missing (SHORT + NOT_STAKING) / unread, LEFT excluded. `coveredLuna` = backed + leaving + ready +
+withdrawn + paid is the orbit centre's figure, so a gap appears only for a member who is genuinely
+short or not staking. The line reads "0 NIM saved · 150 NIM leaving (ready in ~14 h 12 min)".
+`ProofScreen` uses the same wording so the public view cannot contradict the member's.
+PRD §7.4's own `backedLuna` is unchanged and still 0 — the stages sit beside it, not instead of it.
+
+### Real chain evidence (the operator's address and hash were placeholders in the request)
+Found live on testnet by reading the staking contract's own transaction history and following
+`08`/`09` transactions back to their senders — a staker in exactly the reported shape:
+
+| | |
+|---|---|
+| Staker | `NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8` |
+| Record | active **0**, inactive **11,000,000** luna, `inactiveFrom` 16,251,210, retired 0 |
+| Its `setActiveStake` | `0ad4e4a1…` block 16,208,043, `executionResult: true` |
+| A real **included-but-failed** retire | `70a282c0…` block 16,172,568, `executionResult: false` |
+
+The failed retire gives `tx-tracker`'s `INCLUDED_FAILED` branch its first *real* response; it was
+only ever tested from derived fixtures before. And `inactiveFrom` (16,251,210) sits **43,167
+blocks after** the inactivation's inclusion block (16,208,043), confirming live that
+`inactiveFrom` is an effective election block and must never be fed to `calculateRelease` as an
+inclusion block (AGENTS.md invariant 5). All three envelopes are recorded in
+`tests/fixtures/rpc/testnet.json` with `recordedAt: 2026-11-09T06:48:51.141403Z`; provenance in
+its README.
+
+### What ran
+- `pnpm gate` (log `.cache/defects-gate-2026-11-09.log`): typecheck, lint, **141 unit tests and
+  36 adversarial tests, 0 failures, 0 skips** (was 129/34), Next build compiled clean in 17.7 s
+  (10/10 static pages, 26 routes, no warnings), Q16 production-artifact guards, secret scan and
+  19 exact dependency pins across 5 manifests all passed. It **exited 1 only at `check:tracked`**,
+  because this slice is uncommitted; the human commits. Nothing else in the gate failed.
+- New tests: `pending-view` (4, on the real recorded envelopes parsed through the production
+  schemas — including the exact shape the phone was in: SUBMITTED, no count read, inactive stake
+  visible, which must yield `INCLUDED_CONFIRMING` with a null count and never "0 of 60");
+  `squad-stages` (7, including one that drives `squadDetail` end to end and proves the release
+  comes from the inclusion block, not from `inactiveFrom`, and one that runs the UI mirror and the
+  server split over the same rosters so fixtures cannot drift); adversarial `leaving` +2 (a second
+  inactivation is impossible once leaving has started; the leaving screen never offers step one
+  again); `ui-screens` +1 ("the three defects found on testnet cannot render again").
+- **8 new fixture scenes** in `packages/ui/scenes/squad-page.ts`: `-leaving-countdown`,
+  `-leaving-unread-count`, `-leaving-release-unknown`, `-leaving-ready`, `-leaving-jailed`,
+  `squad-page-withdrawn`, `squad-page-share-paid`, `squad-page-every-stage`. 80 scenes registered.
+- `LIVE_RPC=1 pnpm test:live` (log `.cache/live-2026-11-09-defects.log`): **3 tests, 3 passed,
+  0 skips**, after one `curl` warm-up (the first attempt failed on the deliberate five-second
+  abort in the pre-existing pools test; the timeout was never raised). Live values printed:
+  head 16,292,468; `NQ22 11TS …` balance 0, inactiveBalance 11,000,000, inactiveFrom 16,251,210,
+  delegation `NQ35 YFBF ES7X R9PS 36R4 11FG 3HQF YL9Q NL2S`; `0ad4e4a1…` blockNumber 16,208,043,
+  confirmations **84,427**, `executionResult: true`; derived release
+  `{ releaseBlock: 16294411, remainingBlocks: 1943, estimatedReleaseAt: 1794210941416, jailed: false }`;
+  `70a282c0…` blockNumber 16,172,568, `executionResult: false`. It signs and sends nothing.
+- A throwaway local **PostgreSQL 18.6** cluster (port 55432, data directory in the session
+  scratchpad) took `pnpm db:migrate`: **`001-auth`, `002-squads`, `003-invite-token` applied**,
+  six tables present (`challenges`, `memberships`, `schema_migrations`, `sessions`, `squads`,
+  `tracked_txs`). Note for the next session: the cluster must run **TCP-only**
+  (`-c unix_socket_directories=''`), because the scratchpad path exceeds Postgres's 107-byte
+  Unix-socket limit.
+
+### Fixture and process bugs found on the way
+- A countdown scene read "About any moment now to go" beside a release block the chain had not
+  reached, because its release estimate and `readAt` were anchored to `demoNow` while the scene
+  ran on `demoLeaveBy − 2 days` — the same class of fixture bug the 2026-11-08 session found.
+  Re-anchored; it now reads "Your 2,000 NIM unlocks in about 12 h 59 min".
+- A temporal-dead-zone error (`DEMO_HEAD` used before its declaration) in `scenes/squad-page.ts`,
+  the third instance of this class in this repo. Hoisted.
+- **My own process mistake, worth not repeating:** `pnpm -s typecheck 2>&1 | head -12` printed
+  nothing while the root typecheck actually exited 2 with four errors. A pipe through `head`
+  hides the exit status. Checks are now run as
+  `pnpm typecheck >/dev/null 2>&1; echo "exit=$?"`.
+
+### Verification completed — scenes, and the first run against a database
+
+- **`pnpm check:scenes`** (record `.cache/scene-measurements.json`, `measuredAt
+  2026-11-09T10:48:29Z`, log `.cache/scenes-2026-11-09.log`): **140 scenes × 2 themes ×
+  {390, 375} = 560 frames, 0 failures** — nothing crossing the frame, no horizontal scroll,
+  every tap target ≥ 44 px. This is the **first full measurement since the logo changed every
+  screen's header** (the outstanding item from 2026-11-08), and it covers the 8 new scenes and
+  the 3 brand scenes, which had never been measured. Inspected
+  `squad-page-leaving-countdown` (light) and `squad-page-every-stage` (dark) — both now read
+  "2,500 NIM saved · … leaving (ready in ~12 h 59 min) · … missing", show the countdown banner
+  with no second *Start leaving*, and put the covered total (5,600 of 12,000) in the orbit.
+- Three obstacles cleared first, recorded so the next session need not rediscover them:
+  `/tmp` held 36 leaked Chromium profiles (operator cleared them, 3.0 GB freed); **port 3000 is
+  held by an unrelated application** that 307-redirects to `/login`, so the harness runs on
+  3100; and `SCENES_URL=… pnpm check:scenes` does **not** propagate the variable through pnpm —
+  run `node scripts/measure-scenes.mjs` directly.
+
+### The database run found a fourth defect, of the same family
+
+A throwaway local **PostgreSQL 18.6** cluster (port 55432, data directory in the session
+scratchpad) took `pnpm db:migrate` — `001-auth`, `002-squads`, `003-invite-token` applied, six
+tables. *Note:* the cluster must run **TCP-only** (`-c unix_socket_directories=''`), because the
+scratchpad path exceeds Postgres's 107-byte Unix-socket limit.
+
+Driven through `pnpm dev` on port 3100 against **live testnet** reads, as dev identity alice:
+sign-in, squad created (Shared goal, real recipient), and a commit refused `CHAIN_UNAVAILABLE`
+on the cold five-second read — a failed read is never a verdict — which the usual `curl` warm-up
+resolved. Then the row was put into **exactly the state the phone was in**: a `tracked_txs` row
+at `SUBMITTED` with `checked_at NULL`, carrying the real executed hash `0ad4e4a1…`.
+
+- **One page load of `GET /api/squads/:id` advanced it in SQL** to `INCLUDED_OK` with
+  `checked_at` set, and `pending` came back
+  `{ phase: 'FINAL', confirmations: 96889, requiredConfirmations: 60 }` — the live node's own
+  count, never "0 of 60". That is defect 1 fixed, proven in Postgres rather than against the
+  in-memory twin.
+- **Then the new finding.** With the row tracked as a `remove`, the member stayed `NOT_STAKING`
+  on that load and only became `WITHDRAWN` on the **next** one. Cause: `memberRow` reads the
+  tracked rows, *then* the tracker checks the open one and writes the verdict back, so `overlay`
+  judged WITHDRAWN by the state the request started with. One load behind is still a page
+  contradicting the chain it just read — the same defect as the confirmation count, one layer
+  down, and the in-memory twin never showed it because no test had ever settled a `remove`.
+  Fixed: `pendingFor` now returns the settled state alongside the view, and `memberRow` hands
+  `overlay` the rows **as they stand after** the check. Re-run from the same seeded state,
+  WITHDRAWN now appears on the first load, with `withdrawnLuna` and `coveredLuna` both counting
+  the share and `missingLuna` zero.
+- New test `§7.4 a withdrawal shows on the page load that settles it, not the one after`.
+  It was verified to be meaningful: with the one-word fix reverted it fails on
+  `the first load, not the second`, and passes with it restored.
+
+### What ran after that fix
+- `pnpm gate` (log `.cache/defects-gate-2026-11-09b.log`): typecheck, lint, **142 unit tests and
+  36 adversarial tests, 0 failures, 0 skips**, Next build compiled clean in 30.6 s (10/10 static
+  pages, no warnings), Q16 production-artifact guards, secret scan and 19 exact dependency pins
+  all passed. **Exit 1 only at `check:tracked`**, because the slice is uncommitted.
+- `git status` over the protected critical path still shows **only**
+  `apps/web/src/core/staking-actions.ts` modified.
+
+### Not verified by this slice
+- The member statuses in the database run came from **real testnet reads of an address that is
+  not a staker** (so NOT_STAKING), plus a seeded tracked transaction. The chain-derived UNSTAKING
+  / RELEASABLE / RETIRED path still has no live counterpart here, because the dev mock chain
+  provider (`?chain=mock`) is still unimplemented and alice cannot be made into a staker without
+  a wallet. Those statuses remain proven by the recorded-envelope tests only.
+- The `remove` row was seeded with a real executed hash that is, on the chain, a
+  `setActiveStake`. The tracker judges execution and finality and does not read the transaction
+  *type*, so this exercises the real SQL and the real verdict path honestly — but it is not a
+  real withdrawal.
+- No wallet, no Nimiq Pay approval sheet, no phone, no mainnet, and no staking transaction
+  signed or sent by this build on any network. The database is a local throwaway cluster, **not
+  Neon**, so the pooled concurrent-commit refusal remains unproven.
+- The operator's own staker address and transaction hash were placeholders (`NQ…`, `…`) in the
+  request. When they are supplied, `getTransactionByHash` can re-read that transaction and what
+  it returns goes in here verbatim.
+
+### Next
+- **Slice B** (not started): the native-mobile UI pass — ⓘ bottom sheets, native share instead
+  of the raw invite URL (`SquadScreen.tsx` prints it in full today), a sticky bottom action bar,
+  monospace only for amounts/addresses/hashes, cards and tappable rows, a compact top bar with a
+  back chevron, plain words in all five catalogues, and skeletons instead of "—". Its own
+  `check:scenes`, `pnpm gate` and handoff entry.
+- Neon through the pooler, including the concurrent-commit refusal.
+- The three leaving steps and a Mode A payment on a real phone on testnet, then mainnet.
+- The mock chain provider (`?chain=mock`) and Remotion.
+
+## Native-feeling UI — 2026-11-09 (Slice B)
+
+Plan: `~/.claude/plans/quizzical-swinging-magpie.md`, Slice B. Pure-UI work. **No protected file
+was touched in this slice** — `git status` over the critical path shows only
+`apps/web/src/core/staking-actions.ts`, which is Slice A's `ALREADY_LEAVING` guard and is
+unchanged since.
+
+### A compact top bar instead of a breadcrumb
+`ScreenHeader` was a brand row with a "← Squads" text link. It is now an app bar: a back
+**chevron** with the destination as its accessible name, the screen's title centred, the mark on
+the right. A three-column grid keeps the title optically centred whether or not there is a back
+control — a flex row shifts it by the chevron's width. Thirteen screens pass a title; the ten
+new `title*` strings live in `common`, so the typed catalogue required all five languages.
+
+Two bugs caught by looking at the rendered frame rather than the markup:
+- The title rendered at display size, because `.sheet h1` (0,1,1) is more specific than
+  `.topbar-title` (0,1,0). Fixed by matching `.topbar .topbar-title`.
+- Pulling the whole bar into the gutter (`margin: 0 -space-2`) **clipped the brand mark** at the
+  right edge. Only the chevron needs that pull, so it moved to `.topbar-lead`.
+- The squad's name then appeared twice — in the bar and under the orbit. The orbit's caption is
+  gone; on a 390 px screen that was a whole line spent on the same three words.
+
+### The invite link is never printed
+`SquadScreen` printed the full invite URL in a mono field. It is the one string on that screen
+that must not be mistyped, and a phone cannot select it comfortably. It now travels by
+`navigator.share` — the phone's own sheet, which reaches the messaging app the squad already
+uses — with a quiet **Copy link** beside it and a "Copied" confirmation. The container owns the
+`navigator` call, so `packages/ui` stays pure.
+- `AbortError` is treated as a decision, not a failure: dismissing the share sheet leaves the
+  screen exactly as it was. Anything else falls through to the clipboard.
+- The public proof link got the same treatment — a Copy control rather than printed text — so
+  the capability was kept rather than dropped with the URL.
+- `tests/unit/ui-screens.test.ts` takes the fixture's own URL as the needle and asserts it
+  appears nowhere in the rendered markup, so a screen printing it again fails the gate.
+
+### One sentence on screen, the rest behind an ⓘ
+New pure `InfoSheet` + `InfoButton`. The leave-by banner carried a four-line paragraph about
+election blocks and reporting windows; it now reads "Unstaking takes about a day, so start
+before goal day." and the full explanation is one tap away in a bottom sheet.
+- The rise is a function of **`t − openedT`** through `easeOutCubic`, reaching CSS as
+  `--info-progress`, which drives both the scrim's opacity and the sheet's `translateY`. There
+  is no transition, no `@keyframes` and no timer, so Remotion renders frame 7 of the rise
+  identically every time and `REDUCED_MOTION_T` freezes it open.
+- A closed sheet is not in the DOM at all, so it costs nothing in the accessibility tree.
+- Two scenes pin both ends: `squad-page-info-rising` (40% of the 0.28 s travel) and
+  `squad-page-info-open`.
+
+### Cards, rows, a sticky action bar, skeletons, pressed states
+- `.card` / `.card-title` replace the `<h2 class="section-title">` runs on the squad page
+  (Members, Payments, Share, Proof) and the proof page (Members, Payments, How to check). The
+  card's own padding also fixed a member's amount sitting flush against the right edge at 390 px.
+- `.action-bar` replaces `.sheet-footer` on the squad page: `position: sticky` keeps the main
+  action in the normal flow, inside `--safe-bottom`, so nothing is permanently covered.
+- **Skeletons instead of "—"**: `MySquadsScreen` shows two card-shaped placeholders while
+  loading (an em dash there reads as "none", a different and wrong answer to "which squads am I
+  in?"), and the orbit's centre shows a block sized to the digits, with the dash kept as its
+  `aria-label` so a screen reader still hears "unknown". The block does not pulse — an animation
+  would need a timer, and `packages/ui` has none.
+- Pressed states added to `.secondary-button`, `.gradient-button`, `.squad-card`, `.row-button`,
+  `.icon-button`, `.info-button` and `.link-button`.
+- **No underline inside a control.** `.secondary-button` was missing `text-decoration: none`,
+  and several of its uses are anchors (*View progress*, *Start leaving*, *Pay my share*), so
+  they were rendering underlined. A test now reads `styles.css` and asserts the declaration in
+  all six control classes. The inline explorer link on the transaction sheet **keeps** its
+  underline, with a comment: it is a link, not a button.
+
+### Monospace only where it is read character by character
+`.member-age`, `.member-status-age` (the stage line and the read age) and the new `.meta` are
+set in the text face, small and muted. Monospace stays on amounts, addresses, hashes and the
+`curl` lines on the proof page. A test asserts `font-family: var(--font-sans)` on all three.
+
+### Plain words — and the proof page keeps the technical ones
+- `common.refreshChain` / `checkStatusAgain`: "Check the chain again" / "Check status again" →
+  **"Refresh"**. `backedTotalUnread`: "Backed total: — · no chain read yet" → "Not checked yet".
+- A new **`statusPlain`** set beside the existing `status` one. `statusLabel(status, lang,
+  technical)` picks between them: "Backed" → **"Saved"**, "Unstaking" → **"Leaving"**,
+  "Not staking" → "Not saving yet", "Withdrawn" → "Back in your wallet", "Ready to retire" →
+  "Ready to confirm". `MemberList` takes a `technical` prop and **only `ProofScreen` sets it**,
+  because its reader is checking a staking contract. A test asserts the squad page says "Saved"
+  and never "Backed", and that the proof page still says "Backed".
+- The commit sheet's "Backed by your stake" → "Ready to save", "of your active stake is free to
+  commit" → "of your savings", and the member-status lines likewise. `proof.backedLine`
+  ("backed by active stake") is deliberately left alone.
+- Every one of these exists in **all five languages**; `type Strings = typeof en` meant a missing
+  or wrong-arity key failed `pnpm typecheck` in each one, which is how the catalogue was kept
+  honest rather than by review.
+
+### What ran
+- `pnpm gate` (log `.cache/native-ui-gate-2026-11-09b.log`): typecheck, lint, **144 unit tests
+  and 36 adversarial tests, 0 failures, 0 skips**, Next build compiled clean in 14.8 s (10/10
+  static pages, no warnings), Q16 production-artifact guards, secret scan and 19 exact
+  dependency pins across 5 manifests all passed. **Exit 1 only at `check:tracked`**, because the
+  slice is uncommitted; the human commits.
+- New tests: `Q17 the screens read as an app: no printed invite link, no underlined control`
+  (the invite URL, the top bar, the action bar, the six control classes, the three metadata
+  classes, and the plain/technical status split) and `Q17 the ⓘ sheet is a pure function of t,
+  and says what the banner no longer does` (mid-rise ≠ open, each reproducible from props, the
+  long text only in the sheet, no sheet in the DOM when closed).
+- Four existing Q17 tests were updated rather than worked around, because the UI they pinned
+  deliberately changed: the two "Check the chain again" assertions, the orbit's `>—<` assertion
+  (now the skeleton plus its `aria-label`), and the scene count.
+- `pnpm check:scenes` against the dev server on port 3100: **143 scenes × 2 themes × {390, 375}
+  = 572 frames, 0 failures** — nothing crossing the frame, no horizontal scroll, every tap
+  target ≥ 44 px. Inspected the squad page (light and dark), the ⓘ sheet open, the leaving
+  countdown, the commit sheet and My squads; the German squad page and the proof view are
+  measured and screenshotted but not inspected.
+
+### The Chromium profile teardown still leaks, sometimes
+An earlier draft of the entry above claimed the teardown added on 2026-11-09 works, on the
+evidence of one run that left nothing behind. That was too strong: after six measurement runs
+in this session, **two had leaked** (`/tmp/squad-scenes-896068`, `/tmp/squad-scenes-929060`,
+164–165 MB each, 329 MB in all) plus one 12 KB stub. So the retry loop in
+`scripts/measure-scenes.mjs` removes the profile on the usual path but not on every one — most
+likely when the run is interrupted or the browser is still flushing after the parent returns.
+`/tmp` is a 3.8 GB tmpfs and was at 1.3 GB used when this was written. **The directories are
+still there**: deleting them was refused by this session's sandbox, so the operator needs
+`rm -rf /tmp/squad-scenes-*`. Worth fixing properly before the next measuring session, since
+this is what filled `/tmp` and blocked the previous one.
+
+### Not verified by this slice
+- **`navigator.share` has never run.** It needs a secure context and a real phone; the fallback
+  to the clipboard and the `AbortError` branch are reasoned from the Web Share API's contract,
+  not observed. This is the one part of the slice that cannot be proven without a device.
+- The pressed states (`:active`) and the ⓘ sheet's travel were checked as rendered frames and as
+  CSS, never under a real finger.
+- No wallet, no Nimiq Pay approval sheet, no phone, no mainnet. Everything Slice A left
+  unverified stays unverified; nothing here touched the chain, the database or the wallet.
+
+### Next
+- Commit both slices (the gate is green except `check:tracked`, which only a commit clears).
+- A phone pass inside Nimiq Pay: the share sheet, the pressed states, the ⓘ travel, then the
+  three leaving steps and a Mode A payment on testnet, then mainnet.
+- Neon through the pooler, including the concurrent-commit refusal.
+- The mock chain provider (`?chain=mock`) and Remotion.

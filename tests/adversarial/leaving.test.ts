@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { STAKING_FEES_LUNA } from '../../apps/web/src/config/constants';
-import { planRemove, planRetire } from '../../apps/web/src/core/staking-actions';
+import { planLeaving, planRemove, planRetire } from '../../apps/web/src/core/staking-actions';
 import { leavePlan } from '../../apps/web/src/server/core/leave-plan';
 import { createTxTracker } from '../../apps/web/src/server/core/tx-tracker';
 import { sendLeavingAction, sendPayment } from '../../apps/web/src/wallet/staking';
@@ -130,4 +130,59 @@ test('§7.6 a declined approval is not a payment, and an unmapped failure is nev
     data: 'sq:k3m9p2qr' }, unmapped), { ok: false, code: 'TX_OUTCOME_UNKNOWN' });
   // Both attempts were sent exactly once each; neither was retried.
   assert.deepEqual(calls.map((call) => call.method), ['pay', 'pay']);
+});
+
+test('§7.5 a second inactivation is impossible once leaving has started', async () => {
+  const commitments = [{ squadId: 'squad-1', name: 'Winter buffers', committedLuna: SHARE }];
+  const notLeavingYet = { inactiveBalanceLuna: 0, retiredBalanceLuna: 0, unstakeOpen: false };
+  const base = { activeBalanceLuna: 100_000_000, commitments, squadId: 'squad-1',
+    amountLuna: 50_000_000 };
+
+  // The state the phone was in: the first inactivation has landed, so the member already has
+  // inactive stake. A second one would replace their active balance again — the provider takes
+  // the resulting balance, not a delta — so it must be refused, not merely unoffered.
+  assert.deepEqual(planLeaving({ ...base, ...notLeavingYet, inactiveBalanceLuna: SHARE }),
+    { kind: 'blocked', reason: 'ALREADY_LEAVING' });
+  // After the retire, too: the stake is still in the pipeline.
+  assert.deepEqual(planLeaving({ ...base, ...notLeavingYet, retiredBalanceLuna: 1 }),
+    { kind: 'blocked', reason: 'ALREADY_LEAVING' });
+  // And while the first inactivation is still open, when the chain shows nothing yet: this is
+  // the window a double tap or a stale page would exploit.
+  assert.deepEqual(planLeaving({ ...base, ...notLeavingYet, unstakeOpen: true }),
+    { kind: 'blocked', reason: 'ALREADY_LEAVING' });
+  // The refusal comes before any amount check, so a plausible amount cannot slip past it.
+  assert.deepEqual(planLeaving({ ...base, ...notLeavingYet, inactiveBalanceLuna: SHARE,
+    amountLuna: 100_000_000 }), { kind: 'blocked', reason: 'ALREADY_LEAVING' });
+  // A member who has not started still gets their plan.
+  assert.equal(planLeaving({ ...base, ...notLeavingYet }).kind, 'set-active-stake');
+});
+
+test('§7.5 the leaving screen never offers step one again, so nothing is sent twice', async () => {
+  const { context, squadId } = await leavingSquad();
+  const plan = await leavePlan(squadId, ADDRESSES.alice, context.deps);
+  assert.ok(plan.ok);
+  // The chain shows inactive stake, so step one is finished, not available.
+  assert.equal(plan.view.steps.start.state, 'done');
+  assert.notEqual(plan.view.steps.start.state, 'available');
+
+  // Even with the tracked inactivation still open and no inactive stake read yet, step one is
+  // "pending" rather than available: an open transaction is not an invitation to send another.
+  context.setStaker(staker(300_000_000, { address: ADDRESSES.alice }));
+  context.track({ hash: '7'.repeat(64), address: ADDRESSES.alice, squadId,
+    kind: 'unstake', expected: { valueLuna: SHARE }, state: 'SUBMITTED', checkedAt: null });
+  const open = await leavePlan(squadId, ADDRESSES.alice, context.deps);
+  assert.ok(open.ok);
+  assert.equal(open.view.steps.start.state, 'pending');
+
+  // And the planner refuses the figures this very screen is holding, so a client that posted
+  // past the step gate still gets nothing to send to the wallet.
+  assert.deepEqual(planLeaving({
+    activeBalanceLuna: open.view.stake?.activeLuna ?? null,
+    commitments: open.view.commitments,
+    squadId,
+    amountLuna: open.view.shareLuna,
+    inactiveBalanceLuna: open.view.stake?.inactiveLuna ?? 0,
+    retiredBalanceLuna: open.view.stake?.retiredLuna ?? 0,
+    unstakeOpen: open.view.steps.start.state === 'pending',
+  }), { kind: 'blocked', reason: 'ALREADY_LEAVING' });
 });

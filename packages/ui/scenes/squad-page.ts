@@ -1,5 +1,6 @@
 import {
   demoBackedTotal,
+  demoStages,
   demoHashes,
   demoRecipient,
   demoTzOffsetMinutes,
@@ -14,6 +15,8 @@ import {
   demoRoster,
   demoSquadPage,
 } from './demo/squad';
+import { stageTotalsOf } from '../progress';
+import type { MemberRowView } from '../MemberList';
 import type { MySquadsScreenProps, SquadCardView } from '../MySquadsScreen';
 import type { ProofScreenProps } from '../ProofScreen';
 import type { SquadScreenProps } from '../SquadScreen';
@@ -76,10 +79,33 @@ export const mySquadsScenes: readonly { id: string; props: MySquadsScreenProps }
   },
 ];
 
+/** The sample head, and a release a little over half a day out: testnet's own distance between
+ * an inactivation and its release (briefing/knowledge/staking.md). */
+const DEMO_HEAD = 16_246_426;
+/** The release, anchored to whichever clock the scene runs on. */
+const releaseAt = (now: number) => ({
+  releaseBlock: 16_290_000, remainingBlocks: 43_574,
+  estimatedReleaseAt: now + 12 * 3_600_000 + 59 * 60_000, jailed: false,
+});
+const DEMO_RELEASE = releaseAt(demoNow);
+/** Two days before the leave-by deadline: where the banner used to offer a second start. */
+const LEAVE_BY_NOW = demoLeaveBy - 2 * 86_400_000;
+
+/** `en.squad.leaveByInfoBody`, quoted so the fixture shows the screen's own words. */
+const INFO_BODY = 'Nimiq releases staked NIM only after the reporting window that follows the '
+  + 'next election block — about a day on this chain, and longer if your validator is jailed. '
+  + 'Nothing starts by itself: your stake stays where it is until you tap Start leaving and '
+  + 'approve it in Nimiq Pay. Starting the day before goal day leaves no room for that wait.';
+
 const squadBase = {
   squad: demoSquadPage,
   members: demoRoster,
   backedLuna: demoBackedTotal,
+  stages: demoStages,
+  // Nothing of the viewer's is in the exit pipeline, so this is the one state in which the
+  // page may offer "Start leaving" at all (packages/ui/progress.ts).
+  yourExit: { stage: 'none' as const, committedLuna: 200_000_000, release: null,
+    headBlock: DEMO_HEAD },
   committedLuna: demoCommittedTotal,
   leaveBy: demoLeaveBy,
   now: demoNow,
@@ -112,9 +138,45 @@ const partialPayments = {
  * pending until the chain confirms it (PRD Q10). */
 const rosterWithPending = demoRoster.map((member, index) =>
   index === 1
-    ? { ...member, pending: { confirmations: 12, requiredConfirmations: 60 } }
+    ? { ...member, pending: { phase: 'SUBMITTED' as const, confirmations: 12,
+      requiredConfirmations: 60 } }
     : member,
 );
+
+/**
+ * The defect this slice fixed, as a fixture: the chain already shows the member's stake
+ * inactive, so the row says it is on the chain and confirming. It can never read
+ * "0 of 60 confirmations" again (docs/PROGRESS.md 2026-11-09).
+ */
+const rosterConfirming = demoRoster.map((member, index) =>
+  index === 0
+    ? { ...member, status: { status: 'UNSTAKING' as const, releaseBlock: DEMO_RELEASE.releaseBlock },
+      pending: { phase: 'INCLUDED_CONFIRMING' as const, confirmations: 12,
+        requiredConfirmations: 60 } }
+    : member,
+);
+
+/** The same row with no count read at all: worded, never printed as a zero. */
+const rosterConfirmingUnread = rosterConfirming.map((member, index) =>
+  index === 0
+    ? { ...member, pending: { phase: 'INCLUDED_CONFIRMING' as const, confirmations: null,
+      requiredConfirmations: 60 } }
+    : member,
+);
+
+/** Every stage of one exit, as the viewer's own row. */
+const rosterAt = (status: MemberRowView['status']) =>
+  demoRoster.map((member, index) => (index === 0 ? { ...member, status } : member));
+
+/** One squad holding every stage at once, so the staged line can be read in full. */
+const MIXED: readonly MemberRowView[] = [
+  { ...demoRoster[0] as MemberRowView,
+    status: { status: 'UNSTAKING', releaseBlock: DEMO_RELEASE.releaseBlock },
+    pending: { phase: 'INCLUDED_CONFIRMING', confirmations: 31, requiredConfirmations: 60 } },
+  { ...demoRoster[1] as MemberRowView, status: { status: 'BACKED' } },
+  { ...demoRoster[2] as MemberRowView, status: { status: 'SHORT', shortBy: null } },
+  { ...demoRoster[3] as MemberRowView, status: { status: 'RETIRED' } },
+];
 
 /** What the page shows when the node did not answer for two of the members. */
 const rosterPartlyUnread = demoRoster.map((member, index) =>
@@ -127,6 +189,28 @@ export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[]
   { id: 'squad-page-counting-up', props: { ...squadBase, t: 0.5 } },
   { id: 'squad-page-pending-tx', props: { ...squadBase, members: rosterWithPending, t: 4 } },
   { id: 'squad-page-shared', props: { ...squadBase, shared: true, t: 4 } },
+  // The invite link is never printed, so "copied" is the only confirmation the member gets
+  // that the right string is on their clipboard.
+  { id: 'squad-page-proof-copied', props: { ...squadBase, proofCopied: true, t: 4 } },
+  /**
+   * The ⓘ sheet that carries the long explanation the leave-by banner used to print inline.
+   * Two scenes, because the rise is a function of `t − openedT` and both ends of it have to
+   * look right: mid-rise at 40% of the 0.28 s travel, and fully open.
+   */
+  {
+    id: 'squad-page-info-rising',
+    props: {
+      ...squadBase, now: LEAVE_BY_NOW, t: 4.11,
+      info: { title: 'Why start early?', body: INFO_BODY, openedT: 4 },
+    },
+  },
+  {
+    id: 'squad-page-info-open',
+    props: {
+      ...squadBase, now: LEAVE_BY_NOW, t: 5,
+      info: { title: 'Why start early?', body: INFO_BODY, openedT: 4 },
+    },
+  },
   {
     id: 'squad-page-leave-by',
     props: { ...squadBase, now: demoLeaveBy - 2 * 86_400_000, t: 4 },
@@ -158,6 +242,112 @@ export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[]
       t: 4,
     },
   },
+  /* --- The three defects found on testnet, one fixture each (docs/PROGRESS.md 2026-11-09) --- */
+  {
+    // The tracker agreeing with the chain: inactive stake is visible, so the row is confirming
+    // with a real count. The banner is the countdown, and there is no "Start leaving" control.
+    //
+    // This scene runs on its own clock — two days before the leave-by deadline, which is where
+    // the old screen would have offered "Start leaving" — so its release estimate and its read
+    // age are re-anchored to that clock. A fixture whose estimate is anchored to a different
+    // `now` reads "any moment now" beside a block the chain has not reached
+    // (docs/PROGRESS.md 2026-11-08, the same mistake in the leaving scenes).
+    id: 'squad-page-leaving-countdown',
+    props: {
+      ...squadBase,
+      members: rosterConfirming.map((member) => ({ ...member, readAt: LEAVE_BY_NOW - 24_000 })),
+      stages: stageTotalsOf(rosterConfirming),
+      yourExit: { stage: 'leaving', committedLuna: 200_000_000,
+        release: releaseAt(LEAVE_BY_NOW), headBlock: DEMO_HEAD },
+      now: LEAVE_BY_NOW,
+      readAt: LEAVE_BY_NOW - 24_000,
+      t: 4,
+    },
+  },
+  {
+    // The same, with no confirmation count read: the row is worded, never a zero.
+    id: 'squad-page-leaving-unread-count',
+    props: {
+      ...squadBase,
+      members: rosterConfirmingUnread,
+      stages: stageTotalsOf(rosterConfirmingUnread),
+      yourExit: { stage: 'leaving', committedLuna: 200_000_000, release: DEMO_RELEASE,
+        headBlock: DEMO_HEAD },
+      t: 4,
+    },
+  },
+  {
+    // Leaving, but the release cannot be derived yet. Said plainly, never guessed.
+    id: 'squad-page-leaving-release-unknown',
+    props: {
+      ...squadBase,
+      members: rosterConfirming,
+      stages: stageTotalsOf(rosterConfirming),
+      yourExit: { stage: 'leaving', committedLuna: 200_000_000, release: null,
+        headBlock: DEMO_HEAD },
+      t: 4,
+    },
+  },
+  {
+    // The head has passed the release block: the countdown becomes "ready to withdraw".
+    id: 'squad-page-leaving-ready',
+    props: {
+      ...squadBase,
+      members: rosterAt({ status: 'RELEASABLE' }),
+      stages: stageTotalsOf(rosterAt({ status: 'RELEASABLE' })),
+      yourExit: { stage: 'ready', committedLuna: 200_000_000, release: DEMO_RELEASE,
+        headBlock: DEMO_RELEASE.releaseBlock },
+      t: 4,
+    },
+  },
+  {
+    // A jailed validator releases later (Q07), and the banner says so.
+    id: 'squad-page-leaving-jailed',
+    props: {
+      ...squadBase,
+      members: rosterConfirming,
+      stages: stageTotalsOf(rosterConfirming),
+      yourExit: { stage: 'leaving', committedLuna: 200_000_000,
+        release: { ...DEMO_RELEASE, jailed: true }, headBlock: DEMO_HEAD },
+      t: 4,
+    },
+  },
+  {
+    id: 'squad-page-withdrawn',
+    props: {
+      ...squadBase,
+      members: rosterAt({ status: 'WITHDRAWN' }),
+      stages: stageTotalsOf(rosterAt({ status: 'WITHDRAWN' })),
+      yourExit: { stage: 'withdrawn', committedLuna: 200_000_000, release: null,
+        headBlock: DEMO_HEAD },
+      t: 4,
+    },
+  },
+  {
+    id: 'squad-page-share-paid',
+    props: {
+      ...squadBase,
+      members: rosterAt({ status: 'PAID' }),
+      stages: stageTotalsOf(rosterAt({ status: 'PAID' })),
+      yourExit: { stage: 'paid', committedLuna: 200_000_000, release: null,
+        headBlock: DEMO_HEAD },
+      payments: partialPayments,
+      t: 4,
+    },
+  },
+  {
+    // Every stage at once: saved, leaving, ready, withdrawn, paid and one member genuinely
+    // short — the line a squad mid-exit actually reads.
+    id: 'squad-page-every-stage',
+    props: {
+      ...squadBase,
+      members: MIXED,
+      stages: stageTotalsOf(MIXED),
+      yourExit: { stage: 'leaving', committedLuna: 200_000_000, release: DEMO_RELEASE,
+        headBlock: DEMO_HEAD },
+      t: 4,
+    },
+  },
   {
     id: 'squad-page-together-mode',
     props: {
@@ -175,7 +365,7 @@ export const proofScenes: readonly { id: string; props: ProofScreenProps }[] = [
       squad: demoSquadPage,
       // A public proof has no viewer, so no row is "You" (src/server/core/squad-detail.ts).
       members: demoRoster.map((member) => ({ ...member, isYou: false })),
-      backedLuna: demoBackedTotal,
+      stages: demoStages,
       committedLuna: demoCommittedTotal,
       now: demoNow,
       readAt: demoReadAt,
@@ -189,7 +379,7 @@ export const proofScenes: readonly { id: string; props: ProofScreenProps }[] = [
     props: {
       squad: demoSquadPage,
       members: demoRoster.map((member) => ({ ...member, isYou: false })),
-      backedLuna: demoBackedTotal,
+      stages: demoStages,
       committedLuna: demoCommittedTotal,
       now: demoNow,
       readAt: demoReadAt,
@@ -204,7 +394,7 @@ export const proofScenes: readonly { id: string; props: ProofScreenProps }[] = [
     props: {
       squad: demoSquadPage,
       members: demoRoster.map((member) => ({ ...member, isYou: false, status: null, readAt: null })),
-      backedLuna: null,
+      stages: null,
       committedLuna: demoCommittedTotal,
       now: demoNow,
       readAt: null,
