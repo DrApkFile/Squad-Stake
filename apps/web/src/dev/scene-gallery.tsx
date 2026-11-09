@@ -2,12 +2,14 @@
 
 import type { ReactNode } from 'react';
 import {
-  CreateSquadScreen, JoinCommitSheet, LeaveConfirm, LeavingSteps, MemberStatusScene, MySquadsScreen,
-  OrbitScene, PayShareSheet, PrivacyNotice, ProofScreen, SignInScreen, SquadScreen, TxStatusScene,
+  BrandSheet, CreateSquadScreen, JoinCommitSheet, LeaveConfirm, LeavingSteps, MemberStatusScene,
+  MySquadsScreen, OrbitScene, PayShareSheet, PrivacyNotice, ProofScreen, SignInScreen, SquadScreen,
+  TxStatusScene,
 } from '@squad-stake/ui';
 import {
-  createSquadScenes, DEMO_LABEL, featureCommitScenes, featureCreateScenes, featureMySquadsScenes,
-  featureSquadScenes, joinCommitScenes, leaveScenes, leavingScenes, memberStatusScenes,
+  brandScenes, createSquadScenes, DEMO_LABEL, featureCommitScenes, featureCreateScenes,
+  featureMySquadsScenes, featureSquadScenes, joinCommitScenes, leaveScenes, leavingScenes,
+  memberStatusScenes,
   mySquadsScenes, orbitScenes, payShareScenes, privacyScenes, proofScenes, signInScenes,
   squadPageScenes, txStatusScenes,
 } from '@squad-stake/ui/scenes';
@@ -43,6 +45,8 @@ function registry(): readonly { id: string; node: ReactNode }[] {
     ...from(featureSquadScenes, (props) => <SquadScreen {...props} demoLabel={DEMO_LABEL} />),
     ...from(featureMySquadsScenes, (props) => <MySquadsScreen {...props} demoLabel={DEMO_LABEL} />),
     ...from(featureCreateScenes, (props) => <CreateSquadScreen {...props} demoLabel={DEMO_LABEL} />),
+    // The brand itself, at the sizes it is used at (packages/ui/brand).
+    ...from(brandScenes, (props) => <BrandSheet {...props} demoLabel={SYNTHETIC} />),
   ];
 }
 

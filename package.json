@@ -20,7 +20,8 @@
     "check:tracked": "git diff --exit-code && git diff --cached --exit-code",
     "db:migrate": "pnpm --filter @squad-stake/web db:migrate",
     "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:adversarial && pnpm build && pnpm test:production && pnpm secrets && pnpm deps:check && pnpm check:tracked",
-    "check:scenes": "node scripts/measure-scenes.mjs"
+    "check:scenes": "node scripts/measure-scenes.mjs",
+    "brand:export": "node --import tsx scripts/export-brand.mjs"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.5.27",

@@ -92,28 +92,11 @@ button { font: inherit; }
   font-weight: var(--weight-semibold);
   min-height: 44px;
 }
-.brand-tag { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); }
-.brand-tag[data-pushed='yes'] { margin-left: auto; font-size: var(--font-sm); color: var(--muted); }
-.brand-tag[data-pushed='yes'] .brand-word {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  background: var(--mark-bg);
-  background-image: var(--mark-bg-image);
-  color: var(--mark-ink);
-  border-radius: var(--radius-md);
-  font-weight: var(--weight-bold);
-  font-size: var(--font-sm);
-}
+/* The logo's ink is `currentColor` (packages/ui/brand/tone.ts), so the header's own colour
+   is what makes it legible in either theme; its warm centre stays gold in both. */
+.brand-tag { position: relative; display: inline-flex; align-items: center; color: var(--ink); }
+.brand-tag[data-pushed='yes'] { margin-left: auto; }
+.brand-tag svg { display: block; }
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -781,3 +764,68 @@ button { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* --- Brand proof sheets (step 1: choosing a logo) -------------------------
+   Only the /scenes gallery renders these; the chosen mark keeps its component and
+   these bands go away with the two rejected concepts. */
+.mark-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4) var(--sp-6);
+  min-height: 100%;
+  background: var(--surface);
+  color: var(--text);
+}
+.mark-sheet-name {
+  margin: 0;
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.mark-sheet-idea {
+  margin: 0;
+  font-size: var(--type-small);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.mark-band {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--radius-lg);
+}
+.mark-band[data-band='warm'] { background: var(--nq-gold-bg); }
+.mark-band[data-band='dark'] { background: var(--nq-void-ink); }
+.mark-band[data-band='light'] { background: #ffffff; border: 1px solid rgb(0 0 0 / 8%); }
+.mark-band[data-band='warm'] .mark-band-label,
+.mark-band[data-band='dark'] .mark-band-label { color: rgb(255 255 255 / 80%); }
+.mark-band[data-band='light'] .mark-band-label { color: rgb(0 0 0 / 55%); }
+.mark-band-label {
+  margin: 0;
+  font-size: var(--type-caption);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.mark-band-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.mark-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: var(--slot);
+  max-width: 100%;
+}
+.mark-slot-size {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(255 255 255 / 65%);
+}
+.mark-band[data-band='light'] .mark-slot-size { color: rgb(0 0 0 / 45%); }

@@ -201,9 +201,6 @@
 
   /* The square brand mark. On the light plaza it is a Plaza Night tile; on the navy page that
    * tile would disappear into the background, so dark uses a white wash instead. */
-  --mark-bg: var(--nq-blue);
-  --mark-bg-image: var(--nq-blue-bg);
-  --mark-ink: var(--nq-paper-white);
 
   /* Legacy names kept so already-built components re-skin without edits. */
   --button-bg: var(--nq-light-blue);
@@ -243,8 +240,6 @@
     --money-bg: var(--nq-light-blue-on-dark);
     --button-bg: var(--nq-light-blue-on-dark);
     --status-unstaking: var(--nq-light-blue-on-dark);
-    --mark-bg: rgba(255, 255, 255, 0.12);
-    --mark-bg-image: none;
     --status-neutral: rgba(255, 255, 255, 0.5);
     --status-danger: var(--nq-red-on-dark);
     --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.28);
@@ -271,8 +266,6 @@
   --money-bg: var(--nq-light-blue-on-dark);
   --button-bg: var(--nq-light-blue-on-dark);
   --status-unstaking: var(--nq-light-blue-on-dark);
-  --mark-bg: rgba(255, 255, 255, 0.12);
-  --mark-bg-image: none;
   --status-neutral: rgba(255, 255, 255, 0.5);
   --status-danger: var(--nq-red-on-dark);
   --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.28);
@@ -300,8 +293,6 @@
   --status-unstaking: var(--nq-light-blue);
   --status-neutral: rgba(31, 35, 72, 0.4);
   --status-danger: var(--nq-red);
-  --mark-bg: var(--nq-blue);
-  --mark-bg-image: var(--nq-blue-bg);
 }
 
 /* The travelling arc on the playful pill: gold against the surface behind it. */

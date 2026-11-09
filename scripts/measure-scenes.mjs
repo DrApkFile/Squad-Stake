@@ -8,7 +8,7 @@
 // Usage: pnpm dev (DEV_HARNESS=1) in one shell, then `pnpm check:scenes`.
 //   SCENES_URL=http://localhost:3000  CHROMIUM=/usr/bin/chromium  SHOTS=id,id  pnpm check:scenes
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 const BASE = (process.env.SCENES_URL ?? 'http://localhost:3000').replace(/\/$/, '');
@@ -137,17 +137,23 @@ const LIST_IDS = `[...document.querySelectorAll('.scene-gallery > figure > figca
 
 async function main() {
   if (!BROWSER) throw new Error('No Chromium found. Set CHROMIUM=/path/to/chromium.');
+  // Chromium writes ~165 MB of profile per run. Earlier versions of this script left
+  // one behind on every killed run and filled /tmp (2026-11-09); it is removed below,
+  // on the way out and on the way in.
+  const profile = `${process.env.TMPDIR ?? '/tmp'}/squad-scenes-${process.pid}`;
   const child = spawn(BROWSER, ['--headless=new', '--remote-debugging-port=0', '--no-sandbox',
     '--disable-gpu', '--force-device-scale-factor=1', '--no-first-run', '--disable-extensions',
     // Headless Chromium throttles a page it treats as backgrounded, which turned a 1.5 s frame
     // into 15 s on this machine (measured 2026-11-08). These three keep every frame at speed.
     '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
     '--disable-backgrounding-occluded-windows',
-    `--user-data-dir=${process.env.TMPDIR ?? '/tmp'}/squad-scenes-${process.pid}`, 'about:blank'],
+    `--user-data-dir=${profile}`, 'about:blank'],
     { stdio: ['ignore', 'ignore', 'pipe'] });
   const wsUrl = await new Promise((resolve, reject) => {
     let buffer = '';
-    const timer = setTimeout(() => reject(new Error('Chromium did not report a DevTools URL')), 20_000);
+    // 60 s, not 20: on a loaded machine Chromium's first start is slow, and a tool timing out
+    // on its own browser says nothing about the thing being measured.
+    const timer = setTimeout(() => reject(new Error('Chromium did not report a DevTools URL')), 60_000);
     child.stderr.on('data', (chunk) => {
       buffer += String(chunk);
       const match = buffer.match(/ws:\/\/\S+/);
@@ -247,6 +253,10 @@ async function main() {
       failures, results }, null, 1)}\n`);
   socket.close();
   child.kill();
+  // Chromium is still flushing its profile when kill() returns, so the directory has to be
+  // waited for and then retried: removing it mid-write fails with ENOTEMPTY (seen 2026-11-09).
+  await new Promise((resolve) => { child.on('exit', resolve); setTimeout(resolve, 5_000); });
+  await rm(profile, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
 
   if (failures.length > 0) {
     for (const failure of failures) {

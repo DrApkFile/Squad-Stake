@@ -21,6 +21,33 @@ For the migration CLI, export `DATABASE_URL` (or `DATABASE_URL_UNPOOLED`, which 
 in the shell; it does not load Next's `.env.local`. Run `pnpm db:migrate`, then `pnpm dev`.
 Production requires HTTPS.
 
+## Brand
+The logo is an original drawing in code: a warm goal at the centre, three members on a ring
+that breaks at each of them — the squad around the goal, nobody in the middle, because nobody
+holds the pot. It borrows **no shape** from Nimiq (the hexagon is Nimiq's); it borrows Nimiq's
+colours, which is what a mini app should look like. The words "Squad Stake" are outlines
+generated from the Mulish 700 file this repo self-hosts, so the lockup needs no font wherever
+there is no stylesheet.
+
+One list of shapes in `packages/ui/brand/shapes.ts` feeds both the React components
+(`LogoMark`, `Logo`, `AppIcon`, used in every screen header) and the files below;
+`tests/unit/brand.test.ts` fails if the two ever differ or if an exported file is stale.
+
+`pnpm brand:export` rewrites `apps/web/public/brand/` (it needs the system Chromium that
+`pnpm check:scenes` already uses — no image library is installed):
+
+| File | What it is |
+|---|---|
+| `logo.svg` · `logo-on-dark.svg` · `logo-white.svg` · `logo-navy.svg` | the lockup, four variants |
+| `logo-mark*.svg` | the mark alone, the same four |
+| `app-icon.svg` | the white mark on Nimiq's warm radial, 18% clear space on every side |
+| `icon-16/32/180/192/512/1024.png` | favicon · apple-touch-icon · manifest · store listing |
+| `favicon.ico` | 16 and 32 px, assembled from those PNGs |
+| `logo.png` · `logo-on-dark.png` | the lockup at 256 px tall, for a README or a slide |
+
+Run `node scripts/build-wordmark.mjs` only if the Mulish file changes; it needs
+`woff2_decompress` (Google's own woff2 tool) and writes `packages/ui/brand/wordmark.ts`.
+
 ## Deploy
 Vercel (Next.js on `apps/web`) with Neon Postgres added through the Vercel Marketplace, which
 provisions `DATABASE_URL` (pooled, PgBouncer in transaction mode) and `DATABASE_URL_UNPOOLED`

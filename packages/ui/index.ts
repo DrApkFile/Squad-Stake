@@ -55,3 +55,10 @@ export { DEFAULT_LANG, LANGS, isLang, parseLang, pickLang, strings } from './i18
 export { fiatLine, fiatNote, fiatValue } from './fiat';
 export type { FiatRate } from './fiat';
 export type { Lang, Strings } from './i18n';
+
+// --- Brand (docs/design, docs/DECISIONS.md) ------------------------------
+export { BRAND_COLOURS, LOGO_WIDTH, Logo, LogoMark, MARK_BOX, appIconSvg, logoShapes, logoSvg,
+  markSvg, orbitShapes, toneColours } from './brand';
+export type { BrandTone, MarkProps, Paint, Shape, ToneColours } from './brand';
+export { AppIcon } from './brand/AppIcon';
+export { BrandSheet, type BrandSheetProps } from './brand/BrandSheet';

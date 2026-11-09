@@ -1,3 +1,5 @@
+import { Logo } from './brand/Logo';
+import { LogoMark } from './brand/LogoMark';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 
 export interface ScreenHeaderProps {
@@ -20,10 +22,15 @@ export function ScreenHeader({ back, demoLabel, lang = DEFAULT_LANG }: ScreenHea
           </a>
         )}
         <span className="brand-tag" data-pushed={back ? 'yes' : 'no'}>
-          <span className="brand-mark" aria-hidden="true">s.</span>{' '}
           {/* Beside a back control the mark alone carries the brand, so the two do not crowd
-              each other in a 375 px header; the name stays in the accessibility tree. */}
-          <span className="brand-word">{strings(lang).common.brand}</span>
+              each other in a 375 px header; the name stays in the accessibility tree, because
+              the SVG's <title> is what names an img role. The ink is `currentColor`, so one
+              drawing serves the light and the dark theme. */}
+          {back
+            ? <LogoMark size={26} tone="colour-current" id="header-mark"
+              title={strings(lang).common.brand} />
+            : <Logo size={22} tone="colour-current" id="header-logo"
+              title={strings(lang).common.brand} />}
         </span>
       </header>
       {demoLabel && <p className="demo-label">{demoLabel}</p>}

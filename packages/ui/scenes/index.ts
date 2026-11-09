@@ -8,4 +8,5 @@ export { payShareScenes, txStatusScenes } from './payment';
 export {
   featureCommitScenes, featureCreateScenes, featureMySquadsScenes, featureSquadScenes,
 } from './features';
+export { brandScenes } from './brand';
 export { DEMO_LABEL, demoExample, demoGoals } from './demo/squad';
