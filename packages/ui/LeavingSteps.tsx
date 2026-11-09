@@ -44,6 +44,10 @@ export interface LeavingStepsProps {
   busy?: boolean | undefined;
   stalled?: boolean | undefined;
   error?: { message: string; nextAction: string } | undefined;
+  /** Offered when what just failed can be attempted again and nothing was sent. The container
+   * decides that from the error catalogue's own flags and from the step the chain now reports,
+   * so this is never a blind resend of a wallet call (AGENTS.md invariant 8). */
+  onRetry?: (() => void) | undefined;
   explorerBase?: string | null | undefined;
   /** Mode A only: where "Pay my share" lives once the NIM is back in the wallet. */
   payUrl?: string | null | undefined;
@@ -92,7 +96,7 @@ export function LeavingSteps(props: LeavingStepsProps) {
     squad, leaveBy, now, tzOffsetMinutes, stake, shareLuna, amountNim, steps, release, headBlock,
     affected, shortfallLuna, confirmTicked, readAt, retireFeeLuna, unstakeFeeLuna, busy = false,
     stalled = false, error, explorerBase = null, payUrl = null, t = 0, onAmountChange,
-    onStartLeaving, onConfirmTick, onRetire, onWithdraw, onRefresh, back, demoLabel,
+    onStartLeaving, onConfirmTick, onRetire, onWithdraw, onRefresh, onRetry, back, demoLabel,
     lang = DEFAULT_LANG,
   } = props;
   const s = strings(lang);
@@ -242,14 +246,23 @@ export function LeavingSteps(props: LeavingStepsProps) {
           </Step>
         )}
 
+      </div>
+      {/* The failure and its way out are pinned, not printed at the foot of a four-step page.
+          A network error used to leave every step locked and the only control — "Refresh" —
+          below the fold, which reads as a dead end at exactly the moment a member has NIM
+          mid-exit and needs to know what to do next. */}
+      <footer className="action-bar">
         {error && (
-          <div className="sheet-status" role="status" aria-live="polite">
+          <div className="error-note" role="alert">
             <p className="status-title">{error.message}</p>
             <p>{error.nextAction}</p>
           </div>
         )}
-      </div>
-      <footer className="sheet-footer">
+        {error && onRetry && (
+          <button className="primary-button" onClick={onRetry} disabled={busy}>
+            {busy ? s.common.waiting : s.common.tryAgain}
+          </button>
+        )}
         {/* Always offered: every figure above is a chain read, and an age is only meaningful
             next to a way to renew it. Reading is not sending. */}
         <button className="secondary-button" onClick={onRefresh}>{s.common.refreshChain}</button>

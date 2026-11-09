@@ -1265,3 +1265,130 @@ this is what filled `/tmp` and blocked the previous one.
   three leaving steps and a Mode A payment on testnet, then mainnet.
 - Neon through the pooler, including the concurrent-commit refusal.
 - The mock chain provider (`?chain=mock`) and Remotion.
+
+## White-and-black skin, a landing page that explains itself, a retry — 2026-11-09 (Slice C)
+
+Six findings from the operator, after the native-UI slice. **No protected file was touched** —
+`git status` over `member-status.ts`, `release.ts`, `commitments.ts`, `tx-tracker.ts`,
+`payment-check.ts`, `rpc-schemas.ts`, `staking-actions.ts` and `src/wallet/` is empty.
+
+### 1 · The "SAMPLE DATA — not a real squad" strip is gone from the entry screen
+`containers/sign-in.tsx` passed `DEMO_LABEL` as the screen's `demoLabel`, so the first words a
+visitor read were a disclaimer about an orbit they had not looked at yet. The invented data is
+still labelled — the orbit's own caption says **Example squad** and the ticker's says
+**Example goals** — which is what AGENTS.md "demo data labelled" asks for. The dev-identity
+warning and an invite's "Invited to …" are not sample labels and still render.
+
+### 2 · The entry screen now says what Squad Stake is
+Three numbered rows in one card, above the example orbit rather than below it: *Pick a goal,
+together* · *Your NIM never leaves your wallet* · *Progress is read from the chain*. One
+sentence each, per the native-UI rule, and all seven new strings exist in **all five
+languages** (`type Strings = typeof en` makes a missing key a typecheck failure in each).
+
+The screen is taller than one phone now, so its action moved into the sticky `.action-bar`:
+"Sign in with Nimiq Pay" is never scrolled out of reach.
+
+### 3 · The logo and the name are at reading size
+`ScreenHeader` was putting the full lockup — a drawing **5.8 times as wide as it is tall** —
+into a top bar whose outer columns are 44 px. On the entry screen it now gets a row of its own
+(`.topbar-lockup`) at 36 mark-units tall instead of 22; on every other screen the bar keeps a
+title and the mark alone, which grew 24 → 26 px.
+
+### 4 · A failed step of the exit now has a button
+Reported from the phone: a withdrawal the network interrupted, with nothing to tap afterwards.
+Reproduced — `LeavingSteps` printed the failure at the foot of a four-step page and the only
+control was a quiet "Refresh" below the fold; with the plan unread every step is `locked`, so
+the screen had **no control on it at all** above the fold while NIM sat mid-exit.
+
+- The failure moved into the pinned bar, as `role="alert"`, with **Try again** above the
+  existing Refresh.
+- What that button may do is a pure function, `apps/web/src/core/retry.ts`, because the
+  dangerous half is not "offer a button" but "offer which button". A failed **read** re-reads.
+  A failed **send** is offered again only while the chain still says that step is `available`:
+  the moment a hash exists the step is `pending` and the answer drops back to a re-read, so no
+  control on the screen can put a second transaction on the wire (AGENTS.md invariant 8;
+  FAILURE_MODES "check status before resending, never auto-retry"). A non-retryable refusal
+  gets no button — the catalogue's own `retryable` flag decides, so a new code cannot smuggle
+  a resend in. `act()` also re-reads the plan before deciding anything, so a transaction that
+  landed between the failure and the tap is seen first and the planner refuses it.
+
+### 5 · Responsive down to 320 px
+`.sign-in, .sheet` carried `min-width: 375px`, so every screen scrolled sideways on an iPhone
+SE (1st gen, 320 CSS px) and a folded Galaxy Z Fold (344). The floor is gone, the page gutter
+is a token that steps down below 360 px along with the two display sizes, and a tablet or
+desktop window gets more air around the same phone-width column. **Every scene is now measured
+at 320 px as well as 390 and 375** (`/scenes?w=320` and `scripts/measure-scenes.mjs`).
+
+### 6 · White and black, not purple
+The dark theme was Nimiq's `--nq-blue-bg`, a radial ending at **#260133** — that is the purple.
+`tokens.css` now carries a six-step neutral ramp and both themes are built from it: a white
+page with white cards separated by a hairline, `#0b0b0c` ink, and one strong value — the flat
+ink fill of a filled control, as in the reference in `assets/`. The Signal-Blue money gradient
+is gone with it; so is gold as decoration (the orbit's arc, the typewriter's cursor and the
+pill's travelling border are ink now). **Nimiq's hues stay where they mean something**: the
+status dots, the failed-step chip, and the brand mark's own warm centre. Computed: ink on white
+19.67:1, muted 5.59:1, faint 3.46:1 (the faint step was raised from 42% to 48% to clear the
+3.0 floor); white on `#0b0b0c` 19.67:1, muted 9.17:1. This supersedes the 2026-11-07
+deviations 1 and 2 in `docs/DECISIONS.md`; the font, type scale, spacing, radii and easings are
+still Nimiq's, and the palette block is untouched.
+
+### Three bugs found by looking at rendered frames rather than markup
+- **The sticky action bar was transparent.** `background: linear-gradient(…, transparent,
+  var(--page) 1rem)` is only opaque past its last stop, and a card carrying `--enter` is
+  transformed, which puts it in the same paint layer as the positioned bar. The bar is now
+  opaque with `z-index`, and the fade is a band *above* it.
+- **The screen's own bottom padding sat below the stuck bar**, and content scrolled visibly
+  through that strip. An `::after` paints it.
+- **The entry screen's explanation was below the fold**, under an example orbit. The card moved
+  above the orbit, and the two entrance timings swapped so they still arrive in reading order.
+
+### What ran
+- `pnpm gate` (log `.cache/clean-ui-gate-2026-11-09.log`): typecheck, lint, **147 unit tests
+  and 37 adversarial tests, 0 failures, 0 skips** (was 144/36), Next build compiled clean in
+  14.7 s (10/10 static pages, no warnings), Q16 production-artifact guards, secret scan and 19
+  exact dependency pins across 5 manifests all passed. **Exit 1 only at `check:tracked`**,
+  because the slice is uncommitted; the human commits.
+- New tests: `Q17 the entry screen says what Squad Stake is, and labels its sample without a
+  banner`; `§7.5 a failed exit step always offers a way on, and never a second send` (the
+  interrupted withdrawal, the same failure once a hash exists, and the unread plan);
+  `the screens fit a 320 px phone and no longer paint a purple page` (the width floor, the
+  gutter token, the 359 px breakpoint, and both themes' page tokens read out of `tokens.css`);
+  adversarial `a retry after a failed step never becomes a second send` — every kind × every
+  step state, plus three refusal codes read from the live catalogue.
+- Two new scenes (`leaving-withdraw-network-failed`, `leaving-withdraw-failed-no-resend`);
+  `leaving-chain-unavailable` corrected to lock every step, which is what a failed read means.
+- `pnpm check:scenes` (log `.cache/scenes-2026-11-09c.log`, record
+  `.cache/scene-measurements.json`): **145 scenes × 2 themes × {390, 375, 320} = 870 frames,
+  0 failures** — nothing crossing the frame, no horizontal scroll, every tap target ≥ 44 px.
+  This is the first run at 320 px.
+- Frames inspected directly (not through the gallery crop): the entry screen light, dark and at
+  320 px; the squad page light and dark; `leaving-withdraw-network-failed`;
+  `leaving-chain-unavailable`; `my-squads-several`; `commit-ready`; the proof view.
+
+### The Chromium profile leak is fixed at the cause
+The teardown sat at the end of `main()`'s happy path, so **every run that threw** left ~165 MB
+behind — which is what filled `/tmp` twice. It is now a `finally` plus SIGINT/SIGTERM handlers,
+and the exit code is decided outside it (`process.exit` skips a `finally`). Verified both ways:
+a successful run and a deliberately failed one (`SCENES_URL=http://localhost:3999`) each left
+nothing new behind. Sweeping profiles from *earlier* runs is opt-in (`SCENES_SWEEP=1`) and off
+by default: a tool should not delete directories in a shared temp dir that it did not create.
+**Four profiles from before this fix are still in `/tmp`** (`squad-scenes-{809124, 896068,
+929060, 1024010}`); this session's sandbox refuses to remove them, so the operator needs
+`rm -rf /tmp/squad-scenes-*` once.
+
+### Not verified by this slice
+- **No real device.** The theme, the lockup size, the 320 px layout and the pinned bars were
+  checked as rendered frames in headless Chromium at three widths in both themes, never on a
+  phone and never inside Nimiq Pay. `navigator.share` still has never run.
+- **The retry has never fired against a real failure.** The rule is covered by unit and
+  adversarial tests over every step state, and the screen is covered by two fixtures, but no
+  wallet call has failed and been retried on any network.
+- No wallet, no Nimiq Pay approval sheet, no mainnet, no database touched in this slice.
+  Everything Slices A and B left unverified stays unverified.
+
+### Next
+- Commit all three slices (`check:tracked` is the only gate step still failing).
+- A phone pass inside Nimiq Pay: the new skin at real DPI, the share sheet, the pressed states,
+  then the three leaving steps and a Mode A payment on testnet, then mainnet.
+- Neon through the pooler, including the concurrent-commit refusal.
+- The mock chain provider (`?chain=mock`) and Remotion.

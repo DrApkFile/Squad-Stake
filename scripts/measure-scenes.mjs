@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Measures every fixture scene in a real browser: 390 × 844 and 375 × 844, light and dark.
+// Measures every fixture scene in a real browser: 390, 375 and 320 px wide × 844, light and
+// dark. 320 is the narrowest phone still in use (iPhone SE 1st gen); the folded Galaxy Z Fold
+// at 344 sits between the two and is covered by both of its neighbours.
 // Fails on an element crossing the phone frame, on horizontal page scroll, or on an interactive
 // target whose tap area is under 44 px (AGENTS.md "Design"). Zero dependencies: it drives the
 // system Chromium over the DevTools protocol with Node's global WebSocket, so `pnpm gate` stays
@@ -8,13 +10,13 @@
 // Usage: pnpm dev (DEV_HARNESS=1) in one shell, then `pnpm check:scenes`.
 //   SCENES_URL=http://localhost:3000  CHROMIUM=/usr/bin/chromium  SHOTS=id,id  pnpm check:scenes
 import { spawn } from 'node:child_process';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 const BASE = (process.env.SCENES_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const BROWSER = process.env.CHROMIUM ?? ['/usr/bin/chromium', '/usr/bin/chromium-browser',
   '/usr/bin/google-chrome'].find((path) => existsSync(path));
-const WIDTHS = [390, 375];
+const WIDTHS = [390, 375, 320];
 const THEMES = ['light', 'dark'];
 const MIN_TAP = 44;
 const SHOTS = (process.env.SHOTS ?? '').split(',').map((id) => id.trim()).filter(Boolean);
@@ -135,12 +137,59 @@ function cdp(socket) {
 const LIST_IDS = `[...document.querySelectorAll('.scene-gallery > figure > figcaption')]
   .map((node) => node.textContent.split(' · ')[0].trim())`;
 
+/* --- Profile hygiene ------------------------------------------------------
+ * Chromium writes ~165 MB of profile per run. The teardown used to sit at the end of the happy
+ * path, so every run that threw — a browser that did not start, an interrupted measurement —
+ * left its profile behind, and after enough of them /tmp filled up and blocked the session
+ * (2026-11-09, twice). It is now a `finally`, it also runs on SIGINT/SIGTERM, and a run sweeps
+ * up after the dead runs before it.
+ */
+const TMP = process.env.TMPDIR ?? '/tmp';
+let browserChild = null;
+let profileDir = null;
+
+async function teardown() {
+  const child = browserChild;
+  const profile = profileDir;
+  browserChild = null;
+  profileDir = null;
+  if (child !== null && child.exitCode === null) child.kill();
+  if (child !== null) {
+    // Chromium is still flushing its profile when kill() returns, so the exit has to be waited
+    // for; removing the directory mid-write fails with ENOTEMPTY (seen 2026-11-09).
+    await new Promise((resolve) => { child.on('exit', resolve); setTimeout(resolve, 5_000); });
+  }
+  if (profile !== null) {
+    await rm(profile, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
+  }
+}
+
+/**
+ * Opt-in (`SCENES_SWEEP=1`): remove profiles left by earlier runs that are no longer alive.
+ * Off by default on purpose — /tmp is shared, and a tool that deletes directories it did not
+ * create in this run is a tool nobody can safely give a machine to. A run always removes its
+ * own profile; clearing litter from before this fix is the operator's call:
+ *   rm -rf /tmp/squad-scenes-*
+ * A pid that is alive is left alone, including one we may not signal (EPERM), so a concurrent
+ * run and an unrelated process that inherited the number both survive.
+ */
+async function sweepStaleProfiles() {
+  if (process.env.SCENES_SWEEP !== '1') return;
+  for (const name of await readdir(TMP).catch(() => [])) {
+    const match = /^squad-scenes-(\d+)$/.exec(name);
+    if (match === null || Number(match[1]) === process.pid) continue;
+    let alive = true;
+    try { process.kill(Number(match[1]), 0); } catch (error) { alive = error.code === 'EPERM'; }
+    if (alive) continue;
+    await rm(`${TMP}/${name}`, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
+}
+
 async function main() {
   if (!BROWSER) throw new Error('No Chromium found. Set CHROMIUM=/path/to/chromium.');
-  // Chromium writes ~165 MB of profile per run. Earlier versions of this script left
-  // one behind on every killed run and filled /tmp (2026-11-09); it is removed below,
-  // on the way out and on the way in.
-  const profile = `${process.env.TMPDIR ?? '/tmp'}/squad-scenes-${process.pid}`;
+  await sweepStaleProfiles();
+  const profile = `${TMP}/squad-scenes-${process.pid}`;
+  profileDir = profile;
   const child = spawn(BROWSER, ['--headless=new', '--remote-debugging-port=0', '--no-sandbox',
     '--disable-gpu', '--force-device-scale-factor=1', '--no-first-run', '--disable-extensions',
     // Headless Chromium throttles a page it treats as backgrounded, which turned a 1.5 s frame
@@ -149,6 +198,7 @@ async function main() {
     '--disable-backgrounding-occluded-windows',
     `--user-data-dir=${profile}`, 'about:blank'],
     { stdio: ['ignore', 'ignore', 'pipe'] });
+  browserChild = child;
   const wsUrl = await new Promise((resolve, reject) => {
     let buffer = '';
     // 60 s, not 20: on a loaded machine Chromium's first start is slow, and a tool timing out
@@ -182,7 +232,7 @@ async function main() {
   if (ids.length === 0) {
     throw new Error(`No scenes at ${BASE}/scenes — is the dev server running with DEV_HARNESS=1?`);
   }
-  console.log(`${ids.length} scenes × ${THEMES.length} themes × ${WIDTHS.length} widths = ${ids.length * 4} frames`);
+  console.log(`${ids.length} scenes × ${THEMES.length} themes × ${WIDTHS.length} widths = ${ids.length * THEMES.length * WIDTHS.length} frames`);
 
   const results = [];
   const failures = [];
@@ -252,11 +302,6 @@ async function main() {
     { measuredAt: new Date().toISOString(), base: BASE, minTap: MIN_TAP, frames: results.length,
       failures, results }, null, 1)}\n`);
   socket.close();
-  child.kill();
-  // Chromium is still flushing its profile when kill() returns, so the directory has to be
-  // waited for and then retried: removing it mid-write fails with ENOTEMPTY (seen 2026-11-09).
-  await new Promise((resolve) => { child.on('exit', resolve); setTimeout(resolve, 5_000); });
-  await rm(profile, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
 
   if (failures.length > 0) {
     for (const failure of failures) {
@@ -264,9 +309,17 @@ async function main() {
       for (const problem of failure.problems) console.error(`    ${problem}`);
     }
     console.error(`\n${failures.length} of ${results.length} frames failed. See .cache/scene-measurements.json`);
-    process.exit(1);
+    return false;
   }
   console.log(`\n${results.length} frames: no overflow, no horizontal scroll, every tap target ≥ ${MIN_TAP}px.`);
+  return true;
 }
 
-main().catch((error) => { console.error(error.message); process.exit(1); });
+// `process.exit` skips a `finally`, so the exit code is decided out here, after the teardown.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => { void teardown().then(() => process.exit(130)); });
+}
+main().then(
+  async (ok) => { await teardown(); process.exit(ok ? 0 : 1); },
+  async (error) => { console.error(error.message); await teardown(); process.exit(1); },
+);

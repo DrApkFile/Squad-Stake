@@ -63,7 +63,28 @@ export function SignInScreen({
         <p className="intro" style={vars({ '--enter': entranceProgress(t, 18) })}>
           {s.signIn.intro}
         </p>
-        <div className="sign-in-orbit" style={vars({ '--enter': entranceProgress(t, 22) })}>
+        {/* What the app actually is. The screen used to open on "nobody holds the pot", which
+            answers an objection a first-time visitor has not had yet; these three rows answer
+            the question they do have. Each is one short sentence, per the native-UI rule. */}
+        <section className="card how-card" style={vars({ '--enter': entranceProgress(t, 22) })}>
+          <h2 className="card-title">{s.signIn.howTitle}</h2>
+          <ol className="how-list">
+            {[
+              { title: s.signIn.how1Title, body: s.signIn.how1Body },
+              { title: s.signIn.how2Title, body: s.signIn.how2Body },
+              { title: s.signIn.how3Title, body: s.signIn.how3Body },
+            ].map((row, index) => (
+              <li className="how-row" key={row.title}>
+                <span className="how-index" aria-hidden="true">{index + 1}</span>
+                <span className="how-main">
+                  <span className="how-title">{row.title}</span>
+                  <span className="how-body">{row.body}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+        <div className="sign-in-orbit" style={vars({ '--enter': entranceProgress(t, 28) })}>
           <OrbitSquad
             goal={example.label}
             members={example.members}
@@ -73,6 +94,7 @@ export function SignInScreen({
             lang={lang}
           />
         </div>
+        <GoalTicker goals={goals} caption={s.signIn.exampleGoals} t={t} />
         <div className="sign-in-status" role="status" aria-live="polite">
           {state.status === 'idle' && <p>{s.signIn.idle}</p>}
           {waiting && <><p className="status-title">{s.common.approveInPay}</p><p>{s.signIn.waitingSignature}</p></>}
@@ -82,7 +104,9 @@ export function SignInScreen({
           {success && <><p className="status-title">{s.signIn.signedIn}</p><p className="address">{state.address}</p></>}
         </div>
       </div>
-      <footer className="sign-in-footer">
+      {/* The screen now explains itself, so it is taller than one phone. The action sticks to
+          the bottom inside the safe area, so "Sign in" is never scrolled out of reach. */}
+      <footer className="action-bar">
         {success
           ? <GradientBorderButton label={s.signIn.goToSquads} href={onwardUrl} t={t} />
           : openInPayUrl
@@ -94,7 +118,6 @@ export function SignInScreen({
               t={t}
             />}
         <p className="fine-print">{s.signIn.fineprint}</p>
-        <GoalTicker goals={goals} caption={s.signIn.exampleGoals} t={t} />
       </footer>
     </main>
   );

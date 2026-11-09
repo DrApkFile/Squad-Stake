@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * The dev-only fixture gallery (AGENTS.md "Dev harness"). `?scene=<id>&theme=<light|dark>
- * &w=<390|375>` renders one frame alone, which is what scripts/measure-scenes.mjs drives.
+ * &w=<390|375|320>` renders one frame alone, which is what scripts/measure-scenes.mjs drives.
  * `isDevServer()` gates the route, so a production artifact has no gallery at all (Q16).
  */
 export default async function ScenesPage({ searchParams }: {
@@ -15,7 +15,8 @@ export default async function ScenesPage({ searchParams }: {
   if (!isDevServer()) notFound();
   const search = await searchParams;
   const theme = search.theme === 'dark' ? 'dark' : 'light';
-  const width = search.w === '375' ? '375' : '390';
+  // 320 is the narrowest phone the app is measured at (an iPhone SE 1st gen).
+  const width = search.w === '375' || search.w === '320' ? search.w : '390';
   if (typeof search.scene === 'string') {
     return <SceneFrame scene={search.scene} theme={theme} width={width} />;
   }

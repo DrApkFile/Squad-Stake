@@ -20,6 +20,15 @@ export const enScreens = {
     tryAgain: 'Try sign-in again',
     fineprint: 'Signing in doesn’t move any NIM.',
     exampleGoals: 'Example goals',
+    /* What the app is, in three rows. The entry screen used to say only that nobody holds the
+     * pot, which answers an objection nobody has heard yet; these answer "what is this?". */
+    howTitle: 'How it works',
+    how1Title: 'Pick a goal, together',
+    how1Body: 'Name what you are saving for, set the day, and invite your friends with one link.',
+    how2Title: 'Your NIM never leaves your wallet',
+    how2Body: 'Each share is staked from its own owner’s wallet and earns there. Only your approval can move it.',
+    how3Title: 'Progress is read from the chain',
+    how3Body: 'Everyone sees who is covered and who is short, taken from Nimiq itself — never from a number we typed.',
     /** The banner on an invite link's sign-in screen; the squad's name comes from data. */
     invitedTo: (squad: string) => `Invited to ${squad} — sign in to join`,
   },

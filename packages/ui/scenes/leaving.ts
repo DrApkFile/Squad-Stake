@@ -156,10 +156,36 @@ export const leavingScenes: readonly { id: string; props: LeavingStepsProps }[] 
   },
   {
     id: 'leaving-chain-unavailable',
-    props: { ...base, stake: null, readAt: null,
+    props: { ...base, stake: null, readAt: null, onRetry: noop,
+      // A read that failed is not a verdict, so no step claims to be anybody's turn.
+      steps: { start: locked, retire: locked, withdraw: locked, pay: locked },
       // The catalog's CHAIN_UNAVAILABLE entry verbatim: this is what the container passes.
+      // Every step is locked in this state, so without the pinned retry below the screen has
+      // no control on it at all except the quiet refresh at the foot of the page.
       error: { message: 'The chain could not be read just now.',
         nextAction: 'Nothing is lost. Refresh in a moment.' } },
+  },
+  {
+    // The state reported from the phone: a withdrawal that was about to go through when the
+    // network dropped. The retired balance is still on the chain, so step three is still the
+    // member's to take, and the failure carries the way back to it.
+    id: 'leaving-withdraw-network-failed',
+    props: { ...base, stake: demoStake.retired, onRetry: noop,
+      steps: { start: done(demoHashes.unstake), retire: done(demoHashes.retire),
+        withdraw: available, pay: locked },
+      error: { message: 'The connection was interrupted.',
+        nextAction: 'Check your connection and try again. Nothing was sent.' } },
+  },
+  {
+    // The same failure once a hash exists: the step is `pending`, so the container withholds
+    // `onRetry` and the only controls are the ones that read the chain. Nothing can be sent
+    // twice from this screen.
+    id: 'leaving-withdraw-failed-no-resend',
+    props: { ...base, stake: demoStake.retired,
+      steps: { start: done(demoHashes.unstake), retire: done(demoHashes.retire),
+        withdraw: pending(demoHashes.remove), pay: locked },
+      error: { message: 'It is not clear whether that transaction was sent.',
+        nextAction: 'Check it in Nimiq Pay before sending another.' } },
   },
   { id: 'leaving-busy', props: { ...base, busy: true } },
 ];

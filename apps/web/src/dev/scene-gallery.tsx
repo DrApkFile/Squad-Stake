@@ -52,7 +52,7 @@ function registry(): readonly { id: string; node: ReactNode }[] {
 
 /** One frame alone, which is what scripts/measure-scenes.mjs screenshots and measures. */
 export function SceneFrame({ scene, theme, width }: {
-  scene: string; theme: 'light' | 'dark'; width: '390' | '375';
+  scene: string; theme: 'light' | 'dark'; width: '390' | '375' | '320';
 }) {
   const found = registry().find((entry) => entry.id === scene);
   if (!found) return <p className="scene-missing">No scene with the id “{scene}”.</p>;

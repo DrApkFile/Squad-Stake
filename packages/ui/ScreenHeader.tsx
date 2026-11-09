@@ -13,6 +13,11 @@ export interface ScreenHeaderProps {
   lang?: Lang | undefined;
 }
 
+/** The entry screen's lockup, in mark units of height. The bar's 44 px columns cannot hold a
+ * lockup 5.8× as wide as it is tall, so the welcome screen gets a row of its own instead of a
+ * squeezed corner: this is the first thing a visitor sees and it has to carry the name. */
+const LOCKUP_HEIGHT = 36;
+
 /**
  * A compact app top bar: a back chevron on the left, the screen's title centred, the brand on
  * the right. It replaces the "← Squads" text link, which read like a website's breadcrumb.
@@ -24,6 +29,18 @@ export interface ScreenHeaderProps {
  */
 export function ScreenHeader({ back, title, demoLabel, lang = DEFAULT_LANG }: ScreenHeaderProps) {
   const brand = strings(lang).common.brand;
+  // No title and nowhere back: the entry screen. It shows the lockup at reading size rather
+  // than a bar with two empty columns.
+  if (back === undefined && title === undefined) {
+    return (
+      <>
+        <header className="topbar topbar-lockup">
+          <Logo size={LOCKUP_HEIGHT} tone="colour-current" id="header-logo" title={brand} />
+        </header>
+        {demoLabel && <p className="demo-label">{demoLabel}</p>}
+      </>
+    );
+  }
   return (
     <>
       <header className="topbar" data-has-title={title ? 'yes' : 'no'}>
@@ -44,9 +61,7 @@ export function ScreenHeader({ back, title, demoLabel, lang = DEFAULT_LANG }: Sc
           {/* The ink is `currentColor` (packages/ui/brand/tone.ts), so one drawing serves the
               light and the dark theme; its warm centre stays gold in both. Beside a title the
               mark alone carries the brand, so the two do not crowd a 375 px bar. */}
-          {title || back
-            ? <LogoMark size={24} tone="colour-current" id="header-mark" title={brand} />
-            : <Logo size={22} tone="colour-current" id="header-logo" title={brand} />}
+          <LogoMark size={26} tone="colour-current" id="header-mark" title={brand} />
         </span>
       </header>
       {demoLabel && <p className="demo-label">{demoLabel}</p>}

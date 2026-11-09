@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignInScreen, strings, type Lang, type SignInState } from '@squad-stake/ui';
-import { DEMO_LABEL, demoExample, demoGoals } from '@squad-stake/ui/scenes';
+import { demoExample, demoGoals } from '@squad-stake/ui/scenes';
 import { catalogError } from '../core/errors/catalog';
 import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
@@ -51,12 +51,20 @@ export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onw
       }
     } finally { pending.current = false; }
   }
-  // The orbit and the ticker on this screen are hand-written samples, labelled as such.
+  // The orbit and the ticker on this screen are hand-written samples. They are labelled where
+  // they are drawn — the orbit's own caption reads "Example squad" and the ticker's reads
+  // "Example goals" — so the banner that used to run a "SAMPLE DATA" strip across the top of
+  // the first screen a visitor ever sees is gone. Nothing is claimed as real by dropping it:
+  // AGENTS.md asks for demo data to be labelled, not for the label to be the headline.
+  // The dev-identity warning and an invite's "Invited to …" are not that, and stay.
   const label = invitedTo === undefined
-    ? DEMO_LABEL
+    ? undefined
     : strings(lang).signIn.invitedTo(invitedTo);
+  const demoLabel = devIdentity
+    ? `DEV IDENTITY: ${devIdentity} — never fund this wallet`
+    : label;
   return <SignInScreen state={state} onSignIn={handleSignIn} t={t} lang={lang}
     example={demoExample} goals={demoGoals} onwardUrl={onwardUrl}
     {...(outsideHost ? { openInPayUrl } : {})}
-    demoLabel={devIdentity ? `DEV IDENTITY: ${devIdentity} — never fund this wallet` : label} />;
+    {...(demoLabel === undefined ? {} : { demoLabel })} />;
 }

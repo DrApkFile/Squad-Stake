@@ -49,7 +49,9 @@ test('Q17 every new scene renders twice to the same bytes from props alone', () 
   // (confirming with and without a count, leaving with an unknown release, ready, jailed,
   // withdrawn, paid, and one squad holding every stage at once).
   // 3 added for the native-UI pass: the copied confirmation and the two ⓘ-sheet frames.
-  assert.equal(rendered, 7 + 5 + 18 + 3 + 8 + 3 + 22 + 13 + 4);
+  // 2 added for the retry pass: a withdrawal the network interrupted, and the same failure
+  // once a hash exists, where no retry may be offered.
+  assert.equal(rendered, 7 + 5 + 18 + 3 + 8 + 3 + 24 + 13 + 4);
 });
 
 test('Q17 the same t always renders the same frame, and a different t renders a different one', () => {
@@ -287,4 +289,86 @@ test('Q17 the ⓘ sheet is a pure function of t, and says what the banner no lon
   assert.doesNotMatch(closedMarkup, /reporting window/, 'the long version is behind the ⓘ');
   assert.doesNotMatch(closedMarkup, /class="info-sheet"/, 'a closed sheet is not in the DOM');
   assert.match(openMarkup, /reporting window/);
+});
+
+test('Q17 the entry screen says what Squad Stake is, and labels its sample without a banner', () => {
+  const scene = signInScenes.find((entry) => entry.id === 'sign-in-idle');
+  assert.ok(scene);
+  // No `demoLabel`: this is the screen as `containers/sign-in.tsx` renders it for a visitor.
+  const html = render(SignInScreen, scene.props);
+
+  // The complaint: a first-time visitor met "SAMPLE DATA — not a real squad" as the first
+  // words on the page, above anything saying what the page was for.
+  assert.doesNotMatch(html, /SAMPLE DATA/);
+  assert.ok(!readFileSync('apps/web/src/containers/sign-in.tsx', 'utf8').includes('DEMO_LABEL'));
+
+  // The invented data is still labelled, where it is drawn rather than across the top.
+  assert.match(html, /Example squad/);
+  assert.match(html, /Example goals/);
+
+  // And the screen now answers "what is this?" before it asks for a signature.
+  assert.match(html, /How it works/);
+  for (const phrase of ['Pick a goal, together', 'never leaves your wallet',
+    'read from the chain']) {
+    assert.match(html, new RegExp(phrase), phrase);
+  }
+  // Explanation does not push the one action off the screen: it is pinned, not in the flow.
+  assert.match(html, /class="action-bar"/);
+
+  // The name is carried by the full lockup on its own row, not squeezed into a 44 px corner.
+  assert.match(html, /class="topbar topbar-lockup"/);
+  assert.match(html, /<title>Squad Stake<\/title>/);
+});
+
+test('§7.5 a failed exit step always offers a way on, and never a second send', () => {
+  const by = (id: string) => {
+    const scene = leavingScenes.find((entry) => entry.id === id);
+    assert.ok(scene, id);
+    return render(LeavingSteps, scene.props);
+  };
+
+  // The reported state: a withdrawal interrupted by the network. The retired balance is still
+  // on the chain, so step three is still the member's, and the failure carries a retry.
+  const interrupted = by('leaving-withdraw-network-failed');
+  assert.match(interrupted, /The connection was interrupted/);
+  assert.match(interrupted, /Try again/);
+  // Pinned above the home indicator, not printed at the foot of a four-step page.
+  assert.match(interrupted, /class="action-bar"[\s\S]*role="alert"[\s\S]*Try again/);
+
+  // Once a hash exists the step is pending, so no control on the screen may send again.
+  const unknown = by('leaving-withdraw-failed-no-resend');
+  assert.match(unknown, /not clear whether that transaction was sent/);
+  assert.doesNotMatch(unknown, /Try again/);
+
+  // A read that failed locks every step, which used to leave the screen with no control at
+  // all above the fold. It now carries its own.
+  const unread = by('leaving-chain-unavailable');
+  assert.doesNotMatch(unread, /class="primary-button"[^>]*>(?!\s*Try again)/);
+  assert.match(unread, /Try again/);
+});
+
+test('the screens fit a 320 px phone and no longer paint a purple page', () => {
+  const css = readFileSync('packages/ui/styles.css', 'utf8');
+  const tokens = readFileSync('packages/ui/tokens.css', 'utf8');
+
+  // A 375 px floor on the screen roots made every screen scroll sideways on an iPhone SE
+  // (320 px) and a folded Galaxy Z (344 px). Nothing may reintroduce one.
+  assert.doesNotMatch(css, /min-width:\s*375px/);
+  // The gutter is a token, so it can close up on a narrow screen; screens read it.
+  assert.match(css, /padding: calc\(var\(--space-6\) \+ var\(--safe-top\)\) var\(--gutter\)/);
+  assert.match(tokens, /@media \(max-width: 359px\)/);
+
+  // The dark page was Nimiq's navy radial, which ends at #260133 and reads as purple.
+  assert.doesNotMatch(tokens, /--page-image: var\(--nq-blue-bg\)/);
+  for (const block of tokens.split(/\n(?=\[data-theme=|@media)/)) {
+    if (!block.includes('--page:')) continue;
+    assert.doesNotMatch(block, /--page: var\(--nq-blue\)/, block.slice(0, 40));
+  }
+  // White and black: the light page is paper, the dark page is the near-black end of the ramp,
+  // and neither carries a background image.
+  assert.match(tokens, /--page: var\(--nq-paper-white\);\n\s*--page-image: none/);
+  assert.match(tokens, /--page: var\(--ink-900\);\n\s*--page-image: none/);
+  // The one filled control is ink, not a gradient.
+  assert.match(tokens, /--money-bg: var\(--ink-900\)/);
+  assert.match(tokens, /--money-bg-image: none/);
 });

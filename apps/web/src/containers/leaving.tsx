@@ -6,12 +6,13 @@ import { LUNA_PER_NIM, STAKING_FEES_LUNA } from '../config/constants';
 import { catalogError } from '../core/errors/catalog';
 import { planResponse, trackedTxResponse, type PlanWire, type TxKind } from '../core/squad-contract';
 import { planLeaving, planRemove, planRetire, type LeavingStep } from '../core/staking-actions';
+import { retryOffer } from '../core/retry';
 import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
 import { useTxPoll } from '../hooks/use-tx-poll';
 import { sendLeavingAction } from '../wallet/staking';
 
-type CatalogError = { message: string; nextAction: string };
+type Failure = { message: string; nextAction: string; retryable: boolean };
 const toLuna = (nim: string) => /^\d{1,9}(\.\d{1,5})?$/.test(nim.trim())
   ? Math.round(Number(nim) * LUNA_PER_NIM) : null;
 const nim = (luna: number) => String(luna / LUNA_PER_NIM);
@@ -36,9 +37,12 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
   const [amountNim, setAmountNim] = useState(() => nim(initial.shareLuna));
   const [ticked, setTicked] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<CatalogError | null>(
+  const [error, setError] = useState<Failure | null>(
     initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', initialLang) : null,
   );
+  // What "Try again" would repeat. Null means the last failure was a *read*, so trying again
+  // is simply reading the chain again.
+  const [lastKind, setLastKind] = useState<TxKind | null>(null);
   // The member's own zone, read once after mount. The server cannot know it, so the first
   // paint says UTC and then corrects itself; the label always names the zone it is showing,
   // so neither frame can be misread (packages/ui/format.ts).
@@ -101,6 +105,7 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
     if (busy) return;
     setBusy(true);
     setError(null);
+    setLastKind(kind);
     try {
       const fresh = await loadPlan();
       if (fresh === null) return;
@@ -126,6 +131,24 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
       setTicked(false);
     }
   }
+
+  /** What the chain says about the failed action's step *now*; the pure rule does the rest. */
+  const stepStateOf = (kind: TxKind) => {
+    if (kind === 'unstake') return plan.steps.start.state;
+    if (kind === 'retire') return plan.steps.retire.state;
+    if (kind === 'remove') return plan.steps.withdraw.state;
+    return null;
+  };
+  const offer = retryOffer({
+    retryable: error?.retryable === true,
+    lastKind,
+    lastStepState: lastKind === null ? null : stepStateOf(lastKind),
+  });
+  const retry = offer.kind === 'none' ? null : () => {
+    // `act` re-reads the plan from the chain before it decides anything, so a transaction that
+    // did land between the failure and this tap is seen first and the planner refuses it.
+    if (offer.kind === 'resend') void act(offer.tx); else void loadPlan();
+  };
 
   // What step one would do to this member's other squads, from the same pure function that
   // will build the transaction. Falls back to their share so the warning is visible before
@@ -166,7 +189,10 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
     onStartLeaving: () => void act('unstake'),
     onRetire: () => void act('retire'),
     onWithdraw: () => void act('remove'),
-    onRefresh: () => void loadPlan(),
+    // Reading is not retrying: a plain refresh forgets which send failed, so the next failure
+    // is judged on its own.
+    onRefresh: () => { setLastKind(null); void loadPlan(); },
+    ...(retry ? { onRetry: retry } : {}),
     lang,
     back: { label: strings(lang).common.backSquad, href: `/squads/${plan.squadId}` },
     demoLabel,

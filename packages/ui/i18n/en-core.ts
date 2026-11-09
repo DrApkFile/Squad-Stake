@@ -79,6 +79,10 @@ export const enCore = {
     titleTx: 'Transaction',
     copyLink: 'Copy link',
     copied: 'Copied',
+    /* The control beside a failure. A read that failed is re-read; a send that was never made
+     * is offered again. Neither ever resends a wallet call by itself (AGENTS.md invariant 8). */
+    tryAgain: 'Try again',
+    checkAgain: 'Check the chain',
     moreInfo: 'More about this',
     close: 'Close',
   },

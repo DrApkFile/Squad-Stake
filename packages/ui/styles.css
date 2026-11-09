@@ -47,7 +47,9 @@ button { font: inherit; }
 .sign-in, .sheet {
   width: 100%;
   max-width: 480px;
-  min-width: 375px;
+  /* No minimum width. A 375 px floor here made every screen overflow a 320 px iPhone SE and a
+     344 px folded Galaxy Z: the column refused to shrink and the whole page scrolled sideways.
+     The layout below is fluid instead, and the gutter closes up on a narrow screen. */
   /* A screen never scrolls sideways on a phone, whatever a child does: the goal ticker's strip
      is 1,005 px wide by design and is clipped by its own window, and this is the backstop for
      anything like it. `clip` cuts the horizontal axis only, so the page still scrolls down
@@ -55,7 +57,7 @@ button { font: inherit; }
   overflow-x: clip;
   min-height: 100svh;
   margin: auto;
-  padding: calc(var(--space-6) + var(--safe-top)) var(--space-5)
+  padding: calc(var(--space-6) + var(--safe-top)) var(--gutter)
     calc(var(--space-6) + var(--safe-bottom));
   display: flex;
   flex-direction: column;
@@ -65,10 +67,9 @@ button { font: inherit; }
 }
 .member-scene {
   width: 100%;
-  min-width: 375px;
   height: 100%;
   min-height: 844px;
-  padding: calc(var(--space-6) + var(--safe-top)) var(--space-5)
+  padding: calc(var(--space-6) + var(--safe-top)) var(--gutter)
     calc(var(--space-6) + var(--safe-bottom));
   background-color: var(--page);
   background-image: var(--page-image);
@@ -114,6 +115,21 @@ button { font: inherit; }
   text-overflow: ellipsis;
 }
 .topbar-trail svg { display: block; }
+/* The entry screen's header: the lockup at reading size, on a row of its own. A 44 px bar
+   column cannot hold a mark-plus-word that is 5.8 times as wide as it is tall, and the first
+   screen a visitor sees is the one place the name has to be legible rather than tucked away. */
+.topbar-lockup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 52px;
+}
+.topbar-lockup svg {
+  display: block;
+  /* It never pushes the page sideways on a narrow phone: it shrinks to the column instead. */
+  max-width: 100%;
+  height: auto;
+}
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -288,13 +304,48 @@ button { font: inherit; }
   font-size: var(--font-lg);
   font-weight: var(--weight-semibold);
 }
-/* The welcome screen has to fit its one action on a 390 × 844 phone without scrolling, so its
-   orbit is smaller than a squad page's (measured 2026-11-08). */
+/* The welcome screen scrolls now that it explains itself, and its action is pinned, so the
+   orbit no longer has to be shrunk to fit one unscrolled phone — but it stays smaller than a
+   squad page's so that the heading, the orbit and the first of the three rows all land above
+   the fold at 390 × 844 (measured 2026-11-09). */
 .sign-in-orbit { margin: 0 0 var(--space-3); }
 .sign-in-orbit .orbit { margin: 0; }
 .sign-in-orbit .orbit-field { max-width: 216px; }
 .sign-in { padding-top: calc(var(--space-5) + var(--safe-top)); }
 .sign-in .sign-in-body { padding: var(--space-4) 0; }
+
+/* --- "How it works" on the entry screen ---------------------------------
+   Three numbered rows inside one card: what the app is, before anything is asked of anybody. */
+.how-card { margin-top: var(--space-5); }
+.how-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.how-row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+.how-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--wash-strong);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  line-height: 1;
+}
+.how-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.how-title { font-weight: var(--weight-bold); font-size: var(--font-sm); }
+.how-body { font-size: var(--font-sm); line-height: var(--leading-body); color: var(--muted); }
 
 /* --- Ticker ------------------------------------------------------------- */
 .ticker { margin-top: var(--space-4); }
@@ -341,7 +392,10 @@ button { font: inherit; }
   font-weight: var(--weight-bold);
   cursor: pointer;
 }
-.primary-button:active { background-image: var(--money-bg-image-pressed); }
+.primary-button:active {
+  background-color: var(--money-bg-pressed);
+  background-image: var(--money-bg-image-pressed);
+}
 .primary-button:disabled { opacity: var(--disabled-opacity); cursor: default; }
 .primary-button:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; }
 
@@ -435,6 +489,7 @@ button { font: inherit; }
 .member-status {
   padding: var(--space-5);
   background: var(--surface);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   line-height: var(--leading-body);
@@ -457,11 +512,14 @@ button { font: inherit; }
   margin: 0;
 }
 
+/* A note on a monochrome screen is a recessed block, not a coloured one: the hues left in the
+   build mean something (a status dot, a failed step's chip) and a tinted paragraph would
+   compete with them for the same meaning. */
 .banner {
   margin: var(--space-4) 0 0;
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: rgba(252, 135, 2, 0.1);
+  background: var(--wash);
   font-size: var(--font-sm);
   line-height: var(--leading-body);
   color: var(--muted);
@@ -519,6 +577,7 @@ button { font: inherit; }
   align-items: center;
   min-height: 96px;
   padding: var(--space-4);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-card);
@@ -582,7 +641,7 @@ button { font: inherit; }
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-2);
   background: var(--surface);
-  border: 1.5px solid transparent;
+  border: 1.5px solid var(--hairline);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-card);
 }
@@ -592,12 +651,13 @@ button { font: inherit; }
 .mode-detail { grid-column: 2; font-size: var(--font-xs); line-height: var(--leading-body); color: var(--muted); }
 
 /* --- Leaving steps, tx status and payments (screens 7, 8, 9) ------------ */
-.banner[data-tone='BACKED'] { background: rgba(33, 188, 165, 0.12); }
+.banner[data-tone='BACKED'] { background: var(--wash); }
 .banner-action { margin-top: var(--space-3) !important; }
 
 .step {
   margin: var(--space-4) 0 0;
   padding: var(--space-4);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-card);
@@ -790,6 +850,8 @@ button { font: inherit; }
 }
 .secondary-button-quiet { align-self: flex-start; margin-top: var(--space-2); }
 .scene-frame[data-width='375'] { width: 375px; }
+/* The narrow end of the range the app is measured at (scripts/measure-scenes.mjs). */
+.scene-frame[data-width='320'] { width: 320px; }
 /* One frame alone (?scene=…), which is what the measurement script screenshots: no gallery
  * padding, so the frame's own edges are the viewport's and overflow is measurable. */
 .scene-single { margin: 0; padding: 0; }
@@ -881,6 +943,9 @@ button { font: inherit; }
   gap: var(--space-3);
   padding: var(--space-4);
   margin-top: var(--space-4);
+  /* The page and the card are both white now, so the edge is what separates them. The shadow
+     stays for depth; the hairline is what makes the card legible at all. */
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-card);
@@ -939,12 +1004,40 @@ button { font: inherit; }
 .action-bar {
   position: sticky;
   bottom: 0;
+  /* Above the cards it floats over. A card carrying `--enter` is transformed, which puts it in
+     the same paint layer as this positioned bar; without a stacking order the two interleave
+     and the content showed straight through the bar (seen at 390 px, 2026-11-09). */
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4) 0 calc(var(--space-4) + var(--safe-bottom));
   margin-top: var(--space-5);
-  background: linear-gradient(to bottom, transparent, var(--page) var(--space-4));
+  /* Opaque, so nothing reads through it, with the fade kept as a band *above* the bar: a
+     gradient used as the bar's own background is only opaque past its last stop. */
+  background: var(--page);
+}
+.action-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--space-5);
+  background: linear-gradient(to bottom, transparent, var(--page));
+  pointer-events: none;
+}
+/* The screen's own bottom padding sits below the stuck bar, and the scrolling content was
+   showing in that strip. The bar paints it too, so the bottom of the screen is one surface. */
+.action-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: calc(var(--space-6) + var(--safe-bottom));
+  background: var(--page);
+  pointer-events: none;
 }
 
 .info-button {
@@ -995,6 +1088,22 @@ button { font: inherit; }
 }
 .info-title { margin: 0; font-size: var(--font-md); font-weight: var(--weight-bold); }
 .info-body { margin: 0; color: var(--muted); line-height: 1.55; }
+
+/* A failure that is pinned above the home indicator rather than printed at the foot of the
+   page, with its own way out beneath it. `role="alert"` because it appears in response to
+   something the member just did and has to be announced, unlike the polite status regions. */
+.error-note {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--status-danger);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--font-sm);
+  line-height: var(--leading-body);
+  color: var(--muted);
+}
+.error-note p { margin: 0 0 var(--space-1); }
+.error-note p:last-child { margin-bottom: 0; }
 
 /* A shape where the figure will be, instead of an em dash standing in for it. The block does
    not pulse: an animation here would have to come from a timer, and `packages/ui` has none. */

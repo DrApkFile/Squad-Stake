@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { STAKING_FEES_LUNA } from '../../apps/web/src/config/constants';
 import { planLeaving, planRemove, planRetire } from '../../apps/web/src/core/staking-actions';
+import { errors } from '../../apps/web/src/core/errors/catalog';
+import { retryOffer } from '../../apps/web/src/core/retry';
 import { leavePlan } from '../../apps/web/src/server/core/leave-plan';
 import { createTxTracker } from '../../apps/web/src/server/core/tx-tracker';
 import { sendLeavingAction, sendPayment } from '../../apps/web/src/wallet/staking';
@@ -185,4 +187,50 @@ test('§7.5 the leaving screen never offers step one again, so nothing is sent t
     retiredBalanceLuna: open.view.stake?.retiredLuna ?? 0,
     unstakeOpen: open.view.steps.start.state === 'pending',
   }), { kind: 'blocked', reason: 'ALREADY_LEAVING' });
+});
+
+test('a retry after a failed step never becomes a second send', () => {
+  // The control that was missing when a withdrawal was interrupted on testnet (2026-11-09).
+  // Adding it is only safe if it cannot resend, so this attacks exactly that.
+  const kinds = ['unstake', 'retire', 'remove'] as const;
+
+  // Nothing is on the wire and the chain still says the step is the member's: the one case a
+  // resend is allowed, and even then the container re-reads the plan before deciding.
+  for (const tx of kinds) {
+    assert.deepEqual(
+      retryOffer({ retryable: true, lastKind: tx, lastStepState: 'available' }),
+      { kind: 'resend', tx },
+    );
+  }
+
+  // Every other verdict the chain can give about that step. `pending` is the dangerous one —
+  // a hash exists — but `done`, `waiting` and `locked` are no invitation either.
+  for (const tx of kinds) {
+    for (const state of ['pending', 'failed', 'done', 'waiting', 'locked'] as const) {
+      assert.deepEqual(
+        retryOffer({ retryable: true, lastKind: tx, lastStepState: state }),
+        { kind: 'reread' },
+        `${tx}/${state}`,
+      );
+    }
+  }
+
+  // A read that failed has no transaction behind it, so there is nothing to resend — but the
+  // member is still given a control, because a screen with no way on is what caused this.
+  assert.deepEqual(
+    retryOffer({ retryable: true, lastKind: null, lastStepState: null }),
+    { kind: 'reread' },
+  );
+
+  // A refusal is not retryable, and inventing a button for it would only fail again. The
+  // catalogue's own flag decides, so a new code cannot sneak a resend in.
+  for (const code of ['ALREADY_LEAVING', 'TX_OUTCOME_UNKNOWN', 'TX_UNSUPPORTED'] as const) {
+    assert.equal(errors[code].retryable, false, code);
+    assert.deepEqual(
+      retryOffer({ retryable: errors[code].retryable, lastKind: 'remove',
+        lastStepState: 'available' }),
+      { kind: 'none' },
+      code,
+    );
+  }
 });

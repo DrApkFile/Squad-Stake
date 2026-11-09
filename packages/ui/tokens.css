@@ -14,6 +14,20 @@
  *       600 / title 600 / body 400 / label 700; Fira Mono 500 numerics), the `rounded` and
  *       `spacing` scales, the three-layer shadows, and the two easings.
  *
+ * **Surfaces are white and black (2026-11-09, docs/DECISIONS.md).** The operator asked for
+ * a clean white/black app rather than Nimiq's plaza-and-navy, against the reference shot in
+ * `assets/`: a white page, barely-off-white cards, and one strong colour — the near-black of a
+ * filled control. So the neutral ramp below replaces Plaza Night as surface and ink, and the
+ * navy radial that made the dark theme read purple is gone. Nimiq's hues stay in the palette
+ * and keep carrying *meaning* (the status dots, the brand mark's warm centre); they no longer
+ * carry decoration, so gold and Signal Blue are not painted on anything the eye reads as
+ * chrome. Contrast on the new surfaces, computed 2026-11-09 (WCAG 2.1, AA floor 4.5 body /
+ * 3.0 large and non-text):
+ *   on #ffffff: ink 19.67; muted 62% 5.59; faint 48% 3.46 (metadata and hairlines, never body).
+ *   on #0b0b0c: white 19.67; muted 68% 9.17; faint 46% 4.67; the card at #161619 is 18.06.
+ *   A filled control's label is the same 19.67 either way round.
+ *   On the dark page the status hues keep [1]'s on-dark adaptions, unchanged.
+ *
  * Deliberate deviations from [2], approved 2026-11-07 (docs/DECISIONS.md):
  *   - A full-bleed navy dark theme exists, although [2] says Plaza Night is "never used as a
  *     full-bleed dark background; the plaza is light". The dark surface is [1]'s own
@@ -99,6 +113,17 @@
   --nq-paper-white: #ffffff;
   --nq-void-ink: #0d102c;
 
+  /* --- The neutral ramp (see the header note) -----------------------------
+   * Six steps, three either side of the divide. Nothing between them is tinted: a neutral
+   * that leans warm or cool reads as a colour decision on a screen this empty.
+   */
+  --ink-900: #0b0b0c;
+  --ink-800: #202024;
+  --ink-700: #3a3a3f;
+  --paper-50: #fafafa;
+  --paper-100: #f1f1f2;
+  --paper-200: #e4e4e6;
+
   /* Radial background gradients, verbatim from [1]. */
   --nq-blue-bg: radial-gradient(100% 100% at bottom right, #260133, #1f2348);
   --nq-light-blue-bg: radial-gradient(100% 100% at bottom right, #265dd7, #0582ca);
@@ -134,6 +159,11 @@
   --tracking-display: -0.025em;
   --tracking-eyebrow: 0.025em;
 
+  /* The page gutter, as one token so every screen's left edge lines up and so a narrow phone
+   * can close it up. Screens read it instead of hard-coding `--space-5` (see the media
+   * queries at the foot of this file). */
+  --gutter: var(--space-5);
+
   /* --- Spacing ([2] spacing scale, in its own steps) --------------------- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -157,11 +187,11 @@
 
   /* --- Shadows ([2] "quiet stack of three soft shadows") ----------------- */
   --shadow-card: 0 0.34px 2px rgba(0, 0, 0, 0.03), 0 1.5px 3px rgba(0, 0, 0, 0.05),
-    0 4px 16px rgba(0, 0, 0, 0.07);
-  --shadow-floating: 0 18px 38px rgba(31, 35, 72, 0.07), 0 7px 8.5px rgba(31, 35, 72, 0.04),
-    0 2px 2.5px rgba(31, 35, 72, 0.02);
-  --shadow-around: 0 6px 20px rgba(59, 76, 106, 0.13), 0 1.34px 4.47px rgba(59, 76, 106, 0.077),
-    0 0.4px 1.33px rgba(59, 76, 106, 0.053);
+    0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.08), 0 7px 8.5px rgba(0, 0, 0, 0.04),
+    0 2px 2.5px rgba(0, 0, 0, 0.02);
+  --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.12), 0 1.34px 4.47px rgba(0, 0, 0, 0.07),
+    0 0.4px 1.33px rgba(0, 0, 0, 0.05);
 
   /* --- Motion -----------------------------------------------------------
    * --ease-emphasis is this build's entrance/count-up curve; --ease-reveal and --ease-default
@@ -174,134 +204,187 @@
   --duration-reveal: 250ms;
   --duration-slide: 350ms;
 
-  /* --- Semantic surfaces: light "plaza" ([2] §1) ------------------------- */
-  --page: var(--nq-cobble-white);
+  /* --- Semantic surfaces: white ------------------------------------------
+   * The page is white and the card is the faintest step off it, so a card is separated by its
+   * shadow and its corner rather than by a tint. [2]'s 6% wash rule is kept, in neutral.
+   */
+  --page: var(--nq-paper-white);
   --page-image: none;
   --surface: var(--nq-paper-white);
-  --surface-recessed: var(--nq-cobble-fog);
-  --hairline: var(--nq-cobble-ash);
-  --ink: var(--nq-blue);
-  --muted: rgba(31, 35, 72, 0.6);
-  --faint: rgba(31, 35, 72, 0.4);
-  --wash: rgba(31, 35, 72, 0.06);   /* [1] --nimiq-highlight-bg; [2] "The 6% Wash Rule" */
-  --wash-strong: rgba(31, 35, 72, 0.1);
+  --surface-recessed: var(--paper-100);
+  --hairline: var(--paper-200);
+  --ink: var(--ink-900);
+  --muted: rgba(11, 11, 12, 0.62);
+  --faint: rgba(11, 11, 12, 0.48);
+  --wash: rgba(11, 11, 12, 0.06);
+  --wash-strong: rgba(11, 11, 12, 0.11);
 
-  /* Accents. Gold is entry/reward only; Signal Blue carries money and focus. */
-  --accent: var(--nq-gold);
-  --accent-ink: var(--nq-blue);         /* label on a gold fill: 7.79:1 */
-  --accent-secondary: var(--nq-light-blue);
-  --emphasis: var(--nq-light-blue);     /* emphasised words; gold fails contrast on light */
-  --outline: var(--nq-light-blue);      /* focus ring ([2] focus shifts to Signal Blue) */
+  /* Accents. There is one: ink. Decoration that used to be gold (the orbit's arc, the
+     typewriter's cursor, the pill's travelling border) is drawn in the same near-black as the
+     words, so the screen has exactly two values plus whatever a status dot says. */
+  --accent: var(--ink-900);
+  --accent-ink: var(--nq-paper-white);  /* a label on an ink fill: 19.95:1 */
+  --accent-secondary: var(--ink-900);
+  --emphasis: var(--ink-900);
+  --outline: var(--ink-900);            /* focus ring: ink, never a hue */
 
-  /* Money controls ([2] "Primary, gradient (commit money)"). */
-  --money-bg: var(--nq-light-blue);
-  --money-bg-image: var(--nq-light-blue-bg);
-  --money-bg-image-pressed: var(--nq-light-blue-bg-darkened);
+  /* Money controls: a solid near-black fill, as in the reference. No gradient — a gradient on
+     a monochrome screen is the one thing that reads as decoration on a money-move control. */
+  --money-bg: var(--ink-900);
+  --money-bg-pressed: var(--ink-700);
+  --money-bg-image: none;
+  --money-bg-image-pressed: none;
   --money-ink: var(--nq-paper-white);
 
   /* The square brand mark. On the light plaza it is a Plaza Night tile; on the navy page that
    * tile would disappear into the background, so dark uses a white wash instead. */
 
   /* Legacy names kept so already-built components re-skin without edits. */
-  --button-bg: var(--nq-light-blue);
+  --button-bg: var(--ink-900);
   --button-ink: var(--nq-paper-white);
-  --accent-tertiary: var(--nq-cobble-fog);
+  --accent-tertiary: var(--paper-100);
 
   /* --- Status ([2] semantics; every use is paired with a word) ----------- */
   --status-backed: var(--nq-green);       /* Vault Green: transaction success */
   --status-short: var(--nq-orange);       /* Streetlamp: warning */
   --status-unstaking: var(--nq-light-blue);/* Signal Blue: in progress */
   --status-ready: var(--nq-mint);         /* Fresh Mint */
-  --status-neutral: rgba(31, 35, 72, 0.4);
+  --status-neutral: rgba(11, 11, 12, 0.4);
   --status-danger: var(--nq-red);         /* Stop Red: destructive only */
 
-  --disabled-opacity: 0.6;
+  --disabled-opacity: 0.45;
 }
 
-/* --- Dark theme: Nimiq's own navy surface ([1] --nimiq-blue-bg) ----------
- * Only surfaces, inks, washes and the two colours [1] adapts for dark change. The palette,
- * type, spacing, radii and motion tokens are theme-invariant.
+/* --- Dark theme: the same two values, inverted -------------------------
+ * Near-black rather than Nimiq's navy radial: `--nq-blue-bg` ends at #260133, which is what
+ * read as a purple page. Only surfaces, inks, washes and the two hues [1] adapts for dark
+ * change; the palette, type, spacing, radii and motion tokens are theme-invariant.
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --page: var(--nq-blue);
-    --page-image: var(--nq-blue-bg);
-    --surface: rgba(255, 255, 255, 0.06);
-    --surface-recessed: rgba(255, 255, 255, 0.04);
-    --hairline: rgba(255, 255, 255, 0.12);
+    --page: var(--ink-900);
+    --page-image: none;
+    --surface: #161619;
+    --surface-recessed: #1f1f23;
+    --hairline: rgba(255, 255, 255, 0.14);
     --ink: var(--nq-paper-white);
-    --muted: rgba(255, 255, 255, 0.7);
-    --faint: rgba(255, 255, 255, 0.5);
-    --wash: rgba(255, 255, 255, 0.08);
-    --wash-strong: rgba(255, 255, 255, 0.14);
-    --accent-secondary: var(--nq-light-blue-on-dark);
-    --emphasis: var(--nq-light-blue-on-dark);
-    --outline: var(--nq-light-blue-on-dark);
-    --money-bg: var(--nq-light-blue-on-dark);
-    --button-bg: var(--nq-light-blue-on-dark);
+    --muted: rgba(255, 255, 255, 0.68);
+    --faint: rgba(255, 255, 255, 0.46);
+    --wash: rgba(255, 255, 255, 0.07);
+    --wash-strong: rgba(255, 255, 255, 0.13);
+    --accent: var(--nq-paper-white);
+    --accent-ink: var(--ink-900);
+    --accent-secondary: var(--nq-paper-white);
+    --emphasis: var(--nq-paper-white);
+    --outline: var(--nq-paper-white);
+    --money-bg: var(--nq-paper-white);
+    --money-bg-pressed: #cfcfd4;
+    --money-bg-image: none;
+    --money-bg-image-pressed: none;
+    --money-ink: var(--ink-900);
+    --button-bg: var(--nq-paper-white);
+    --button-ink: var(--ink-900);
+    --accent-tertiary: #1f1f23;
     --status-unstaking: var(--nq-light-blue-on-dark);
     --status-neutral: rgba(255, 255, 255, 0.5);
     --status-danger: var(--nq-red-on-dark);
-    --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.28);
-    --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.32), 0 7px 8.5px rgba(0, 0, 0, 0.2);
-    --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.4), 0 1.34px 4.47px rgba(0, 0, 0, 0.24);
+    --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.5), 0 7px 8.5px rgba(0, 0, 0, 0.3);
+    --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.5), 0 1.34px 4.47px rgba(0, 0, 0, 0.3);
   }
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --page: var(--nq-blue);
-  --page-image: var(--nq-blue-bg);
-  --surface: rgba(255, 255, 255, 0.06);
-  --surface-recessed: rgba(255, 255, 255, 0.04);
-  --hairline: rgba(255, 255, 255, 0.12);
+  --page: var(--ink-900);
+  --page-image: none;
+  --surface: #161619;
+  --surface-recessed: #1f1f23;
+  --hairline: rgba(255, 255, 255, 0.14);
   --ink: var(--nq-paper-white);
-  --muted: rgba(255, 255, 255, 0.7);
-  --faint: rgba(255, 255, 255, 0.5);
-  --wash: rgba(255, 255, 255, 0.08);
-  --wash-strong: rgba(255, 255, 255, 0.14);
-  --accent-secondary: var(--nq-light-blue-on-dark);
-  --emphasis: var(--nq-light-blue-on-dark);
-  --outline: var(--nq-light-blue-on-dark);
-  --money-bg: var(--nq-light-blue-on-dark);
-  --button-bg: var(--nq-light-blue-on-dark);
+  --muted: rgba(255, 255, 255, 0.68);
+  --faint: rgba(255, 255, 255, 0.46);
+  --wash: rgba(255, 255, 255, 0.07);
+  --wash-strong: rgba(255, 255, 255, 0.13);
+  --accent: var(--nq-paper-white);
+  --accent-ink: var(--ink-900);
+  --accent-secondary: var(--nq-paper-white);
+  --emphasis: var(--nq-paper-white);
+  --outline: var(--nq-paper-white);
+  --money-bg: var(--nq-paper-white);
+  --money-bg-pressed: #cfcfd4;
+  --money-bg-image: none;
+  --money-bg-image-pressed: none;
+  --money-ink: var(--ink-900);
+  --button-bg: var(--nq-paper-white);
+  --button-ink: var(--ink-900);
+  --accent-tertiary: #1f1f23;
   --status-unstaking: var(--nq-light-blue-on-dark);
   --status-neutral: rgba(255, 255, 255, 0.5);
   --status-danger: var(--nq-red-on-dark);
-  --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.28);
-  --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.32), 0 7px 8.5px rgba(0, 0, 0, 0.2);
-  --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.4), 0 1.34px 4.47px rgba(0, 0, 0, 0.24);
+  --shadow-card: 0 1.5px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-floating: 0 18px 38px rgba(0, 0, 0, 0.5), 0 7px 8.5px rgba(0, 0, 0, 0.3);
+  --shadow-around: 0 6px 20px rgba(0, 0, 0, 0.5), 0 1.34px 4.47px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme='light'] {
   color-scheme: light;
-  --page: var(--nq-cobble-white);
+  --page: var(--nq-paper-white);
   --page-image: none;
   --surface: var(--nq-paper-white);
-  --surface-recessed: var(--nq-cobble-fog);
-  --hairline: var(--nq-cobble-ash);
-  --ink: var(--nq-blue);
-  --muted: rgba(31, 35, 72, 0.6);
-  --faint: rgba(31, 35, 72, 0.4);
-  --wash: rgba(31, 35, 72, 0.06);
-  --wash-strong: rgba(31, 35, 72, 0.1);
-  --accent-secondary: var(--nq-light-blue);
-  --emphasis: var(--nq-light-blue);
-  --outline: var(--nq-light-blue);
-  --money-bg: var(--nq-light-blue);
-  --button-bg: var(--nq-light-blue);
+  --surface-recessed: var(--paper-100);
+  --hairline: var(--paper-200);
+  --ink: var(--ink-900);
+  --muted: rgba(11, 11, 12, 0.62);
+  --faint: rgba(11, 11, 12, 0.48);
+  --wash: rgba(11, 11, 12, 0.06);
+  --wash-strong: rgba(11, 11, 12, 0.11);
+  --accent: var(--ink-900);
+  --accent-ink: var(--nq-paper-white);
+  --accent-secondary: var(--ink-900);
+  --emphasis: var(--ink-900);
+  --outline: var(--ink-900);
+  --money-bg: var(--ink-900);
+  --money-bg-pressed: var(--ink-700);
+  --money-bg-image: none;
+  --money-bg-image-pressed: none;
+  --money-ink: var(--nq-paper-white);
+  --button-bg: var(--ink-900);
+  --button-ink: var(--nq-paper-white);
+  --accent-tertiary: var(--paper-100);
   --status-unstaking: var(--nq-light-blue);
-  --status-neutral: rgba(31, 35, 72, 0.4);
+  --status-neutral: rgba(11, 11, 12, 0.4);
   --status-danger: var(--nq-red);
 }
 
-/* The travelling arc on the playful pill: gold against the surface behind it. */
+/* The travelling arc on the playful pill: ink fading into the hairline it sits on, so the
+   pill reads as one outlined control with a bright spot travelling round it rather than as a
+   coloured badge. */
 :root {
-  --border-arc-a: var(--nq-gold);
-  --border-arc-b: var(--nq-blue);
+  --border-arc-a: var(--accent);
+  --border-arc-b: var(--hairline);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { --border-arc-b: rgba(255, 255, 255, 0.18); }
+
+
+/* --- Device range -------------------------------------------------------
+ * PRD "Design" asks for 375 px minimum and a check at 390. Real phones go narrower than
+ * that: an iPhone SE (1st gen) is 320 CSS px and a folded Galaxy Z Fold is 344, and on both
+ * of them a 375 px floor produced a sideways scroll on every screen. So the floor is gone and
+ * the two ends of the range are handled here, in the one file that owns sizes.
+ *
+ * Below 360 px the gutter and the two display sizes step down; a long German or French
+ * heading then still breaks inside the column rather than past it.
+ */
+@media (max-width: 359px) {
+  :root {
+    --gutter: var(--space-4);
+    --font-headline: 1.875rem;
+    --font-display: 2.5rem;
+  }
 }
-[data-theme='dark'] { --border-arc-b: rgba(255, 255, 255, 0.18); }
-[data-theme='light'] { --border-arc-b: var(--nq-blue); }
+
+/* A tablet or a desktop window gets more air around the same column; the column itself stays
+ * phone-width, because this is a phone app that happens to open in a browser. */
+@media (min-width: 600px) {
+  :root { --gutter: var(--space-6); }
+}
