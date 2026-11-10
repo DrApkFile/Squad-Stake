@@ -137,7 +137,7 @@ export function MySquadsScreen({
           <p className="fine-print fine-print-left">{fiatNote(fiat, now, lang)}</p>
         )}
       </div>
-      <footer className="sheet-footer">
+      <footer className="action-bar">
         <GradientBorderButton label={s.mySquads.createSquad} href={createUrl} t={t} />
         <p className="fine-print">{s.common.neverHolds}</p>
       </footer>

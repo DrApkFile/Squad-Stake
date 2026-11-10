@@ -66,6 +66,10 @@ export const enScreens = {
     totalLabel: 'Total target (NIM)',
     recipientLabel: 'Recipient address',
     recipientHint: 'Fixed now and visible to everyone. Payments go straight here.',
+    /* Spaces, no spaces and lower case are all accepted and normalised before this fires
+     * (apps/web/src/core/nimiq-address.ts); this is for an address that is genuinely not one. */
+    recipientInvalid: 'That recipient is not a Nimiq address.',
+    recipientInvalidNext: 'Paste the address again — it starts with NQ and has 36 characters.',
     personalLabel: 'Your target (NIM)',
     personalHint: 'Everyone sets their own when they join.',
     goalDateLabel: 'Goal date',
@@ -80,6 +84,10 @@ export const enScreens = {
     introShared: (total: string) => `${total} together.`,
     membersLine: (members: string) => `${members} · your NIM never leaves your wallet`,
     amountLabel: 'Your commitment (NIM)',
+    amountYours: (amount: string) =>
+      `You committed ${amount} before. Change it to whatever you want to save.`,
+    amountShare: (amount: string) =>
+      `Suggested ${amount}: an even share of the goal. Change it to anything you like.`,
     notStakingTitle: 'You are not staking yet',
     notStakingBody: (minimum: string) =>
       `Create a staker with at least ${minimum} to back your commitment. It stays yours and it earns.`,
@@ -91,7 +99,7 @@ export const enScreens = {
     pendingTitle: 'Waiting for the chain',
     pendingBody: (confirmations: number, required: number) =>
       `${confirmations} of ${required} confirmations. A hash is not success, so your commitment is saved once the chain confirms it.`,
-    stalled: 'Still unconfirmed after two minutes. Nothing was resent — check again when you like.',
+    stalled: 'Still unconfirmed. Nothing was resent — check again when you like.',
     committedTitle: (amount: string) => `Committed ${amount}`,
     committedBody: (free: string) => `Covered by your own savings. ${free} still free.`,
     createStaker: 'Create staker in Nimiq Pay',
@@ -307,9 +315,12 @@ export const enScreens = {
     unknownTitle: 'Outcome not known yet',
     confirmations: (confirmations: number, required: number) =>
       `${confirmations} of ${required} confirmations. Nothing counts as done until the chain has finalised it.`,
+    /** No count has been read. Never printed as the digit 0: that is the sentence
+      * "0 of 60 confirmations" that contradicted the chain on a real phone. */
+    confirmationsUnread: 'The confirmation count has not been read yet. Nothing counts as done until the chain has finalised it.',
     failedBody: 'It was included in a block but did not execute. Nothing moved; the fee was spent.',
     unknownBody: 'The chain could not be read for this transaction. It may still be fine — nothing has been resent.',
-    stalled: 'Still no verdict after two minutes. Nothing was resent; check again whenever you like.',
+    stalled: 'Still no verdict yet. Nothing was resent; check again whenever you like.',
     lookUp: 'Look it up yourself',
     sceneEyebrow: 'TRANSACTION',
     sceneHeadingTop: 'A hash is not',

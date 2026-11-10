@@ -108,8 +108,14 @@ export const leavingScenes: readonly { id: string; props: LeavingStepsProps }[] 
         withdraw: locked, pay: locked } },
   },
   {
+    // A retire the chain included but did not execute, *after* the release — which is the only
+    // way the step machine reports `failed` for step two. A retire that failed before the
+    // release reads `waiting` instead, because the stake is still locked and offering the tap
+    // again would only spend a second fee (server/core/leave-steps.ts).
     id: 'leaving-retire-failed',
     props: { ...base, stake: demoStake.unstaking,
+      release: { ...releaseSoon, remainingBlocks: 0, estimatedReleaseAt: sceneNow },
+      headBlock: demoRelease.releaseBlock + 12,
       steps: { start: done(demoHashes.unstake), retire: failed(demoHashes.retire),
         withdraw: locked, pay: locked } },
   },
@@ -137,6 +143,14 @@ export const leavingScenes: readonly { id: string; props: LeavingStepsProps }[] 
       squad: { ...base.squad, name: 'Winter buffers', mode: 'B' },
       steps: { start: done(demoHashes.unstake), retire: done(demoHashes.retire),
         withdraw: done(demoHashes.remove), pay: null } },
+  },
+  {
+    // A payment on the wire: the transaction block above step four already says it is being
+    // checked, so the step itself must not also say "finish withdrawing first".
+    id: 'leaving-pay-pending',
+    props: { ...base, stake: demoStake.withdrawn,
+      steps: { start: done(demoHashes.unstake), retire: done(demoHashes.retire),
+        withdraw: done(demoHashes.remove), pay: pending(demoHashes.pay) } },
   },
   {
     id: 'leaving-paid',
@@ -186,6 +200,28 @@ export const leavingScenes: readonly { id: string; props: LeavingStepsProps }[] 
         withdraw: pending(demoHashes.remove), pay: locked },
       error: { message: 'It is not clear whether that transaction was sent.',
         nextAction: 'Check it in Nimiq Pay before sending another.' } },
+  },
+  {
+    /**
+     * The state the phone was actually left in, and the one the screen had no answer for:
+     * "initially it said transaction failed it was included in a block but didnt execute and
+     * the fee was spent so what do i do" (2026-11-09).
+     *
+     * There is deliberately **no** `error` and **no** `onRetry` here, because that is what a
+     * reload looks like — the React state that held the failure is gone and all that is left
+     * is what the chain says. The way on therefore has to come from the step itself.
+     */
+    id: 'leaving-withdraw-failed',
+    props: { ...base, stake: demoStake.retired,
+      steps: { start: done(demoHashes.unstake), retire: done(demoHashes.retire),
+        withdraw: failed(demoHashes.remove), pay: locked } },
+  },
+  {
+    // Mid-read: the control says so rather than looking like a tap that did nothing.
+    id: 'leaving-refreshing',
+    props: { ...base, stake: demoStake.retired, refreshing: true,
+      steps: { start: done(demoHashes.unstake), retire: done(demoHashes.retire),
+        withdraw: available, pay: locked } },
   },
   { id: 'leaving-busy', props: { ...base, busy: true } },
 ];

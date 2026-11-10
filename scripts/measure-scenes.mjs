@@ -160,7 +160,15 @@ async function teardown() {
     await new Promise((resolve) => { child.on('exit', resolve); setTimeout(resolve, 5_000); });
   }
   if (profile !== null) {
-    await rm(profile, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
+    // And the removal itself is checked, not assumed. Chromium can recreate `Default/` while
+    // it is still exiting — after `rm` has already walked past it — which left an 8 KB shell
+    // of every run behind even though the 165 MB inside it had gone (seen 2026-11-09, twice in
+    // one session). So: remove, look, and go round again if anything came back.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await rm(profile, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 });
+      if (!existsSync(profile)) break;
+      await new Promise((resolve) => { setTimeout(resolve, 300); });
+    }
   }
 }
 
@@ -288,7 +296,16 @@ async function main() {
         }
         if (problems.length > 0) failures.push({ id, theme, width, problems });
         if (SHOTS.includes(id) && width === 390) {
-          const shot = await client.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+          // An explicit CSS clip, because mobile emulation applies a page scale of its own:
+          // a plain captureScreenshot returned a 390 px image holding the left 390 px of a
+          // ~474 px-wide layout, so every frame looked clipped at the right and the brand
+          // mark was missing from the top bar (docs/AUDIT.md, m-7). The measurements
+          // themselves were never affected — they are read from the DOM in CSS pixels.
+          const shot = await client.send('Page.captureScreenshot', {
+            format: 'png',
+            captureBeyondViewport: true,
+            clip: { x: 0, y: 0, width, height: 844, scale: 1 },
+          }, sessionId);
           await mkdir('.cache/scenes', { recursive: true });
           await writeFile(`.cache/scenes/${id}-${theme}-${width}.png`, Buffer.from(shot.data, 'base64'));
         }

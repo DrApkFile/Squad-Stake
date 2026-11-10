@@ -18,6 +18,20 @@ export type StepState =
   | { state: 'done'; hash: string | null };
 
 export interface StepTx { hash: string; state: TxState }
+export type PaymentOutcome = { verified: true } | { verified: false; code: string };
+
+/**
+ * §7.6 refusals that the chain cannot take back: the transaction executed and the check
+ * against the squad's own recipient, share and marker failed, so no number of further
+ * confirmations changes the answer. `TX_NOT_CONFIRMED` is deliberately **not** here — it
+ * means "not read yet, or not final yet", which is the one case that must keep waiting
+ * (PRD §8: UNKNOWN never times out).
+ */
+const FINAL_PAYMENT_REFUSALS: readonly string[] = [
+  'WRONG_RECIPIENT', 'PAYMENT_DATA_MISMATCH', 'PAYMENT_SHORT', 'TX_FAILED',
+];
+const finallyRefused = (payment: PaymentOutcome | null) =>
+  payment !== null && !payment.verified && FINAL_PAYMENT_REFUSALS.includes(payment.code);
 export interface LeavingStepsInput {
   /** False when the member has no staker record at all: there is nothing to leave. */
   staking: boolean;
@@ -30,8 +44,9 @@ export interface LeavingStepsInput {
   remove?: StepTx | undefined;
   pay?: StepTx | undefined;
   mode: 'A' | 'B';
-  /** Null when there is no payment to judge; otherwise the §7.6 verdict. */
-  paymentVerified: boolean | null;
+  /** Null when there is no payment to judge; otherwise the §7.6 verdict, **with its code**.
+   * A boolean was not enough: see `FINAL_PAYMENT_REFUSALS`. */
+  payment: PaymentOutcome | null;
 }
 export interface LeavingSteps {
   start: StepState; retire: StepState; withdraw: StepState; pay: StepState | null;
@@ -55,14 +70,21 @@ export function deriveLeavingSteps(input: LeavingStepsInput): LeavingSteps {
 
   const released = input.releaseBlock !== null && input.headBlock !== null
     && input.headBlock >= input.releaseBlock;
+  // The release gate comes before the failure, which is the one place these two orders differ.
+  // A retire sent before the chain released the stake is included-but-failed, and if that
+  // failure outranked the gate the step would read `failed` — which every screen now treats as
+  // "yours to take again" (apps/web/src/core/retry.ts). Offering that tap would cost a second
+  // fee for a transaction the staking contract rejects again (FAILURE_MODES "retire before
+  // release"). The honest state while the stake is still locked is `waiting`, whatever an
+  // earlier attempt did; the trade-off is that the failed hash is not shown on this step until
+  // the release passes, and the failure was reported when it happened.
   const retireStep: StepState = withdrawn || retiredLuna > 0
     ? { state: 'done', hash: retire?.hash ?? null }
     : isOpen(retire) && retire ? { state: 'pending', hash: retire.hash }
-      : failed(retire) && retire ? { state: 'failed', hash: retire.hash }
-        : inactiveLuna <= 0 ? { state: 'locked' }
-          // Unknown release counts as not yet: offering the tap would cost a fee for a
-          // transaction the staking contract rejects (FAILURE_MODES "retire before release").
-          : released ? { state: 'available' } : { state: 'waiting' };
+      : inactiveLuna <= 0 ? { state: 'locked' }
+        : !released ? { state: 'waiting' }
+          : failed(retire) && retire ? { state: 'failed', hash: retire.hash }
+            : { state: 'available' };
 
   const withdrawStep: StepState = withdrawn ? { state: 'done', hash: remove?.hash ?? null }
     : isOpen(remove) && remove ? { state: 'pending', hash: remove.hash }
@@ -74,13 +96,28 @@ export function deriveLeavingSteps(input: LeavingStepsInput): LeavingSteps {
   // stays locked, because that NIM is not theirs to spend yet.
   const idle = inactiveLuna === 0 && retiredLuna === 0
     && !isOpen(unstake) && !isOpen(retire) && !isOpen(remove);
-  const payStep: StepState | null = input.mode !== 'A' ? null
-    : input.paymentVerified === true && pay ? { state: 'done', hash: pay.hash }
-      : isOpen(pay) && pay ? { state: 'pending', hash: pay.hash }
-        // A pay transaction with a verdict that is not "verified" failed §7.6: wrong
-        // recipient, short value, wrong marker, or included-but-failed.
-        : pay !== undefined && input.paymentVerified === false ? { state: 'failed', hash: pay.hash }
-          : withdrawn || idle ? { state: 'available' } : { state: 'locked' };
+  const payStep: StepState | null = input.mode !== 'A' ? null : payStepFor();
+
+  /**
+   * Step four, in the order the answers actually become certain. The §7.6 verdict is checked
+   * **before** the tracked state, because a payment to the wrong recipient, short of the
+   * share or carrying the wrong marker is refused the moment it executes — waiting for the
+   * tracker's own poll to call it "included" first only made the screen say "Sent" about a
+   * transaction the server had already judged (docs/AUDIT.md, M-3).
+   *
+   * Everything that is not a verdict keeps the step `pending`: a hash exists, so no control
+   * here may offer a second send (AGENTS.md invariant 8).
+   */
+  function payStepFor(): StepState {
+    if (pay === undefined) {
+      return withdrawn || idle ? { state: 'available' } : { state: 'locked' };
+    }
+    if (input.payment?.verified === true) return { state: 'done', hash: pay.hash };
+    if (finallyRefused(input.payment)) return { state: 'failed', hash: pay.hash };
+    // Included but did not execute: nothing moved and the fee was spent (NimJar).
+    if (failed(pay)) return { state: 'failed', hash: pay.hash };
+    return { state: 'pending', hash: pay.hash };
+  }
 
   return { start, retire: retireStep, withdraw: withdrawStep, pay: payStep };
 }

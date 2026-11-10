@@ -42,7 +42,7 @@ content.
 | A05 | No hardcoded private keys, API secrets or credentials | secret-scan test in `pnpm gate` | CI log |
 | A06 | Fully functional on the first try; no prototype or mockup; live on mainnet | S10 real run; judge path | `PROOF_PLAN.md` |
 | A07 | Written description ≤ 250 words: what, who, how it uses Nimiq Pay | word-count check | `docs/SUBMISSION.md` |
-| A08 | Category selected: **Pay** | form | — |
+| A08 | Category selected: **Save** | form | `docs/SUBMISSION.md` |
 | A09 | Nothing off-limits: no gambling/chance, explicit, hateful, deceptive, malware, impersonation | content filters J-tests; no chance mechanics | `tests/` |
 | A10 | Third-party code properly licensed and attributed | `THIRD_PARTY_NOTICES.md` | repo |
 | A11 | **User data only with clear disclosure, lawful basis, informed consent** | privacy screen before sign-in; `PRIVACY.md` | screenshot |
@@ -50,7 +50,12 @@ content.
 
 ## Entry type chosen and why (updated for Squad Stake: Save; see IDEA_CHECK.md)
 
-**Pay.** The brief: "Open up a new way for Nimiq Pay to pay … reaching a merchant, bill, or
+**Save.** Squad Stake is a group savings jar whose shares stay staked in their owners' own
+wallets, which is Cycle 3's own "savings goals / group savings jars" example. The paragraph
+below is the **superseded** reasoning from the earlier Jolt/Lightning idea, kept because it
+records why Pay was considered first; `IDEA_CHECK.md` and `docs/PRD.md` §14 are current.
+
+~~**Pay.**~~ The brief: "Open up a new way for Nimiq Pay to pay … reaching a merchant, bill, or
 person that money cannot reach today." Jolt reaches anyone with a Lightning address. Pay is
 also where a past winner (emrealt34, NimJump) is building a Lightning shop, so we compete on
 proof and reach, not on being first to Lightning.

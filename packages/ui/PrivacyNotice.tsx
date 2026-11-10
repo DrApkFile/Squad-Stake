@@ -30,8 +30,12 @@ export function PrivacyNotice({
         <dd>{s.privacy.movesBody}</dd>
       </dl>
     </div>
-    <footer className="sheet-footer">
-      <button className="primary-button" onClick={onAccept} disabled={busy}>{s.privacy.accept}</button>
+    <footer className="action-bar">
+      {/* `busy` is a prop here rather than derived state, and it used to dim the button and
+          say nothing. No caller passes it today; the contract is honoured anyway. */}
+      <button className="primary-button" onClick={onAccept} disabled={busy}>
+        {busy ? s.common.waiting : s.privacy.accept}
+      </button>
       <p className="fine-print">{s.privacy.fineprint}</p>
     </footer>
   </main>;

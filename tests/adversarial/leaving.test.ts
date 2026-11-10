@@ -54,7 +54,19 @@ test('Q11 a retire forced before the release block comes back failed with nothin
 
   const after = await leavePlan(squadId, ADDRESSES.alice, context.deps);
   assert.ok(after.ok);
-  assert.deepEqual(after.view.steps.retire, { state: 'failed', hash: RETIRE_HASH });
+  /*
+   * And the step still reads `waiting`, not `failed`, because the stake is still locked. This
+   * is the whole reason the release gate outranks the failure in the step machine: every
+   * screen now treats `failed` as "yours to take again" (apps/web/src/core/retry.ts), so a
+   * failure that outranked the gate would put a *second* 0.003 NIM fee behind a button for a
+   * transaction the staking contract rejects just as surely as the first one.
+   */
+  assert.deepEqual(after.view.steps.retire, { state: 'waiting' });
+  assert.deepEqual(
+    retryOffer({ retryable: true, lastKind: 'retire',
+      lastStepState: after.view.steps.retire.state }),
+    { kind: 'reread' },
+  );
   // Nothing moved: the stake is still inactivating, nothing is retired, and withdraw stays shut.
   assert.equal(after.view.stake?.inactiveLuna, SHARE);
   assert.equal(after.view.stake?.retiredLuna, 0);
@@ -62,6 +74,20 @@ test('Q11 a retire forced before the release block comes back failed with nothin
   // And with nothing retired there is no withdrawal to build either.
   assert.deepEqual(planRemove({ retiredBalanceLuna: after.view.stake?.retiredLuna ?? 0 }),
     { kind: 'blocked', reason: 'NOTHING_TO_WITHDRAW' });
+
+  // Once the chain does release the stake, that same failed retire is the member's to take
+  // again — the fee is gone but the step is real, and now the planner will build it.
+  context.setHead(releaseBlock + 1);
+  const released = await leavePlan(squadId, ADDRESSES.alice, context.deps);
+  assert.ok(released.ok);
+  assert.deepEqual(released.view.steps.retire, { state: 'failed', hash: RETIRE_HASH });
+  assert.deepEqual(
+    retryOffer({ retryable: true, lastKind: 'retire',
+      lastStepState: released.view.steps.retire.state }),
+    { kind: 'resend', tx: 'retire' },
+  );
+  assert.equal(planRetire({ inactiveBalanceLuna: SHARE,
+    headBlock: released.view.headBlock ?? 0, releaseBlock }).kind, 'retire-stake');
 });
 
 test('§7.5 the plan is one member’s own, and nobody else can ask for it', async () => {
@@ -194,19 +220,30 @@ test('a retry after a failed step never becomes a second send', () => {
   // Adding it is only safe if it cannot resend, so this attacks exactly that.
   const kinds = ['unstake', 'retire', 'remove'] as const;
 
-  // Nothing is on the wire and the chain still says the step is the member's: the one case a
-  // resend is allowed, and even then the container re-reads the plan before deciding.
+  // Nothing is on the wire and the step is the member's to take: a resend is allowed, and even
+  // then the container re-reads the plan before deciding anything.
+  //
+  // `failed` is in this list on purpose, and it is the second half of the same phone report:
+  // "it said transaction failed, it was included in a block but didn't execute and the fee was
+  // spent, so what do I do". That verdict is final — the chain executed nothing — so the step
+  // is genuinely still theirs, and offering it again is not a second send of the transaction
+  // that failed. The step machine only reports `failed` while the step's own precondition
+  // holds, which is what keeps this honest (server/core/leave-steps.ts).
   for (const tx of kinds) {
-    assert.deepEqual(
-      retryOffer({ retryable: true, lastKind: tx, lastStepState: 'available' }),
-      { kind: 'resend', tx },
-    );
+    for (const state of ['available', 'failed'] as const) {
+      assert.deepEqual(
+        retryOffer({ retryable: true, lastKind: tx, lastStepState: state }),
+        { kind: 'resend', tx },
+        `${tx}/${state}`,
+      );
+    }
   }
 
-  // Every other verdict the chain can give about that step. `pending` is the dangerous one —
-  // a hash exists — but `done`, `waiting` and `locked` are no invitation either.
+  // Every verdict that means the chain has moved on. `pending` is the dangerous one — a hash
+  // is in flight, and a resend there is the double-send invariant 8 forbids — but `done`,
+  // `waiting` and `locked` are no invitation either.
   for (const tx of kinds) {
-    for (const state of ['pending', 'failed', 'done', 'waiting', 'locked'] as const) {
+    for (const state of ['pending', 'done', 'waiting', 'locked'] as const) {
       assert.deepEqual(
         retryOffer({ retryable: true, lastKind: tx, lastStepState: state }),
         { kind: 'reread' },

@@ -108,8 +108,8 @@ export interface SquadDeps {
 }
 
 export type CreateFailure = 'INVALID_INPUT' | 'GOAL_TOO_SOON' | 'UNAVAILABLE';
-export type JoinFailure = 'INVALID_INPUT' | 'INVITE_INVALID' | 'SQUAD_CLOSED';
-export type LeaveFailure = 'SQUAD_NOT_FOUND' | 'NOT_A_MEMBER';
+export type JoinFailure = 'INVALID_INPUT' | 'INVITE_INVALID' | 'SQUAD_CLOSED' | 'UNAVAILABLE';
+export type LeaveFailure = 'SQUAD_NOT_FOUND' | 'NOT_A_MEMBER' | 'LEAVE_BLOCKED';
 type CreateResult = { ok: true; id: string; shortId: string; inviteToken: string } | { ok: false; code: CreateFailure };
 type JoinResult = { ok: true; id: string; alreadyMember: boolean } | { ok: false; code: JoinFailure };
 type LeaveResult = { ok: true; left: true } | { ok: false; code: LeaveFailure };
@@ -153,10 +153,20 @@ export function createSquadService(deps: SquadDeps) {
       if (!isActive(squad)) return { ok: false, code: 'SQUAD_CLOSED' };
       const existing = await deps.store.getMembership(squad.id, address);
       if (existing && existing.leftAt === null) return { ok: true, id: squad.id, alreadyMember: true };
-      await deps.store.joinMembership({
+      const joined = await deps.store.joinMembership({
         squadId: squad.id, address,
         personalTargetLuna: squad.mode === 'B' ? parsed.data.personalTargetLuna ?? null : null,
       });
+      // The insert is conditional (`WHERE left_at IS NOT NULL`), so a false verdict means it
+      // matched no row — which can only be a join that landed between the read above and this
+      // write. Re-read rather than guess: a current membership is the same success the other
+      // caller got, and anything else is a write we cannot account for, so it is not reported
+      // as success (docs/AUDIT.md, n-4).
+      if (!joined) {
+        const now = await deps.store.getMembership(squad.id, address);
+        if (now === null || now.leftAt !== null) return { ok: false, code: 'UNAVAILABLE' };
+        return { ok: true, id: squad.id, alreadyMember: true };
+      }
       return { ok: true, id: squad.id, alreadyMember: false };
     },
 
@@ -166,7 +176,13 @@ export function createSquadService(deps: SquadDeps) {
       const membership = await deps.store.getMembership(squadId, address);
       if (!membership || membership.leftAt !== null) return { ok: false, code: 'NOT_A_MEMBER' };
       // §7.8: the commitment goes; nothing on-chain moves unless the member unstakes.
-      await deps.store.markLeft(squadId, address, deps.now());
+      // `markLeft` is conditional on `left_at IS NULL`, so false means another request left
+      // first or the row is gone. Reporting success would tell the member their commitment was
+      // released on the strength of a write that did not happen; `LEAVE_BLOCKED` is retryable
+      // and says the stake is untouched, which is true either way (docs/AUDIT.md, n-1, n-4).
+      if (!await deps.store.markLeft(squadId, address, deps.now())) {
+        return { ok: false, code: 'LEAVE_BLOCKED' };
+      }
       return { ok: true, left: true };
     },
   };

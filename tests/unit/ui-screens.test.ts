@@ -3,11 +3,13 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { CreateSquadScreen } from '../../packages/ui/CreateSquadScreen';
 import { LeavingSteps } from '../../packages/ui/LeavingSteps';
 import { MySquadsScreen } from '../../packages/ui/MySquadsScreen';
 import { OrbitScene } from '../../packages/ui/OrbitSquad';
 import { ProofScreen } from '../../packages/ui/ProofScreen';
 import { SignInScreen } from '../../packages/ui/SignInScreen';
+import { InfoSheet } from '../../packages/ui/InfoSheet';
 import { PayShareSheet } from '../../packages/ui/PayShareSheet';
 import { SquadScreen } from '../../packages/ui/SquadScreen';
 import { TxStatusScene } from '../../packages/ui/TxStatus';
@@ -17,6 +19,7 @@ import { orbitScenes } from '../../packages/ui/scenes/orbit';
 import { leavingScenes } from '../../packages/ui/scenes/leaving';
 import { payShareScenes, txStatusScenes } from '../../packages/ui/scenes/payment';
 import { signInScenes } from '../../packages/ui/scenes/sign-in';
+import { createSquadScenes } from '../../packages/ui/scenes/squad-flow';
 import { DEMO_LABEL } from '../../packages/ui/scenes/demo/squad';
 
 const render = (component: unknown, props: unknown) =>
@@ -51,7 +54,9 @@ test('Q17 every new scene renders twice to the same bytes from props alone', () 
   // 3 added for the native-UI pass: the copied confirmation and the two ⓘ-sheet frames.
   // 2 added for the retry pass: a withdrawal the network interrupted, and the same failure
   // once a hash exists, where no retry may be offered.
-  assert.equal(rendered, 7 + 5 + 18 + 3 + 8 + 3 + 24 + 13 + 4);
+  // 1 added by the audit pass: a payment in flight, where step four must not claim the
+  // withdrawal is unfinished (docs/AUDIT.md, m-4).
+  assert.equal(rendered, 7 + 5 + 18 + 3 + 8 + 3 + 27 + 13 + 4);
 });
 
 test('Q17 the same t always renders the same frame, and a different t renders a different one', () => {
@@ -225,6 +230,17 @@ test('Q17 the screens read as an app: no printed invite link, no underlined cont
   assert.match(markup, /Share invite/);
   assert.match(markup, /Copy link/);
 
+  // The create screen's share step is the first place a creator needs the link, and it used
+  // to print it in full while this screen did not (docs/AUDIT.md, M-1). Same rule, same
+  // controls, same needle.
+  const share = createSquadScenes.find((scene) => scene.props.created !== undefined);
+  assert.ok(share?.props.created, 'a fixture for the share step');
+  const shareMarkup = render(CreateSquadScreen, share.props);
+  assert.ok(!shareMarkup.includes(share.props.created.inviteUrl),
+    'the create screen never prints the invite link either');
+  assert.match(shareMarkup, /Share invite/);
+  assert.match(shareMarkup, /Copy link/);
+
   // A compact top bar: the screen's own name, centred, with a back chevron rather than the
   // "← Squads" text link it replaces.
   assert.match(markup, /class="topbar"/);
@@ -320,6 +336,49 @@ test('Q17 the entry screen says what Squad Stake is, and labels its sample witho
   assert.match(html, /<title>Squad Stake<\/title>/);
 });
 
+test('n-5/n-6 the entry action is the loudest control on its screen, and the ⓘ sheet closes', () => {
+  const idle = signInScenes.find((entry) => entry.id === 'sign-in-idle');
+  const waiting = signInScenes.find((entry) => entry.id === 'sign-in-waiting');
+  assert.ok(idle && waiting);
+
+  // The one action on the first screen was the outlined gradient pill — this app's quiet
+  // style — while "Change my commitment" elsewhere is filled ink (docs/AUDIT.md, n-5).
+  const idleHtml = render(SignInScreen, idle.props);
+  assert.match(idleHtml, /class="primary-button"[^>]*>\s*Sign in with Nimiq Pay/);
+  assert.doesNotMatch(idleHtml, /class="gradient-button"/);
+
+  // Waiting still says so, and still turns: the spinner did not go with the pill.
+  const waitingHtml = render(SignInScreen, { ...waiting.props, t: 0.4 });
+  assert.match(waitingHtml, /aria-busy="true"/);
+  assert.match(waitingHtml, /class="spinner"/);
+  assert.match(waitingHtml, /Waiting for approval/);
+
+  // n-6: the scrim closes the sheet on a tap outside it and on Escape, as pure handlers —
+  // a tap on the sheet itself must not close it.
+  const open = squadPageScenes.find((scene) => scene.id === 'squad-page-info-open');
+  assert.ok(open);
+  let closed = 0;
+  const element = InfoSheet({
+    info: { title: 'Why a day', body: 'Because of the reporting window.', openedT: 0 },
+    t: REDUCED_MOTION_T, onClose: () => { closed += 1; },
+  });
+  assert.ok(element !== null);
+  const scrim = { className: 'info-scrim' };
+  const sheet = { className: 'info-sheet' };
+  element.props.onClick({ target: scrim, currentTarget: scrim });
+  assert.equal(closed, 1, 'a tap on the scrim closes it');
+  element.props.onClick({ target: sheet, currentTarget: scrim });
+  assert.equal(closed, 1, 'a tap inside the sheet does not');
+  element.props.onKeyDown({ key: 'Escape', stopPropagation: () => {} });
+  assert.equal(closed, 2, 'Escape closes it');
+  element.props.onKeyDown({ key: 'a', stopPropagation: () => {} });
+  assert.equal(closed, 2);
+  // The close button is still there: the scrim is not the only way out, and it carries no
+  // role of its own.
+  assert.match(render(SquadScreen, { ...open.props, demoLabel: DEMO_LABEL }),
+    /class="info-scrim"/);
+});
+
 test('§7.5 a failed exit step always offers a way on, and never a second send', () => {
   const by = (id: string) => {
     const scene = leavingScenes.find((entry) => entry.id === id);
@@ -345,6 +404,52 @@ test('§7.5 a failed exit step always offers a way on, and never a second send',
   const unread = by('leaving-chain-unavailable');
   assert.doesNotMatch(unread, /class="primary-button"[^>]*>(?!\s*Try again)/);
   assert.match(unread, /Try again/);
+
+  /*
+   * The state the second phone report was actually in: a withdrawal included in a block that
+   * did not execute, the fee spent — and then the page reloaded, so the failure is no longer
+   * in React state at all. The fixture carries no `error` and no `onRetry` on purpose. The way
+   * on has to come from the step, read off the chain, or it does not survive a reload.
+   */
+  const failedWithdraw = by('leaving-withdraw-failed');
+  assert.doesNotMatch(failedWithdraw, /role="alert"/);
+  assert.match(failedWithdraw, /included in a block but did not execute/);
+  // Step three offers itself again, inside the step, under the explanation of what happened.
+  assert.match(failedWithdraw, /did not execute[\s\S]*class="primary-button"[\s\S]*Try again/);
+  // And it is the only send on the screen: steps one and two are done, four is locked.
+  assert.equal(failedWithdraw.match(/class="primary-button"/g)?.length, 1);
+});
+
+test('a control that starts work says so, and never prints a count nobody read', () => {
+  const scene = leavingScenes.find((entry) => entry.id === 'leaving-refreshing');
+  assert.ok(scene);
+  const refreshing = render(LeavingSteps, scene.props);
+  // Reported from a phone: "the refresh button there when i press it nothing shows to make me
+  // know its refreshing at least the button should roll". The spinner turns, and because
+  // reduced motion freezes `t` the words have to change too — so both are asserted.
+  assert.match(refreshing, /aria-busy="true"/);
+  assert.match(refreshing, /class="spinner"/);
+  assert.match(refreshing, /Refreshing…/);
+  assert.doesNotMatch(refreshing, />Refresh</);
+
+  // The spinner is a pure function of `t`, like every other moving thing in this package: two
+  // different instants draw two different frames, and the same instant draws the same bytes.
+  const atZero = render(LeavingSteps, { ...(scene.props as object), t: 0 });
+  const later = render(LeavingSteps, { ...(scene.props as object), t: 0.4 });
+  assert.notEqual(atZero, later);
+  assert.equal(later, render(LeavingSteps, { ...(scene.props as object), t: 0.4 }));
+
+  // The same defect as the squad page's, one component along: `confirmations ?? 0` turned "not
+  // read" into the sentence "0 of 60 confirmations" (docs/PROGRESS.md 2026-11-09).
+  const unread = render(TxStatusScene, {
+    state: 'pending', hash: 'ab'.repeat(32), confirmations: null, requiredConfirmations: 60,
+  });
+  assert.match(unread, /has not been read yet/);
+  assert.doesNotMatch(unread, /0 of 60/);
+  const counted = render(TxStatusScene, {
+    state: 'pending', hash: 'ab'.repeat(32), confirmations: 12, requiredConfirmations: 60,
+  });
+  assert.match(counted, /12 of 60/);
 });
 
 test('the screens fit a 320 px phone and no longer paint a purple page', () => {
@@ -371,4 +476,25 @@ test('the screens fit a 320 px phone and no longer paint a purple page', () => {
   // The one filled control is ink, not a gradient.
   assert.match(tokens, /--money-bg: var\(--ink-900\)/);
   assert.match(tokens, /--money-bg-image: none/);
+});
+
+test('§7.4 a settled squad offers no action the server would refuse', () => {
+  const scene = (id: string) => {
+    const found = squadPageScenes.find((entry) => entry.id === id);
+    assert.ok(found, id);
+    return render(SquadScreen, { ...found.props, demoLabel: DEMO_LABEL, onLeave: () => undefined });
+  };
+  // COMPLETED is not an active state, so `isActive` refuses both a commitment and a leave with
+  // SQUAD_CLOSED (server/core/{commitments,squads}.ts). The page must not send the member to a
+  // sheet that can only refuse (docs/AUDIT.md, F-2).
+  const done = scene('squad-page-completed');
+  assert.match(done, /This squad is complete/);
+  assert.doesNotMatch(done, /Commit my share|Change my commitment|Leave squad/);
+  assert.doesNotMatch(done, /class="action-bar"/);
+
+  // An open squad still offers both, so this is a state rule and not a removal.
+  const open = scene('squad-page-backed');
+  assert.match(open, /class="action-bar"/);
+  assert.match(open, /Commit my share|Change my commitment/);
+  assert.match(open, /Leave squad/);
 });

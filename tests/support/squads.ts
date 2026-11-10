@@ -435,5 +435,7 @@ export function planHarness(options: { headBlock?: number } = {}) {
     breakValidatorRead: () => { validatorReadable = false; },
     setHead: (value: number) => { headBlock = value; },
     setTransaction: (tx: ChainTransaction) => { transactions.set(tx.hash, tx); },
+    /** Forgets a transaction, so the node answers the way it answers an unknown hash. */
+    forgetTransaction: (hash: string) => { transactions.delete(hash); },
   };
 }

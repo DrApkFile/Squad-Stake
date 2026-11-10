@@ -43,6 +43,9 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
   // What "Try again" would repeat. Null means the last failure was a *read*, so trying again
   // is simply reading the chain again.
   const [lastKind, setLastKind] = useState<TxKind | null>(null);
+  // Only a plain "Refresh" tap, so the control can say it is reading. `busy` already covers a
+  // read taken on the way to a wallet call.
+  const [refreshing, setRefreshing] = useState(false);
   // The member's own zone, read once after mount. The server cannot know it, so the first
   // paint says UTC and then corrects itself; the label always names the zone it is showing,
   // so neither frame can be misread (packages/ui/format.ts).
@@ -51,7 +54,15 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
 
   const fail = (code: string) => setError(catalogError(code, lang));
 
-  const loadPlan = useCallback(async (): Promise<PlanWire | null> => {
+  /**
+   * Re-reads the plan. `keepFailure` is what a step's failure needs to survive its own
+   * aftermath: `act` finishes by reading the chain again, and this function used to clear the
+   * error on the way past — so "the transaction failed" appeared and then erased itself,
+   * taking the retry control with it. That is what was reported from a phone on 2026-11-09:
+   * "initially it said transaction failed … I didn't see the retry button". A read may always
+   * raise a read error; it may never retract a verdict about a send.
+   */
+  const loadPlan = useCallback(async (keepFailure = false): Promise<PlanWire | null> => {
     const response = await fetch(`/api/plan/${plan.squadId}`, {
       headers: { accept: 'application/json' },
     });
@@ -61,9 +72,30 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
       return null;
     }
     setPlan(parsed.plan);
-    setError(parsed.plan.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', lang) : null);
+    if (parsed.plan.chainUnavailable) setError(catalogError('CHAIN_UNAVAILABLE', lang));
+    else if (!keepFailure) setError(null);
     return parsed.plan;
   }, [lang, plan.squadId]);
+
+  /**
+   * The explicit "Refresh" tap. It was `void loadPlan()` with nothing around it, so a read that
+   * rejected — exactly what an interrupted connection does — was an unhandled rejection and
+   * the screen did not change at all. Reported as "when I press it nothing shows".
+   */
+  const refresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    // Reading is not retrying: a plain refresh forgets which send failed, so the next failure
+    // is judged on its own.
+    setLastKind(null);
+    try {
+      await loadPlan();
+    } catch {
+      fail('NETWORK_ERROR');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadPlan, refreshing]);
 
   /** The pure planner decides every wallet argument from one fresh plan (never from state). */
   function decide(kind: TxKind, fresh: PlanWire): LeavingStep {
@@ -123,7 +155,9 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
       // never the wallet, so nothing is ever resent (FAILURE_MODES).
       const verdict = await poll.follow(sent.hash, () => undefined);
       if (verdict?.state === 'INCLUDED_FAILED') fail('TX_FAILED');
-      await loadPlan();
+      // Keeps that verdict: the read is here to move the steps on, not to erase what just
+      // happened. The step it belongs to now reads `failed`, which is what offers it again.
+      await loadPlan(true);
     } catch {
       fail('NETWORK_ERROR');
     } finally {
@@ -147,7 +181,7 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
   const retry = offer.kind === 'none' ? null : () => {
     // `act` re-reads the plan from the chain before it decides anything, so a transaction that
     // did land between the failure and this tap is seen first and the planner refuses it.
-    if (offer.kind === 'resend') void act(offer.tx); else void loadPlan();
+    if (offer.kind === 'resend') void act(offer.tx); else void refresh();
   };
 
   // What step one would do to this member's other squads, from the same pure function that
@@ -189,9 +223,8 @@ export function LeavingContainer({ initial, now, explorerBase, initialLang, demo
     onStartLeaving: () => void act('unstake'),
     onRetire: () => void act('retire'),
     onWithdraw: () => void act('remove'),
-    // Reading is not retrying: a plain refresh forgets which send failed, so the next failure
-    // is judged on its own.
-    onRefresh: () => { setLastKind(null); void loadPlan(); },
+    onRefresh: () => { void refresh(); },
+    refreshing,
     ...(retry ? { onRetry: retry } : {}),
     lang,
     back: { label: strings(lang).common.backSquad, href: `/squads/${plan.squadId}` },

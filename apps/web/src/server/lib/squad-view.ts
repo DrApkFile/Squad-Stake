@@ -1,6 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { EARNED_TX_PAGE, MINIMUM_STAKE_LUNA, SPREAD_SAMPLE_LIMIT } from '../../config/constants';
+import { commitSuggestion } from '../../core/commit-suggestion';
 import type { JoinView, PoolWire } from '../../core/view-contract';
 import type { EarnedDeps, EarnedPool } from '../core/member-earned';
 import { isActive } from '../core/squads';
@@ -84,15 +85,20 @@ export async function joinView(token: string, address: string | null): Promise<J
     squad: { name: squad.name, mode: squad.mode, targetLuna: squad.targetLuna,
       goalAt: squad.goalAt, memberCount },
     member: null, delegation: null, minimumLuna: MINIMUM_STAKE_LUNA, pool: null,
+    suggestion: null,
   };
   if (address === null) return view;
 
-  const [staker, commitments] = await Promise.all([
+  const [staker, commitments, membership] = await Promise.all([
     rpc.getStakerByAddress(address), squadStore.activeCommitments(address),
+    squadStore.getMembership(squad.id, address),
   ]);
   const otherCommitmentsLuna = commitments
     .filter((commitment) => commitment.squadId !== squad.id)
     .reduce((total, commitment) => total + commitment.committedLuna, 0);
+  view.suggestion = commitSuggestion(squad, memberCount,
+    membership !== null && membership.leftAt === null,
+    commitments.find((commitment) => commitment.squadId === squad.id)?.committedLuna ?? 0);
   if (staker.ok) {
     view.member = {
       activeBalanceLuna: staker.data.status === 'STAKING' ? staker.data.staker.balance : null,

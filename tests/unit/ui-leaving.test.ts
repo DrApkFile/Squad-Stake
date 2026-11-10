@@ -90,9 +90,12 @@ test('Q17 §9.9 a pending step is never success, and a failed one says the chain
   assert.match(pending.markup, new RegExp(pending.props.steps.start.state === 'pending'
     ? pending.props.steps.start.hash : 'no hash'));
   assert.doesNotMatch(pending.markup, /Your stake is on its way out/);
-  // A stalled poll stops and offers a manual re-check; it never resends.
-  assert.match(leaving('leaving-start-stalled').markup,
-    /Still no verdict after two minutes\. Nothing was resent/);
+  // A stalled poll stops and offers a manual re-check; it never resends. The wording no
+  // longer promises "after two minutes": a refusal can end the window sooner, and the member
+  // does not need to be told how long we waited (docs/AUDIT.md, m-1).
+  const stalled = leaving('leaving-start-stalled').markup;
+  assert.match(stalled, /Still no verdict yet\. Nothing was resent/);
+  assert.doesNotMatch(stalled, /two minutes/);
   // Included but failed is a failure with the fee spent, not a retry (NimJar, 12 Sep 2026).
   const failed = leaving('leaving-retire-failed');
   assert.match(failed.markup, /That transaction failed/);
@@ -104,6 +107,26 @@ test('Q17 §9.9 a pending step is never success, and a failed one says the chain
     assert.match(render(LeavingSteps, { ...scene.props, demoLabel: DEMO_LABEL }),
       /Refresh/, scene.id);
   }
+});
+
+test('Q17 §9.7 step four never says "finish withdrawing first" about a payment in flight', () => {
+  // The step is not locked — the chain has it and is counting confirmations. The transaction
+  // block above it already says so, so repeating the locked sentence contradicts it
+  // (docs/AUDIT.md, m-4).
+  const pending = leaving('leaving-pay-pending');
+  assert.doesNotMatch(pending.markup, /Finish withdrawing first/);
+  assert.match(pending.markup, /Waiting for the chain/);
+  // And it offers no second send while a hash is in flight (AGENTS.md invariant 8): the words
+  // "Pay my share" survive only as the step's own heading, with no control under them.
+  assert.doesNotMatch(pending.markup, /class="primary-button"/);
+
+  // The sentence is still there in the state it describes: nothing withdrawn yet.
+  const locked = leaving('leaving-start');
+  assert.match(locked.markup, /Finish withdrawing first, then pay your share\./);
+  // Once the NIM is back, the step offers the payment instead of the sentence.
+  const ready = leaving('leaving-withdrawn-shared-goal');
+  assert.doesNotMatch(ready.markup, /Finish withdrawing first/);
+  assert.match(ready.markup, /class="primary-button"[^>]*>Pay my share/);
 });
 
 test('Q17 §9.8 the pay sheet shows the fixed recipient, the marker and the squad roster', () => {

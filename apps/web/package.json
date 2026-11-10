@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "tsx src/server/migrate.ts"
+    "db:migrate": "tsx src/server/migrate.ts",
+    "db:reset-data": "tsx src/server/reset-data.ts"
   },
   "dependencies": {
     "@nimiq/core": "2.22.0",

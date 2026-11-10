@@ -31,6 +31,12 @@ export const createSquadScenes: readonly { id: string; props: CreateSquadScreenP
     ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
     recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
   }, created: { shortId: 'k3m9p2qr', inviteUrl: 'https://squad.example/s/sample-invite-token', squadUrl: '/squads/sample' } } },
+  // The same step after the link has been copied: the one confirmation the member gets that
+  // the URL they can no longer see is really on the clipboard (docs/AUDIT.md, M-1).
+  { id: 'create-share-copied', props: { minGoalDate, shared: true, values: {
+    ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
+    recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
+  }, created: { shortId: 'k3m9p2qr', inviteUrl: 'https://squad.example/s/sample-invite-token', squadUrl: '/squads/sample' } } },
   { id: 'create-busy', props: { minGoalDate, busy: true, values: {
     ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
     recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
@@ -42,7 +48,12 @@ const sheet = { squad: demoSharedSquad, now: demoNow, readAt: demoReadAt, amount
 export const joinCommitScenes: readonly { id: string; props: JoinCommitSheetProps }[] = [
   { id: 'commit-not-staking', props: { ...sheet,
     state: { status: 'not-staking', minimumLuna: 10_000_000 } } },
-  { id: 'commit-ready', props: { ...sheet, state: { status: 'ready', freeLuna: 350_000_000 } } },
+  { id: 'commit-ready', props: { ...sheet, state: { status: 'ready', freeLuna: 350_000_000 },
+    // An even share of the 12,000 NIM goal over the four members who would then be in it.
+    suggestion: { amountLuna: 300_000_000, basis: 'share' } } },
+  { id: 'commit-suggested-yours', props: { ...sheet,
+    state: { status: 'ready', freeLuna: 350_000_000 },
+    suggestion: { amountLuna: 200_000_000, basis: 'yours' } } },
   { id: 'commit-needs-stake', props: { ...sheet,
     state: { status: 'needs-stake', shortfallLuna: 50_000_000, action: 'add', feeLuna: 200 } } },
   { id: 'commit-needs-staker', props: { ...sheet,

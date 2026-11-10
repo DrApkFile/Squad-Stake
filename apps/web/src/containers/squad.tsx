@@ -16,6 +16,7 @@ import { squadDetailResponse } from '../core/squad-contract';
 import { useFiat } from '../hooks/use-fiat';
 import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
+import { useShareLink } from '../hooks/use-share-link';
 import type { SquadView } from '../core/view-contract';
 
 type CatalogError = { message: string; nextAction: string };
@@ -60,7 +61,6 @@ export function SquadContainer({
   const [error, setError] = useState<CatalogError | null>(
     initial.chainUnavailable ? catalogError('CHAIN_UNAVAILABLE', initialLang) : null,
   );
-  const [shared, setShared] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<CatalogError | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -95,40 +95,9 @@ export function SquadContainer({
   const inviteUrl = view.inviteToken === null ? null : `${inviteBase}/s/${view.inviteToken}`;
   const proofUrl = `${inviteBase}/proof/${view.squad.shortId}`;
 
-  /**
-   * The phone's own share sheet, which is where a link belongs on a phone: it reaches the
-   * messaging app the squad already uses, and the member never has to select a URL by hand.
-   *
-   * `navigator.share` exists only in a secure context and only on some platforms, and it
-   * rejects with `AbortError` when the person simply dismisses the sheet — which is not a
-   * failure and must not be reported as one. Anything else falls through to the clipboard, so
-   * there is always a way to send the link even though it is never printed on screen.
-   */
-  const copy = useCallback(async () => {
-    if (inviteUrl === null) return false;
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setShared(true);
-      return true;
-    } catch {
-      setShared(false);
-      return false;
-    }
-  }, [inviteUrl]);
-
-  const share = useCallback(async () => {
-    if (inviteUrl === null) return;
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: view.squad.name, url: inviteUrl });
-        return;
-      } catch (error) {
-        // Dismissing the sheet is a decision, not an error: leave the screen as it was.
-        if (error instanceof Error && error.name === 'AbortError') return;
-      }
-    }
-    await copy();
-  }, [copy, inviteUrl, view.squad.name]);
+  // One link, handed over the way a phone does it; the hook explains why it is never
+  // printed (src/hooks/use-share-link.ts).
+  const invite = useShareLink(inviteUrl, view.squad.name);
 
   const [proofCopied, setProofCopied] = useState(false);
   const copyProof = useCallback(async (url: string) => {
@@ -187,6 +156,7 @@ export function SquadContainer({
         squad={{ name: view.squad.name }}
         committedLuna={view.members.find((member) => member.isYou)?.committedLuna ?? 0}
         busy={leaving}
+        t={t}
         {...(leaveError ? { error: leaveError } : {})}
         onLeave={leave}
         onCancel={() => setConfirmLeave(false)}
@@ -215,9 +185,9 @@ export function SquadContainer({
     payments: view.payments,
     state: view.state,
     payUrl: view.squad.mode === 'A' ? `/squads/${view.squadId}/pay` : null,
-    shared,
-    onShare: share,
-    onCopyInvite: copy,
+    shared: invite.shared,
+    onShare: () => void invite.share(),
+    onCopyInvite: () => void invite.copy(),
     onCopyProof: copyProof,
     proofCopied,
     // The words come from the catalogue here, not inside the sheet, so the sheet stays a
@@ -231,6 +201,7 @@ export function SquadContainer({
     onCloseInfo: closeInfo,
     onLeave: () => setConfirmLeave(true),
     onRefresh: refresh,
+    refreshing: busy,
     t,
     lang,
     fiat: rate,

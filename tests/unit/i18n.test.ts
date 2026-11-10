@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { LANGS, DEFAULT_LANG, parseLang, pickLang, strings } from '../../packages/ui/i18n';
 import { en } from '../../packages/ui/i18n/en';
-import { formatCount, formatLuna, formatPercent } from '../../packages/ui/format';
+import { formatCount, formatLuna, formatPercent, readAge } from '../../packages/ui/format';
 import { SQUAD_TEMPLATES, TEMPLATE_IDS, templateGoalDates, templateText }
   from '../../packages/ui/templates';
 import { earnedReasonText } from '../../packages/ui/earned';
@@ -78,6 +80,55 @@ test('§10 numbers, dates and percentages are formatted by the catalogue, not by
   assert.equal(formatPercent(0.0333, 'en'), '3.33%');
   assert.equal(formatPercent(0.0333, 'de'), '3,33 %');
   assert.equal(formatPercent(0, 'en'), '0%');
+
+  // The age of a chain read is a figure the member is asked to judge freshness by, so it
+  // steps into hours rather than running up into hundreds of minutes (docs/AUDIT.md, m-5).
+  const now = Date.parse('2026-11-09T12:00:00Z');
+  assert.equal(readAge(now - 12_000, now, 'en'), 'Checked 12 s ago');
+  assert.equal(readAge(now - 90_000, now, 'en'), 'Checked 1 min ago');
+  assert.equal(readAge(now - 59 * 60_000, now, 'en'), 'Checked 59 min ago');
+  assert.equal(readAge(now - 60 * 60_000, now, 'en'), 'Checked 1 h 0 min ago');
+  assert.equal(readAge(now - 184 * 60_000, now, 'en'), 'Checked 3 h 4 min ago');
+  assert.equal(readAge(now - 184 * 60_000, now, 'de'), 'Vor 3 Std 4 Min geprüft');
+  // Unread is still a dash, never a figure.
+  assert.equal(readAge(null, now, 'en'), 'Chain read: —');
+});
+
+test('n-1/n-7 every code in the catalogue is one the app can actually emit', () => {
+  // The audit found two codes with words in five languages and no producer anywhere
+  // (`STALE_READ`, `LEAVE_BLOCKED`), and two the price route emits that the catalogue did not
+  // name (`TIMEOUT`, `NO_QUOTE`). This scans for both halves of that so neither can come
+  // back: a dead code is five translations nobody reads, and a missing one degrades to
+  // "Squad Stake is unavailable", which is wrong for a missing exchange rate.
+  const sources: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.tsx?$/.test(entry.name)) sources.push(path);
+    }
+  };
+  walk('apps/web/app');
+  walk('apps/web/src');
+  // `catalog.ts` holds the flags table itself, which would make every code look produced.
+  // Everything after it still counts: `providerErrorCode()` is where the wallet codes are born.
+  const haystack = sources.map((path) => {
+    const text = readFileSync(path, 'utf8');
+    if (!path.endsWith('errors/catalog.ts')) return text;
+    const flags = text.indexOf('const FLAGS');
+    return text.slice(0, flags) + text.slice(text.indexOf('};', flags));
+  }).join('\n');
+
+  for (const code of Object.keys(errors)) {
+    // Quoted, so the HTTP status map's `LEAVE_BLOCKED: 409` does not pass for a producer.
+    assert.ok(haystack.includes(`'${code}'`) || haystack.includes(`"${code}"`),
+      `${code} has words but no producer`);
+  }
+  assert.ok(!('STALE_READ' in errors), 'deleted: nothing ever served a stale snapshot as one');
+  for (const code of ['TIMEOUT', 'NO_QUOTE', 'LEAVE_BLOCKED'] as const) {
+    assert.ok(code in errors, code);
+    assert.ok(catalogError(code, 'de').message.length > 0);
+  }
 });
 
 test('§10 the error catalogue is one catalogue: every code in every language, flags apart', () => {

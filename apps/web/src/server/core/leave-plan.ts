@@ -124,7 +124,10 @@ export async function leavePlan(
     releaseBlock: release?.releaseBlock ?? null,
     unstake, retire: latest(txs, 'retire'), remove: latest(txs, 'remove'), pay: latest(txs, 'pay'),
     mode: squad.mode,
-    paymentVerified: payment === null ? null : payment.verdict.ok,
+    // The code travels with the verdict: a refusal §7.6 can already make final must not wait
+    // for the tracker's poll before the step says so (docs/AUDIT.md, M-3).
+    payment: payment === null ? null
+      : payment.verdict.ok ? { verified: true } : { verified: false, code: payment.verdict.code },
   });
 
   return {

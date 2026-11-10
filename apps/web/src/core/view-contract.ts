@@ -7,6 +7,13 @@ export interface JoinView {
   delegation: string | null;
   minimumLuna: number;
   /**
+   * What the amount field starts at, and why (docs/AUDIT.md, M-4). A suggestion only: the
+   * member can type anything, and the server still checks Σ commitments ≤ active balance
+   * inside the commit transaction. Null when there is nothing honest to suggest — a Mode B
+   * squad with no previous commitment has no shared total to divide.
+   */
+  suggestion: { amountLuna: number; basis: 'yours' | 'share' } | null;
+  /**
    * PRD §7.7: the pool the chosen validator runs, shown before the Nimiq Pay approval that
    * creates the staker. Null when no validator was chosen (nothing to show yet, or nothing
    * eligible). `fallback: true` means Nimiq's Validators API could not be read, so the

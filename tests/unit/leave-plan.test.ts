@@ -167,6 +167,47 @@ test('§7.6 a verified payment finishes the plan; a short one is a failure with 
   assert.deepEqual(paid.roster, { paid: 1, owing: 1 });
 });
 
+test('§7.6 a refusal the chain cannot take back is shown before the tracker has polled', async () => {
+  const { context, squadId } = await setup({ mode: 'A' });
+  context.setStaker(staker(100_000_000, { address: ADDRESSES.alice }));
+  // The row is exactly as it stands a second after the wallet returned: tracked, unchecked.
+  context.track({ hash: PAY_HASH, address: ADDRESSES.alice, squadId, kind: 'pay',
+    expected: { valueLuna: SHARE, recipient: ADDRESSES.carol, data: 'sq:k3m9p2qr' },
+    state: 'SUBMITTED', checkedAt: null });
+  const sent = (over: Record<string, unknown>) => transaction({ hash: PAY_HASH,
+    from: ADDRESSES.bob, to: ADDRESSES.carol, value: SHARE,
+    recipientData: paymentDataHex('k3m9p2qr'), executionResult: true,
+    blockNumber: 14_819_400, confirmations: 60, ...over });
+
+  // Wrong recipient, short value, wrong marker and included-but-failed are all decided the
+  // moment the transaction executes, so the step says so now rather than after the poll
+  // (docs/AUDIT.md, M-3).
+  for (const [code, over] of [
+    ['WRONG_RECIPIENT', { to: ADDRESSES.bob }],
+    ['PAYMENT_SHORT', { value: SHARE - 1 }],
+    ['PAYMENT_DATA_MISMATCH', { recipientData: '' }],
+    ['TX_FAILED', { executionResult: false }],
+  ] as const) {
+    context.setTransaction(sent(over));
+    const refused = await plan(context, squadId);
+    assert.equal(refused.payment?.code, code);
+    assert.deepEqual(refused.steps.pay, { state: 'failed', hash: PAY_HASH }, code);
+  }
+
+  // Not final, and therefore not a failure: too few confirmations is "still being judged",
+  // and the step stays pending so nothing on the screen offers a second send.
+  context.setTransaction(sent({ confirmations: 1 }));
+  const young = await plan(context, squadId);
+  assert.equal(young.payment?.code, 'TX_NOT_CONFIRMED');
+  assert.deepEqual(young.steps.pay, { state: 'pending', hash: PAY_HASH });
+
+  // An unreadable transaction is the same: unknown never becomes failure (PRD §8).
+  context.forgetTransaction(PAY_HASH);
+  const unread = await plan(context, squadId);
+  assert.equal(unread.payment?.code, 'TX_NOT_CONFIRMED');
+  assert.deepEqual(unread.steps.pay, { state: 'pending', hash: PAY_HASH });
+});
+
 test('§7.5 a non-member and an unknown squad get no plan at all', async () => {
   const { context, squadId } = await setup();
   assert.deepEqual(await leavePlan(squadId, ADDRESSES.bob, context.deps),

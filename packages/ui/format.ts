@@ -55,10 +55,15 @@ export function daysBetween(from: number, to: number) {
  * (briefing/FAILURE_MODES.md, AGENTS.md "Never fabricate").
  */
 export function readAge(readAt: number | null, now: number, lang: Lang = DEFAULT_LANG) {
-  const { readAgeNone, readAgeSeconds, readAgeMinutes } = strings(lang).fmt;
+  const { readAgeNone, readAgeSeconds, readAgeMinutes, readAgeHours } = strings(lang).fmt;
   if (readAt === null) return readAgeNone;
   const seconds = Math.max(0, Math.floor((now - readAt) / 1000));
-  return seconds < 60 ? readAgeSeconds(seconds) : readAgeMinutes(Math.floor(seconds / 60));
+  if (seconds < 60) return readAgeSeconds(seconds);
+  const minutes = Math.floor(seconds / 60);
+  // "Checked 184 min ago" is a number the reader has to divide. A snapshot keeps its original
+  // timestamp when a refresh fails, so ages past an hour are reachable (docs/AUDIT.md, m-5).
+  if (minutes < 60) return readAgeMinutes(minutes);
+  return readAgeHours(Math.floor(minutes / 60), minutes % 60);
 }
 
 /**

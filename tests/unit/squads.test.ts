@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
+import { commitSuggestion } from '../../apps/web/src/core/commit-suggestion';
 import { createSquadInput } from '../../apps/web/src/core/squad-contract';
 import { chooseValidator } from '../../apps/web/src/server/core/validator-choice';
 import type { Validator } from '../../apps/web/src/server/core/chain';
@@ -123,4 +124,30 @@ test('Q03 §7.7 validator choice skips retired, jailed and inactive, then spread
   assert.equal(chooseValidator([validator('NQ77 0000 0000 0000 0000 0000 0000 0000 0001',
     { retired: true })], new Map()), null);
   assert.equal(chooseValidator([], new Map()), null);
+});
+
+test('§7.3 the commit sheet suggests an amount, and never invents one (docs/AUDIT.md, M-4)', () => {
+  const modeA = { mode: 'A' as const, targetLuna: 1_200_000_000 };
+  // A newcomer counts themselves in: three members in the squad means a quarter each.
+  assert.deepEqual(commitSuggestion(modeA, 3, false, 0),
+    { amountLuna: 300_000_000, basis: 'share' });
+  // An existing member divides by the squad as it stands.
+  assert.deepEqual(commitSuggestion(modeA, 4, true, 0),
+    { amountLuna: 300_000_000, basis: 'share' });
+  // Their own commitment outranks the even share: they are changing a number, not inventing one.
+  assert.deepEqual(commitSuggestion(modeA, 4, true, 250_000_000),
+    { amountLuna: 250_000_000, basis: 'yours' });
+  // Rounded down to whole NIM: 12,000 NIM over seven is 1,714.2857…, and nobody wants that
+  // offered to them.
+  assert.deepEqual(commitSuggestion(modeA, 6, false, 0),
+    { amountLuna: 171_400_000, basis: 'share' });
+
+  // Nothing honest to suggest: Mode B has no shared total, a Mode A squad may carry no target,
+  // and a share that rounds to zero is not a suggestion. The field then starts empty.
+  assert.equal(commitSuggestion({ mode: 'B', targetLuna: null }, 3, false, 0), null);
+  assert.equal(commitSuggestion({ mode: 'A', targetLuna: null }, 3, false, 0), null);
+  assert.equal(commitSuggestion({ mode: 'A', targetLuna: 50_000 }, 3, false, 0), null);
+  // A Mode B member who has committed before still gets their own figure back.
+  assert.deepEqual(commitSuggestion({ mode: 'B', targetLuna: null }, 3, true, 40_000_000),
+    { amountLuna: 40_000_000, basis: 'yours' });
 });

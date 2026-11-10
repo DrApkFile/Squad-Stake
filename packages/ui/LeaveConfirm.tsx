@@ -1,6 +1,7 @@
 import { formatLuna } from './format';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
+import { Spinner } from './Spinner';
 
 export interface LeaveConfirmProps {
   /** Where the back control goes; see ScreenHeader. */
@@ -8,6 +9,8 @@ export interface LeaveConfirmProps {
   squad: { name: string };
   committedLuna: number;
   busy?: boolean | undefined;
+  /** Seconds since the scene started; drives the spinner. */
+  t?: number | undefined;
   error?: { message: string; nextAction: string } | undefined;
   onLeave?: (() => void) | undefined;
   onCancel?: (() => void) | undefined;
@@ -20,7 +23,7 @@ export interface LeaveConfirmProps {
  * tick here — that belongs to retire (PRD "Design").
  */
 export function LeaveConfirm({
-  squad, committedLuna, busy = false, error, onLeave, onCancel, demoLabel, back,
+  squad, committedLuna, busy = false, t = 0, error, onLeave, onCancel, demoLabel, back,
   lang = DEFAULT_LANG,
 }: LeaveConfirmProps) {
   const s = strings(lang);
@@ -40,8 +43,9 @@ export function LeaveConfirm({
         {error && <><p className="status-title">{error.message}</p><p>{error.nextAction}</p></>}
       </div>
     </div>
-    <footer className="sheet-footer">
+    <footer className="action-bar">
       <button className="primary-button" onClick={onLeave} disabled={busy}>
+        {busy && <Spinner t={t} />}
         {busy ? s.leave.leaving : s.leave.leave}
       </button>
       <button className="secondary-button" onClick={onCancel} disabled={busy}>{s.leave.stay}</button>

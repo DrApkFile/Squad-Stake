@@ -80,6 +80,17 @@ test('Q17 the commit sheet covers every PRD §7.3 state and never calls a hash s
       assert.match(markup, /A hash is not\s+success/);
       assert.match(markup, /disabled/);
     }
+    // The amount is a suggestion said out loud, never a figure the app decided for them
+    // (docs/AUDIT.md, M-4). A scene with no suggestion carries no such sentence.
+    if (scene.id === 'commit-ready') {
+      assert.match(markup, /Suggested 3,000 NIM: an even share of the goal/);
+    }
+    if (scene.id === 'commit-suggested-yours') {
+      assert.match(markup, /You committed 2,000 NIM before/);
+    }
+    if (scene.props.suggestion === undefined || scene.props.suggestion === null) {
+      assert.doesNotMatch(markup, /Suggested|You committed .* before/, scene.id);
+    }
     if (scene.id === 'commit-committed') assert.match(markup, /Committed 2,000 NIM/);
     if (scene.id === 'commit-declined') assert.match(markup, /Nothing changed/);
     if (scene.id === 'commit-failed') assert.doesNotMatch(markup, /Nothing changed/);
@@ -102,4 +113,15 @@ test('Q17 the create screen shows both modes, the minimum date and the share ste
   const markupShared = renderToStaticMarkup(createElement(CreateSquadScreen, shared.props));
   assert.match(markupShared, /is ready/);
   assert.doesNotMatch(markupShared, /Goal date/);
+
+  // M-1: the link is sent by the phone's share sheet, so the URL itself is never printed —
+  // and the copied state is the only confirmation the member gets that it is on the
+  // clipboard, so it has a scene of its own.
+  assert.doesNotMatch(markupShared, /sample-invite-token/);
+  assert.match(markupShared, /Share invite/);
+  const copied = createSquadScenes.find((scene) => scene.id === 'create-share-copied');
+  assert.ok(copied);
+  const markupCopied = renderToStaticMarkup(createElement(CreateSquadScreen, copied.props));
+  assert.match(markupCopied, /Copied/);
+  assert.doesNotMatch(markupCopied, /sample-invite-token/);
 });

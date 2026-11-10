@@ -27,12 +27,31 @@ export function InfoSheet({ info, t = 0, onClose, lang = DEFAULT_LANG }: InfoShe
   const progress = Math.min(1, Math.max(0, (t - info.openedT) / RISE));
   const eased = easeOutCubic(progress);
   return (
-    <div className="info-scrim" style={{ '--info-progress': eased } as React.CSSProperties}>
+    /*
+     * Tapping outside a bottom sheet is how a phone closes one, and Escape is how a keyboard
+     * does; neither worked before (docs/AUDIT.md, n-6). Both are React handlers on this
+     * element — no `window` listener and no effect, so the component stays pure and Remotion
+     * renders it unchanged. `onKeyDown` sits here rather than on `window` because focus is
+     * inside the sheet (see the close button below), so the event bubbles to this node.
+     * The scrim is not a control: it carries no role and no label, the close button is the
+     * accessible way out, and a tap inside the sheet must not close it, hence the target
+     * check rather than `stopPropagation` on the sheet.
+     */
+    <div
+      className="info-scrim"
+      style={{ '--info-progress': eased } as React.CSSProperties}
+      onClick={(event) => { if (event.target === event.currentTarget) onClose?.(); }}
+      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose?.(); } }}
+    >
       <section className="info-sheet" role="dialog" aria-modal="true" aria-label={info.title}>
         <span className="info-grip" aria-hidden="true" />
         <h2 className="info-title">{info.title}</h2>
         <p className="info-body">{info.body}</p>
-        <button className="secondary-button" onClick={onClose}>{s.close}</button>
+        {/* `aria-modal` says the page behind is unavailable, so focus has to come in with the
+            sheet; without this, a screen reader or a keyboard stays on the ⓘ behind the scrim.
+            An attribute rather than an effect, so the component stays pure (docs/AUDIT.md,
+            m-6). */}
+        <button className="secondary-button" onClick={onClose} autoFocus>{s.close}</button>
       </section>
     </div>
   );

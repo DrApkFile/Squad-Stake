@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { ScreenHeader } from './ScreenHeader';
 import { TxStatus } from './TxStatus';
 import { countdown, formatCount, formatLuna, formatMoment, readAge } from './format';
+import { RefreshButton } from './Spinner';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 
 export type LeavingStepState =
@@ -58,6 +59,8 @@ export interface LeavingStepsProps {
   onRetire?: (() => void) | undefined;
   onWithdraw?: (() => void) | undefined;
   onRefresh?: (() => void) | undefined;
+  /** True while a chain read is in flight. */
+  refreshing?: boolean | undefined;
   back?: { label: string; href: string } | undefined;
   demoLabel?: string | undefined;
   lang?: Lang | undefined;
@@ -96,18 +99,56 @@ export function LeavingSteps(props: LeavingStepsProps) {
     squad, leaveBy, now, tzOffsetMinutes, stake, shareLuna, amountNim, steps, release, headBlock,
     affected, shortfallLuna, confirmTicked, readAt, retireFeeLuna, unstakeFeeLuna, busy = false,
     stalled = false, error, explorerBase = null, payUrl = null, t = 0, onAmountChange,
-    onStartLeaving, onConfirmTick, onRetire, onWithdraw, onRefresh, onRetry, back, demoLabel,
-    lang = DEFAULT_LANG,
+    onStartLeaving, onConfirmTick, onRetire, onWithdraw, onRefresh, onRetry, refreshing = false,
+    back, demoLabel, lang = DEFAULT_LANG,
   } = props;
   const s = strings(lang);
+  /**
+   * A step is the member's to take when the chain says `available` — and again when their last
+   * attempt at it was included but did not execute. That verdict is final: nothing is in
+   * flight, nothing moved, and only the fee was spent, so offering the step again is the only
+   * way on and is not a second send of anything (AGENTS.md invariant 8).
+   *
+   * This is what was missing on a real phone. The failure used to live only in React state, so
+   * a member who reloaded the page after an interrupted withdrawal arrived at four steps, a
+   * failed transaction, and nothing at all to tap (docs/PROGRESS.md 2026-11-09). Reading the
+   * offer off the chain's own step state instead means a reload cannot lose it. Every one of
+   * these taps still goes through the container, which re-reads the plan first and lets the
+   * pure planner refuse — so a step whose precondition has gone is refused, not re-sent.
+   */
+  const live = (state: LeavingStepState['state']) => state === 'available' || state === 'failed';
+  /** The same tap, worded for what it now is. */
+  const label = (state: LeavingStepState['state'], first: string) =>
+    state === 'failed' ? s.common.tryAgain : first;
   // The one moving value on the screen. `t` is seconds since the screen appeared, so the
   // countdown ticks in the app and renders frame by frame in the video.
   const instant = now + Math.round(t * 1000);
   const explorer = (hash: string) => (explorerBase === null ? null : `${explorerBase}${hash}`);
+  /**
+   * Step four's words. A payment already on the wire is described by the transaction block
+   * above it, so repeating "finish withdrawing first" there contradicts it — the step is not
+   * locked, it is waiting for the chain (docs/AUDIT.md, m-4).
+   */
+  const payBody = (state: LeavingStepState) => {
+    if (live(state.state) && payUrl !== null) {
+      return (
+        <>
+          <p>{s.leaving.payBody(formatLuna(shareLuna, lang))}</p>
+          <a className="primary-button" href={payUrl}>
+            {label(state.state, s.common.payMyShare)}
+          </a>
+        </>
+      );
+    }
+    if (state.state === 'done') return <p>{s.leaving.payDone}</p>;
+    if (state.state === 'pending') return null;
+    return <p>{s.leaving.payLocked}</p>;
+  };
   const tx = (state: LeavingStepState) =>
     state.state === 'pending' || state.state === 'failed'
       ? <TxStatus state={state.state === 'pending' ? 'pending' : 'failed'} hash={state.hash}
         stalled={stalled} explorerUrl={explorer(state.hash)} lang={lang}
+        refreshing={refreshing} t={t}
         {...(onRefresh ? { onRefresh } : {})} />
       : null;
 
@@ -141,7 +182,8 @@ export function LeavingSteps(props: LeavingStepsProps) {
         </p>
 
         <Step index={1} title={s.leaving.step1} state={steps.start} lang={lang}>
-          {steps.start.state === 'available' && <>
+          {tx(steps.start)}
+          {live(steps.start.state) && <>
             <label className="field">
               <span className="field-label">{s.leaving.amountLabel}</span>
               <input className="field-input" type="text" inputMode="decimal" value={amountNim}
@@ -176,15 +218,15 @@ export function LeavingSteps(props: LeavingStepsProps) {
               </div>
             )}
             <button className="primary-button" onClick={onStartLeaving} disabled={busy}>
-              {busy ? s.common.waiting : s.leaving.startButton}
+              {busy ? s.common.waiting : label(steps.start.state, s.leaving.startButton)}
             </button>
           </>}
           {steps.start.state === 'locked' && <p>{s.leaving.step1Locked}</p>}
           {steps.start.state === 'done' && <p>{s.leaving.step1Done}</p>}
-          {tx(steps.start)}
         </Step>
 
         <Step index={2} title={s.leaving.step2} state={steps.retire} lang={lang}>
+          {tx(steps.retire)}
           {steps.retire.state === 'waiting' && <>
             <p>
               {release === null
@@ -204,7 +246,7 @@ export function LeavingSteps(props: LeavingStepsProps) {
               </p>
             )}
           </>}
-          {steps.retire.state === 'available' && <>
+          {live(steps.retire.state) && <>
             <p>{s.leaving.retireBody(formatLuna(retireFeeLuna, lang))}</p>
             <label className="confirm-tick">
               <input type="checkbox" checked={confirmTicked} disabled={busy}
@@ -212,37 +254,29 @@ export function LeavingSteps(props: LeavingStepsProps) {
               <span>{s.leaving.confirmTick}</span>
             </label>
             <button className="primary-button" onClick={onRetire} disabled={busy || !confirmTicked}>
-              {busy ? s.common.waiting : s.leaving.retireButton}
+              {busy ? s.common.waiting : label(steps.retire.state, s.leaving.retireButton)}
             </button>
           </>}
           {steps.retire.state === 'locked' && <p>{s.leaving.step2Locked}</p>}
           {steps.retire.state === 'done' && <p>{s.leaving.step2Done}</p>}
-          {tx(steps.retire)}
         </Step>
 
         <Step index={3} title={s.leaving.step3} state={steps.withdraw} lang={lang}>
-          {steps.withdraw.state === 'available' && <>
+          {tx(steps.withdraw)}
+          {live(steps.withdraw.state) && <>
             <p>{s.leaving.withdrawBody(formatLuna(stake?.retiredLuna ?? 0, lang))}</p>
             <button className="primary-button" onClick={onWithdraw} disabled={busy}>
-              {busy ? s.common.waiting : s.leaving.withdrawButton}
+              {busy ? s.common.waiting : label(steps.withdraw.state, s.leaving.withdrawButton)}
             </button>
           </>}
           {steps.withdraw.state === 'locked' && <p>{s.leaving.step3Locked}</p>}
           {steps.withdraw.state === 'done' && <p>{s.leaving.step3Done}</p>}
-          {tx(steps.withdraw)}
         </Step>
 
         {steps.pay !== null && (
           <Step index={4} title={s.leaving.step4} state={steps.pay} lang={lang}>
-            {steps.pay.state === 'available' && payUrl !== null
-              ? <>
-                <p>{s.leaving.payBody(formatLuna(shareLuna, lang))}</p>
-                <a className="primary-button" href={payUrl}>{s.common.payMyShare}</a>
-              </>
-              : steps.pay.state === 'done'
-                ? <p>{s.leaving.payDone}</p>
-                : <p>{s.leaving.payLocked}</p>}
             {tx(steps.pay)}
+            {payBody(steps.pay)}
           </Step>
         )}
 
@@ -265,7 +299,8 @@ export function LeavingSteps(props: LeavingStepsProps) {
         )}
         {/* Always offered: every figure above is a chain read, and an age is only meaningful
             next to a way to renew it. Reading is not sending. */}
-        <button className="secondary-button" onClick={onRefresh}>{s.common.refreshChain}</button>
+        <RefreshButton onClick={onRefresh} refreshing={refreshing} t={t}
+          label={s.common.refreshChain} busyLabel={s.common.refreshing} />
         <p className="fine-print">{s.leaving.fineprint}</p>
       </footer>
     </main>

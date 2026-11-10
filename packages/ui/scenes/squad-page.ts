@@ -183,6 +183,11 @@ const rosterPartlyUnread = demoRoster.map((member, index) =>
   index >= 2 ? { ...member, status: null, readAt: null } : member,
 );
 
+/** Everyone paid: the roster behind the COMPLETED fixture, and behind its own stage totals. */
+const PAID_ROSTER: readonly MemberRowView[] = demoRoster.map(
+  (member) => ({ ...member, status: { status: 'PAID' as const } }),
+);
+
 export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[] = [
   { id: 'squad-page-loading', props: { ...squadBase, backedLuna: null, readAt: null, members: [], loading: true, t: 0 } },
   { id: 'squad-page-backed', props: { ...squadBase, t: 4 } },
@@ -235,8 +240,13 @@ export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[]
     props: {
       ...squadBase,
       state: 'COMPLETED',
-      members: demoRoster.map((member) => ({ ...member, status: { status: 'PAID' as const } })),
+      members: PAID_ROSTER,
       backedLuna: 0,
+      // The stages have to come from this roster, not from the base one: the scene said
+      // "4,500 NIM saved · 1,100 NIM leaving · 1,800 NIM missing" beside a banner claiming
+      // every member had paid (docs/AUDIT.md; the same class of fixture bug as the countdown
+      // one on 2026-11-08).
+      stages: stageTotalsOf(PAID_ROSTER),
       payments: { ...partialPayments, paid: 4, rows: partialPayments.rows.map((row) => ({
         ...row, hash: row.hash ?? demoHashes.pay, verified: true, code: null })) },
       t: 4,

@@ -1,9 +1,9 @@
 import { GoalTicker } from './GoalTicker';
-import { GradientBorderButton } from './GradientBorderButton';
 import { OrbitSquad } from './OrbitSquad';
 import { ScreenHeader } from './ScreenHeader';
 import { TypewriterHeading } from './TypewriterHeading';
 import { entranceProgress } from './motion';
+import { Spinner } from './Spinner';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { vars } from './css';
 import type { OrbitMember } from './OrbitSquad';
@@ -57,7 +57,7 @@ export function SignInScreen({
   const success = state.status === 'success';
   return (
     <main className="sign-in" aria-busy={waiting}>
-      <ScreenHeader demoLabel={demoLabel} />
+      <ScreenHeader demoLabel={demoLabel} lang={lang} />
       <div className="sign-in-body">
         <TypewriterHeading lead={s.signIn.headingLead} emphasis={s.signIn.headingEmphasis} t={t} />
         <p className="intro" style={vars({ '--enter': entranceProgress(t, 18) })}>
@@ -107,16 +107,20 @@ export function SignInScreen({
       {/* The screen now explains itself, so it is taller than one phone. The action sticks to
           the bottom inside the safe area, so "Sign in" is never scrolled out of reach. */}
       <footer className="action-bar">
+        {/* Filled ink, like every other screen's main action. It used to be the outlined
+            gradient pill, which is this app's quiet style for a secondary action — and on the
+            one screen whose *only* control it is, that read as optional
+            (docs/AUDIT.md n-5, docs/DECISIONS.md). */}
         {success
-          ? <GradientBorderButton label={s.signIn.goToSquads} href={onwardUrl} t={t} />
+          ? <a className="primary-button" href={onwardUrl}>{s.signIn.goToSquads}</a>
           : openInPayUrl
-            ? <GradientBorderButton label={s.signIn.openInPay} href={openInPayUrl} t={t} />
-            : <GradientBorderButton
-              label={waiting ? s.signIn.waitingApproval : state.status === 'idle' ? s.signIn.signIn : s.signIn.tryAgain}
-              onClick={onSignIn}
-              disabled={disabled || waiting}
-              t={t}
-            />}
+            ? <a className="primary-button" href={openInPayUrl}>{s.signIn.openInPay}</a>
+            : <button className="primary-button" type="button" onClick={onSignIn}
+              disabled={disabled || waiting} aria-busy={waiting}>
+              {waiting && <Spinner t={t} />}
+              {waiting ? s.signIn.waitingApproval
+                : state.status === 'idle' ? s.signIn.signIn : s.signIn.tryAgain}
+            </button>}
         <p className="fine-print">{s.signIn.fineprint}</p>
       </footer>
     </main>

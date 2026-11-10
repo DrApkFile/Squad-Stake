@@ -1,5 +1,7 @@
+import { GradientBorderButton } from './GradientBorderButton';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
+import { Spinner } from './Spinner';
 import { SQUAD_TEMPLATES, TEMPLATE_IDS, templateText, type TemplateId } from './templates';
 
 export interface CreateSquadValues {
@@ -28,16 +30,26 @@ export interface CreateSquadScreenProps {
    * the creator goes next; `inviteUrl` is what they hand to the squad. */
   created?: { shortId: string; inviteUrl: string; squadUrl: string };
   busy?: boolean;
+  /** Seconds since the scene started; drives the spinner. */
+  t?: number | undefined;
   onChange?: (patch: Partial<CreateSquadValues>) => void;
   onSubmit?: () => void;
+  /** The share step's two controls. The screen never prints the invite URL — it is the one
+   * string here that must not be mistyped, and a phone cannot select it comfortably — so the
+   * phone's own share sheet and the clipboard carry it instead, exactly as the squad page
+   * does (docs/AUDIT.md, M-1). The container owns both calls, so this stays pure. */
+  onShare?: (() => void) | undefined;
+  onCopyInvite?: (() => void) | undefined;
+  /** True once the link has been copied, so the control can say so. */
+  shared?: boolean | undefined;
   demoLabel?: string;
   lang?: Lang | undefined;
 }
 
 /** Screen 4. Controlled: every value and the minimum date come in as props. */
 export function CreateSquadScreen({
-  values, minGoalDate, templateDates, error, created, busy = false, onChange, onSubmit,
-  demoLabel, back, lang = DEFAULT_LANG,
+  values, minGoalDate, templateDates, error, created, busy = false, t = 0, onChange, onSubmit,
+  onShare, onCopyInvite, shared = false, demoLabel, back, lang = DEFAULT_LANG,
 }: CreateSquadScreenProps) {
   const s = strings(lang);
   const modeA = values.mode === 'A';
@@ -48,10 +60,13 @@ export function CreateSquadScreen({
         <p className="eyebrow">{s.create.squadEyebrow(created.shortId.toUpperCase())}</p>
         <h1>{values.name}<br />{s.create.readyHeadingTail}</h1>
         <p className="intro">{s.create.readyIntro}</p>
-        <p className="field-input field-input-mono">{created.inviteUrl}</p>
+        <GradientBorderButton label={s.squad.shareInvite} onClick={onShare} t={t} />
+        <button className="link-button" type="button" onClick={onCopyInvite}>
+          {shared ? s.common.copied : s.common.copyLink}
+        </button>
         <p className="field-hint">{s.create.inviteHint}</p>
       </div>
-      <footer className="sheet-footer">
+      <footer className="action-bar">
         <a className="primary-button" href={created.squadUrl}>{s.create.openSquad}</a>
       </footer>
     </main>;
@@ -143,8 +158,9 @@ export function CreateSquadScreen({
         {error && <><p className="status-title">{error.message}</p><p>{error.nextAction}</p></>}
       </div>
     </div>
-    <footer className="sheet-footer">
+    <footer className="action-bar">
       <button className="primary-button" onClick={onSubmit} disabled={busy}>
+        {busy && <Spinner t={t} />}
         {busy ? s.create.creating : s.create.submit}
       </button>
       <p className="fine-print">{s.create.fineprint}</p>

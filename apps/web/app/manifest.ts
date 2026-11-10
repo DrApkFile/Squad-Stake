@@ -20,8 +20,12 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Save together. Keep it yours.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0d102c',
-    theme_color: '#e9b213',
+    // The shipped skin is white-and-black (packages/ui/tokens.css: --page #ffffff, --ink
+    // #0b0b0c in the default theme). These two were still Nimiq's navy and gold from before
+    // that change, so an installed icon's splash screen and the status-bar tint did not match
+    // the app that opened behind them (docs/AUDIT.md, m-2).
+    background_color: '#ffffff',
+    theme_color: '#ffffff',
     icons: [
       { src: '/brand/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/brand/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },

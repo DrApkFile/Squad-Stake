@@ -23,6 +23,11 @@ export const enCore = {
     readAgeNone: 'Chain read: —',
     readAgeSeconds: (seconds: number) => `Checked ${seconds} s ago`,
     readAgeMinutes: (minutes: number) => `Checked ${minutes} min ago`,
+    /** Past an hour, minutes stop being readable: a stale snapshot keeps its original
+     * timestamp when a refresh fails, so this figure can run into the hundreds
+     * (docs/AUDIT.md, m-5). */
+    readAgeHours: (hours: number, minutes: number) =>
+      `Checked ${hours} h ${minutes} min ago`,
     countdownNow: 'any moment now',
     countdownDaysHours: (days: number, hours: number) => `${days} d ${hours} h`,
     countdownHoursMinutes: (hours: number, minutes: number) => `${hours} h ${minutes} min`,
@@ -49,6 +54,10 @@ export const enCore = {
     openSquadStake: 'Open Squad Stake',
     refreshChain: 'Refresh',
     checkStatusAgain: 'Refresh',
+    /* While a read is in flight. A tap that changed nothing on screen read as a dead
+     * control on a real phone, so the label changes as well as the spinner turning —
+     * reduced motion freezes `t`, and the words have to carry it alone. */
+    refreshing: 'Refreshing…',
     waiting: 'Waiting…',
     approveInPay: 'Approve in Nimiq Pay',
     nothingSentUntilApprove: 'Nothing is sent until you approve.',
@@ -132,6 +141,8 @@ export const enCore = {
     INVALID_INPUT: { message: 'That request was not valid.', nextAction: 'Check what you entered and try again.' },
     UNAVAILABLE: { message: 'Squad Stake is unavailable right now.', nextAction: 'Please try again shortly.' },
     NETWORK_ERROR: { message: 'The connection was interrupted.', nextAction: 'Check your connection and try again. Nothing was sent.' },
+    TIMEOUT: { message: 'That read ran out of time.', nextAction: 'Try again; nothing was sent.' },
+    NO_QUOTE: { message: 'No exchange rate for that currency.', nextAction: 'Amounts are shown in NIM only.' },
     WALLET_ERROR: { message: 'Nimiq Pay could not complete sign-in.', nextAction: 'Try again when you’re ready.' },
     TX_DECLINED: { message: 'Approval declined. Nothing was sent.', nextAction: 'Tap again when you’re ready.' },
     TX_REJECTED: { message: 'Nimiq Pay could not accept this transaction.', nextAction: 'Check the amount and try again.' },
@@ -139,7 +150,7 @@ export const enCore = {
     TX_SUBMIT_FAILED: { message: 'The transaction could not be submitted.', nextAction: 'Check your connection and try again.' },
     TX_OUTCOME_UNKNOWN: { message: 'It is not clear whether that transaction was sent.', nextAction: 'Check it in Nimiq Pay before sending another.' },
     TX_PENDING: { message: 'Waiting for the chain to confirm.', nextAction: 'This usually takes about a minute.' },
-    TX_FAILED: { message: 'The transaction was included but failed.', nextAction: 'Nothing was staked; the fee was spent. You can try again.' },
+    TX_FAILED: { message: 'The transaction was included but failed.', nextAction: 'Nothing moved; the fee was spent. You can try again.' },
     TX_NOT_CONFIRMED: { message: 'That transaction is not confirmed yet.', nextAction: 'Wait for confirmation, then commit.' },
     NOT_TRACKED: { message: 'That transaction is not tracked here.', nextAction: 'Start the action again.' },
     DUPLICATE_HASH: { message: 'That transaction is already being tracked.', nextAction: 'Check its status.' },
@@ -150,7 +161,6 @@ export const enCore = {
     SQUAD_CLOSED: { message: 'This squad is closed.', nextAction: 'Ask the organiser about a new squad.' },
     SQUAD_NOT_FOUND: { message: 'That squad no longer exists.', nextAction: 'Go back to your squads.' },
     NOT_A_MEMBER: { message: 'You are not in this squad.', nextAction: 'Open the invite link, or view the public proof.' },
-    STALE_READ: { message: 'This is an older chain read.', nextAction: 'Refresh to read the chain again.' },
     LEAVE_BLOCKED: { message: 'This squad could not release you.', nextAction: 'Refresh the squad and try again. Your stake is untouched.' },
     ALREADY_LEAVING: { message: 'You have already started leaving.', nextAction: 'Follow the steps you started. Nothing was sent twice.' },
     NOT_RELEASABLE: { message: 'This stake is not released yet.', nextAction: 'Wait for the countdown to finish, then confirm.' },

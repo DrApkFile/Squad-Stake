@@ -7,8 +7,11 @@ import {
 } from '@squad-stake/ui';
 import { LUNA_PER_NIM } from '../config/constants';
 import { createSquadResponse } from '../core/squad-contract';
+import { isAddress, normalizeAddress } from '../core/nimiq-address';
 import { catalogError } from '../core/errors/catalog';
 import { useLang } from '../i18n/client';
+import { useSceneTime } from '../hooks/use-scene-time';
+import { useShareLink } from '../hooks/use-share-link';
 
 const EMPTY: CreateSquadValues = {
   name: '', mode: 'A', targetNim: '', recipient: '', personalTargetNim: '', goalDate: '',
@@ -29,6 +32,7 @@ export function CreateSquadContainer({ minGoalDate, inviteBase, initialLang, tem
   templateDates: Record<TemplateId, string>;
 }) {
   const lang = useLang(initialLang);
+  const t = useSceneTime();
   /** Every screen keeps a way out (no dead ends): the creator's own squads. */
   const home = { label: strings(lang).common.backSquads, href: '/squads' };
   const [accepted, setAccepted] = useState(false);
@@ -37,6 +41,9 @@ export function CreateSquadContainer({ minGoalDate, inviteBase, initialLang, tem
   const [error, setError] = useState<{ message: string; nextAction: string } | undefined>();
   const [created, setCreated] = useState<
     { shortId: string; inviteUrl: string; squadUrl: string } | undefined>();
+  // The share step hands the link over instead of printing it (docs/AUDIT.md, M-1). Declared
+  // before the early return below, because hooks cannot be called conditionally.
+  const invite = useShareLink(created?.inviteUrl ?? null, values.name.trim());
 
   if (!accepted) return <PrivacyNotice onAccept={() => setAccepted(true)} back={home} lang={lang} />;
 
@@ -46,10 +53,20 @@ export function CreateSquadContainer({ minGoalDate, inviteBase, initialLang, tem
     const goalAt = Date.parse(`${values.goalDate}T00:00:00Z`);
     const target = toLuna(values.targetNim);
     const personal = toLuna(values.personalTargetNim);
+    // The same address is pasted with single spaces, with none at all, or in lower case
+    // depending on where it was copied from; all three are the same address
+    // (src/core/nimiq-address.ts). Normalising here means the wire contract sees the one form
+    // it accepts, and a genuinely wrong address is named as such instead of coming back as
+    // "that request was not valid".
+    const recipient = normalizeAddress(values.recipient);
     const body = values.mode === 'A'
-      ? { mode: 'A' as const, name: values.name.trim(), goalAt, targetLuna: target,
-        recipient: values.recipient.trim().toUpperCase() }
+      ? { mode: 'A' as const, name: values.name.trim(), goalAt, targetLuna: target, recipient }
       : { mode: 'B' as const, name: values.name.trim(), goalAt, personalTargetLuna: personal };
+    if (values.mode === 'A' && !isAddress(values.recipient)) {
+      const words = strings(lang).create;
+      setError({ message: words.recipientInvalid, nextAction: words.recipientInvalidNext });
+      return;
+    }
     if (!Number.isFinite(goalAt) || (values.mode === 'A' ? target === null : personal === null)) {
       setError(catalogError('INVALID_INPUT', lang));
       return;
@@ -71,9 +88,12 @@ export function CreateSquadContainer({ minGoalDate, inviteBase, initialLang, tem
     }
   }
 
-  return <CreateSquadScreen values={values} minGoalDate={minGoalDate} busy={busy} back={home}
+  return <CreateSquadScreen values={values} minGoalDate={minGoalDate} busy={busy} t={t} back={home}
     lang={lang} templateDates={templateDates}
     {...(error ? { error } : {})} {...(created ? { created } : {})}
     onChange={(patch) => setValues((current) => ({ ...current, ...patch }))}
+    onShare={() => void invite.share()}
+    onCopyInvite={() => void invite.copy()}
+    shared={invite.shared}
     onSubmit={() => void submit()} />;
 }

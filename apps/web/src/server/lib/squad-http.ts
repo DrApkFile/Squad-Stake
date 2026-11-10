@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import { hashInput, leaveInput, payInput } from '../../core/squad-contract';
 import { setCommitment, type CommitDeps } from '../core/commitments';
-import type { SquadService } from '../core/squads';
+import type { SquadService, SquadStore } from '../core/squads';
 import type { TxTracker } from '../core/tx-tracker';
 import { json, parseBody, validOrigin } from './auth-http';
 import { leavePlanView, settleMemberPayment } from './plan-view';
@@ -11,6 +11,8 @@ import { mySquadsView, proofView, squadDetailView } from './squad-view';
 export interface SquadHandlerDeps {
   squads: SquadService;
   tracker: TxTracker;
+  /** Only to answer "is this the caller's own transaction?" before a status read. */
+  store: Pick<SquadStore, 'getTrackedTx'>;
   commit: CommitDeps;
   origin: string;
   sessionAddress(request: Request): Promise<string | null>;
@@ -21,7 +23,7 @@ export interface SquadHandlerDeps {
 const STATUS: Record<string, number> = {
   INVALID_INPUT: 400, GOAL_TOO_SOON: 400,
   INVITE_INVALID: 404, SQUAD_NOT_FOUND: 404, NOT_TRACKED: 404,
-  SQUAD_CLOSED: 409, NOT_A_MEMBER: 409, DUPLICATE_HASH: 409,
+  SQUAD_CLOSED: 409, NOT_A_MEMBER: 409, DUPLICATE_HASH: 409, LEAVE_BLOCKED: 409,
   OVER_COMMITTED: 409, NOT_STAKING: 409, TX_NOT_CONFIRMED: 409, TX_FAILED: 409,
   // §7.6 refusals: the payment exists but does not settle this member's share.
   NOT_MODE_A: 409, WRONG_RECIPIENT: 409, PAYMENT_SHORT: 409, PAYMENT_DATA_MISMATCH: 409,
@@ -87,8 +89,18 @@ export function createSquadHandlers(deps: SquadHandlerDeps) {
     recordTx: wrap(async (address, request) =>
       send(await deps.tracker.record(address, await parseBody(request)), 201)),
 
-    checkTx: wrap(async (_address, _request, hash: string) => {
+    /**
+     * The status of **the caller's own** transaction. The hash is public on the chain, but
+     * that Squad Stake tracked it is not, and a member has no business reading another
+     * member's row (docs/AUDIT.md, n-2). A hash that is not theirs is simply not tracked,
+     * which is the same answer they would get for one that does not exist.
+     */
+    checkTx: wrap(async (address, _request, hash: string) => {
       if (!hashInput.safeParse(hash).success) return json({ ok: false, code: 'INVALID_INPUT' }, 400);
+      const tracked = await deps.store.getTrackedTx(hash);
+      if (tracked === null || tracked.address !== address) {
+        return json({ ok: false, code: 'NOT_TRACKED' }, 404);
+      }
       return send(await deps.tracker.check(hash));
     }, false),
 

@@ -1392,3 +1392,447 @@ by default: a tool should not delete directories in a shared temp dir that it di
   then the three leaving steps and a Mode A payment on testnet, then mainnet.
 - Neon through the pooler, including the concurrent-commit refusal.
 - The mock chain provider (`?chain=mock`) and Remotion.
+
+## Four UX defects from the second testnet phone run — 2026-11-09 (Slice D)
+
+Reported after Slice C shipped: "i didnt see the retry button when i tried to withdraw after
+leaving a squad and also initially it said transaction failed it was included in a block but
+didnt execute and the fee was spent so what do i do … also the refresh button there when i
+press it nothing shows to make me know its refreshing at least the button should roll … while
+you are at that check for other ux issues in the app and fix".
+
+**No protected file was touched** — `git status` over `member-status.ts`, `release.ts`,
+`commitments.ts`, `tx-tracker.ts`, `payment-check.ts`, `rpc-schemas.ts`, `staking-actions.ts`
+and `src/wallet/` is empty.
+
+### 1 · Why the retry button was not there, which was three separate faults
+Slice C's retry was real and committed (`c6d3e88`), and it still could not have shown up for
+this failure. Traced in order:
+
+- **A read erased the verdict about a send.** `act()` ends by re-reading the plan, and
+  `loadPlan` cleared `error` on its way past — so `fail('TX_FAILED')` rendered the failure and
+  the following read deleted it, taking the pinned "Try again" with it. That is exactly the
+  report: "initially it said transaction failed … I didn't see the retry button". `loadPlan`
+  now takes `keepFailure`: a read may always raise a *read* error; it may never retract a
+  verdict about a send.
+- **The rule refused to offer the only thing that helps.** `retryOffer` allowed a resend only
+  while the step was `available`. An included-but-failed withdrawal leaves the step `failed`,
+  so the answer was "re-read" — a button that reads the chain and changes nothing, next to a
+  retired balance that is still sitting there. `failed` now offers the step again: that verdict
+  is *final* and it is a verdict about a transaction that executed nothing, so the step is
+  genuinely still the member's and taking it is not a second send of anything. `pending`
+  (a hash in flight) still drops to a re-read — that is the case invariant 8 is about.
+- **And the page could not show it at all after a reload.** The failure lived only in React
+  state, so reloading `/squads/<id>/leaving` left no `error`, no `onRetry` and a step body that
+  rendered its action only for `available` — four steps, a failed transaction, and nothing to
+  tap. Each step now renders its action when the chain says `available` **or** `failed`,
+  labelled "Try again", so the way on is read off the chain and a reload cannot lose it. New
+  scene `leaving-withdraw-failed` is exactly that state, deliberately with no `error` and no
+  `onRetry` prop.
+
+Every one of those taps still goes through `act()`, which re-reads the plan and lets the pure
+planner refuse, so a step whose precondition has gone is refused rather than re-sent.
+
+### 2 · "the fee was spent so what do i do"
+The screen's own explanation was already right (`tx.failedBody`: "It was included in a block
+but did not execute. Nothing moved; the fee was spent."). What was missing was the answer to
+"what do I do", which is finding 1. One wording fix beside it: the catalogue's `TX_FAILED`
+next action said "Nothing was **staked**", which is wrong for a retire, a withdrawal or a
+payment — now "Nothing moved; the fee was spent. You can try again.", in all five languages.
+
+### 3 · The Refresh button looked dead, and on a dropped connection it was
+Two faults. The cosmetic one: no control in the app showed that a read was in flight. The real
+one: the leaving screen's refresh was `void loadPlan()` with nothing around it, so a read that
+*rejected* — which is what an interrupted connection does, and the connection had just been
+interrupted — was an unhandled rejection and the screen did not change at all. It is now
+wrapped, catches, and shows `NETWORK_ERROR`.
+
+New pure `packages/ui/Spinner.tsx`: the angle is `ringAngle(t, 1.1)` handed to CSS as `--spin`,
+so there is no `@keyframes`, no timer, and Remotion can render frame `n` of the turn. Every
+control that starts work now turns it **and** changes its label — `prefers-reduced-motion`
+freezes `t`, so a turning arc alone would say nothing to a member who asked for less motion,
+and nothing at all to a screen reader (the button carries `aria-busy`). One shared
+`RefreshButton` serves all five refresh controls (leaving bar, squad page, transaction block,
+pay sheet, commit sheet).
+
+### 4 · Other UX issues found and fixed in the same pass
+- **"0 of 60 confirmations" again, one component along.** Slice A fixed `MemberList`;
+  `TxStatus` still rendered `confirmations ?? 0`, and the two containers behind it still sent
+  `tracked.confirmations ?? 0`. A count nobody read is now worded (`tx.confirmationsUnread`,
+  five languages) and the state types carry `number | null`, so a zero cannot stand in for
+  "unread" anywhere on the transaction path.
+- **One button whose `busy` prop said nothing**: the privacy notice's *Accept* dimmed and no
+  more. No caller passes `busy` to it today, so this was a contract honoured rather than a
+  defect fixed. Checked and **not** changed: the commit sheet's *Create staker* / *Add stake*,
+  which looked like the same defect and is not — approving moves the sheet to `waiting`, which
+  renders the other button saying "Waiting…", so the tap is already answered.
+- **The spinner also goes in the money buttons** that already changed label (commit, pay,
+  create squad, leave, the three exit steps), so waiting looks the same everywhere.
+- **A fixture that contradicted the server.** `leaving-retire-failed` carried `release: null`,
+  which the step machine would now report as `waiting`, not `failed`. Re-anchored to a released
+  stake, which is the only way step two can read `failed`.
+
+### The one place "offer it again" had to be held back
+In the step machine the release gate now outranks the failure: a retire that failed **before**
+the chain released the stake reads `waiting`, not `failed`. Because `failed` now means "yours
+to take again", a failure that outranked the gate would have put a second 0.003 NIM fee behind
+a button for a transaction the staking contract rejects just as surely as the first
+(FAILURE_MODES "retire before release"). The existing Q11 attack was updated to assert the
+stronger claim, and extended: once the head passes the release block, that same failed retire
+*is* offered again and the planner will build it. Trade-off taken knowingly: the failed hash is
+not shown on that step until the release passes.
+
+### What ran
+- `pnpm gate` (log `.cache/ux-gate-2026-11-09c.log`): typecheck, lint, **148 unit tests and 37
+  adversarial tests, 0 failures, 0 skips** (was 147/37), Next build compiled clean in 18.7 s
+  (10/10 static pages, no warnings), Q16 production-artifact guards, secret scan and 19 exact
+  dependency pins across 5 manifests all passed. **Exit 1 only at `check:tracked`**, because the
+  slice is uncommitted; the human commits. One file changed after that run — the
+  measurement script's teardown, below — which the build and the tests do not cover;
+  `eslint` was run on it alone (exit 0) and the script itself was run twice afterwards.
+- New tests: `a control that starts work says so, and never prints a count nobody read` (the
+  spinner's `aria-busy` and changed label, the spinner as a pure function of `t` — two instants
+  differ, the same instant repeats byte for byte — and `TxStatus` wording a null count while
+  still printing a real one); `§7.5 …` extended with `leaving-withdraw-failed`, which asserts
+  there is no `role="alert"` on that screen at all and that the single send on it is step
+  three's own "Try again". The retry attack now covers `failed` → resend for every kind, keeps
+  `pending`/`done`/`waiting`/`locked` → re-read, and the Q11 attack asserts the release gate
+  outranks the failure and then that the step opens once the head passes the release block.
+- `pnpm check:scenes` (log `.cache/scenes-2026-11-09d.log`, record
+  `.cache/scene-measurements.json`): **147 scenes × 2 themes × {390, 375, 320} = 882 frames,
+  0 failures** — nothing crossing the frame, no horizontal scroll, every tap target ≥ 44 px.
+- Frames inspected directly, scrolled to the step rather than measured from the top: the failed
+  withdrawal in light **and** dark (step three reads "Failed · That transaction failed · It was
+  included in a block but did not execute. Nothing moved; the fee was spent." with the hash, the
+  explorer link and a **Try again** under it), the interrupted withdrawal (the step's own
+  *Withdraw in Nimiq Pay* plus the pinned failure and its retry), and the refresh control
+  mid-read. The spinner was also screenshotted at 12× to confirm it draws a ring with a moving
+  gap rather than a disc.
+
+### Two process faults found on the way, both worth not repeating
+- **The first gate run failed at `test:production`** with `Cannot find module './173.js'` out of
+  `.next/server/webpack-runtime.js`. Not a code fault: **a dev server from the previous session
+  was still running** (pid 1023082, started 17:14, cwd `apps/web`) and writing dev chunks into
+  the same `.next` that `pnpm build` had just produced, so the artifact the guard booted was
+  inconsistent. Stopping it and deleting `.next` fixed it; the gate then passed that step twice.
+  The previous handoff says that server was stopped. It was not. **Stop the dev server before
+  `pnpm gate`, and check `ss -ltnp` rather than trusting the note.**
+- **Port 3100 is no longer free either** — an unrelated Pages-Router Next app answers on it, as
+  port 3000 already did. This session measured on **3210**. And `SCENES_URL` is the **base**
+  (`http://localhost:3210`), not the `/scenes` URL; passing the latter asks for `/scenes/scenes`
+  and reports "No scenes", which looks like a dev-harness problem and is not.
+
+### Not verified by this slice
+- **No wallet, no phone, no mainnet, no database, no chain.** Nothing here signed, sent or read
+  anything; the whole slice is pure UI, two pure rules and their tests.
+- **The retry still has never fired against a real failure.** It is now covered by unit and
+  adversarial tests over every step state, by two fixtures and by inspected frames — but no
+  wallet call has failed and been taken again on any network. The next phone pass is what
+  proves it, and the thing to try is exactly what was reported: let a withdrawal fail, reload
+  the page, and check that step three still offers itself.
+- The spinner has been seen only in headless Chromium at 1× — never at real phone DPI, and
+  never with `prefers-reduced-motion` actually set on a device (the frozen-`t` case is why the
+  label changes too, but that pairing has only been reasoned and tested, not watched).
+
+### Next
+- Commit all four slices (`check:tracked` is the only gate step still failing).
+- A phone pass inside Nimiq Pay: the interrupted withdrawal above, the share sheet, the pressed
+  states and the new skin at real DPI; then the three leaving steps and a Mode A payment on
+  testnet, then mainnet.
+- Neon through the pooler, including the concurrent-commit refusal.
+- The mock chain provider (`?chain=mock`) and Remotion.
+- Still open: `rm -rf /tmp/squad-scenes-*`. **Six** directories now, not four: Slice C's
+  teardown removed the 165 MB inside a profile but not the profile itself, so this session's
+  two measurement runs each left an 8 KB shell behind before that was noticed and fixed (see
+  below). Deleting them is still the operator's call; this session's sandbox refuses.
+- The `.next` directory was deleted at the end of this session, because a dev server had
+  written into it. The next `pnpm build` starts from nothing, which is the state the gate wants.
+
+### The teardown removed a profile's contents but not the profile
+Slice C's `finally` emptied the directory and then returned, and Chromium — still exiting —
+recreated `Default/Cache` and `Default/Network Persistent State` after `rm` had already walked
+past them. 165 MB went, 8 KB stayed, once per run. The teardown now removes, **looks**, and
+goes round again up to five times. Verified both ways after the change: a successful two-scene
+run and a deliberately failed one (`SCENES_URL=http://localhost:3999`) each left the count at
+six, unchanged.
+
+## Submission documents, go-live tooling and a full self-audit — 2026-11-09 (Slice E)
+
+Documentation plus an audit; **no new features**. Submission is 2026-11-10, when the app goes
+live on mainnet at `https://squad-stake.vercel.app` (one deployment, switched from testnet).
+**No protected file was touched** — `git status` over `member-status.ts`, `release.ts`,
+`commitments.ts`, `tx-tracker.ts`, `payment-check.ts`, `rpc-schemas.ts`, `staking-actions.ts`,
+`app/api/auth/verify/route.ts` and `src/wallet/` is empty.
+
+### Written
+- **`JUDGING.md`** (linked from the top of the README): what Squad Stake is in two sentences,
+  what a judge needs, the 12–24 h unstaking warning up front with a table of what is instantly
+  checkable against what needs a return visit, four paths (5-minute core · a second wallet ·
+  leaving · Mode A payment), a "try to break it" table with the expected refusal for each,
+  a feature → file table, an evidence table whose claims are copied **only** from
+  `briefing/PROOF_PLAN.md` (each testnet claim carries the word testnet; mainnet is listed as
+  unproven), and an FAQ.
+- **`README.md`**, rewritten as the pitch: live link, "Judges: start here", a placeholder for
+  the video, the problem, four steps, how it uses Nimiq, what it isn't, honest limitations,
+  screenshots, run instructions, deploy. Only PROVEN claims.
+- **`docs/SUBMISSION.md`**: the description at exactly **250 words** (`wc -w`), category
+  **Save**, and every form field as a checklist. `briefing/EVENT.md` A08 now records Save, and
+  the stale "Pay." paragraph is marked superseded rather than deleted.
+- **`THIRD_PARTY_NOTICES.md`**: every licence read out of the installed `package.json` files
+  on 2026-11-09 — not from memory. Two of my first guesses were wrong (`@nimiq/mini-app-sdk`
+  is MIT, `@nimiq/identicons` is ISC) and were corrected by reading the tree.
+- **`docs/GO-LIVE.md`**: the ordered testnet → mainnet checklist on one deployment, why the
+  testnet rows must be deleted first (they would be read against mainnet and become fabricated
+  proof), the rollback, and the `serverEnv()`/`appNetwork()` default asymmetry.
+- **`docs/AUDIT.md`**: the audit itself (below).
+- **`docs/screenshots/`**: the six frames the README references, rendered from the fixture
+  scenes at 390 px light.
+
+### `pnpm db:reset-data`, proven against a real database
+`apps/web/src/server/reset-data.ts` discovers its tables from `information_schema`, keeps
+`schema_migrations`, prints the host and every table with its row count, and refuses unless
+given **both** `--confirm` and the database's exact host name. Then one
+`TRUNCATE … RESTART IDENTITY CASCADE` and a re-count. Exercised end to end on a throwaway
+PostgreSQL 18.6 cluster: seeded, then a no-argument run printed the five tables and exited 1
+without deleting; `--confirm neon-pooler.example.com` exited 1 naming the mismatch;
+`--confirm 127.0.0.1` emptied all five and left `schema_migrations` at 3 rows; `pnpm db:migrate`
+then printed "Migrations already applied."
+
+Also confirmed nothing is hardcoded to testnet: a grep over `apps/web/app` and `apps/web/src`
+outside `src/config/network.ts` returns only comments plus the two documented defaults, and
+`tests/unit/network-config.test.ts` already scans for exactly this.
+
+### The audit: 3 Blockers, 4 Majors, 15 Minors
+Full write-up with repro steps and proposed fixes in `docs/AUDIT.md`. **The 3 Blockers and 8
+Minors are fixed here; the 4 Majors and 7 Minors are listed for approval** (the rule for this
+batch: fix Blockers and low-risk Minors, list Majors).
+
+**Blockers, all fixed and all found by running the thing rather than reading it:**
+- **F-1 · a pasted recipient was refused.** `POST /api/squads` answers `INVALID_INPUT` for
+  `NQ6229BT…` — the unspaced form an explorer or a chat message gives you — because the wire
+  contract takes the spaced form only, and the screen named no field. New pure
+  `src/core/nimiq-address.ts` normalises spacing and case at the screen, refuses a genuine
+  non-address with its own words in five languages, and **never invents** the missing part of
+  an address.
+- **F-2 · a settled squad still offered "Change my commitment" and "Leave squad"**, both of
+  which `isActive` refuses with `SQUAD_CLOSED`. The action bar is no longer rendered on a
+  COMPLETED squad; the "This squad is complete" banner is the end of the story.
+- **F-3 · the public proof page answered 500.** `/proof/cbnkj8dn-typo` and
+  `/squads/notauuid` returned **500** with `PostgresError: invalid input syntax for type
+  uuid`, because `squadProof` falls back to `getSquad`, whose column is a uuid. That is the
+  one link judges are told to share. `getSquad` now answers null for anything that cannot be
+  a uuid, before the query; verified against the same database: **500 → 404**, and
+  `/api/proof/<unknown>` now says `SQUAD_NOT_FOUND` instead of `UNAVAILABLE`.
+
+**Minors fixed (8):** the status poll gave up on `UNAVAILABLE` (a handler failure that says
+nothing about the transaction) and both "stalled" strings promised "after two minutes", which
+a refusal could make false — the loop is now the pure `followTracked(read, hash, onProgress,
+wait)` and the claim is gone in five languages; the web manifest still carried the pre-Slice-C
+navy and gold; `SignInScreen` did not pass `lang` to its header; step four said "Finish
+withdrawing first" while a payment was in flight; the read age ran into hundreds of minutes
+(now an hours unit in five languages); the ⓘ dialog is `aria-modal` but focus stayed behind
+it; and — **the one worth remembering** — `scripts/measure-scenes.mjs` had been capturing
+clipped screenshots since 2026-11-08: mobile emulation applies a page scale of its own, so a
+plain `captureScreenshot` returned a 390 px image holding the left ~390 px of a ~474 px
+layout. Every frame "inspected by eye" in the last three slices was missing its right edge,
+including the brand mark in the top bar. The measurements were never affected — they are read
+from the DOM in CSS pixels — and the capture now passes an explicit clip. Looking at the
+repaired frames then found an eighth: the COMPLETED fixture read "4,500 NIM saved · 1,100 NIM
+leaving · 1,800 NIM missing" beside a banner saying every member had paid, because it kept the
+base scene's stage totals; it now derives them from its own roster.
+
+**Majors left for approval:** the create screen prints the invite URL and offers no share
+control (the squad page's own fix was never carried across); six screens use a static footer
+while three use the sticky action bar, so the primary action sits below the fold on the
+longest screens; `deriveLeavingSteps` takes the §7.6 verdict as a boolean, so a payment whose
+refusal is already final still reads "Sent"; and the commit sheet starts empty and suggests no
+amount, which is the only number the member has to invent on the core path.
+
+### What ran
+- **A database run against live testnet.** A throwaway PostgreSQL 18.6 cluster (port 55432,
+  TCP-only, migrations 001–003) behind `pnpm dev` on port 3210, as dev identities alice / bob
+  / carol: both modes created; `GOAL_TOO_SOON`; the F-1 refusal; bob joined by token; a guessed
+  token and a right-token-wrong-id both `INVITE_INVALID`; a commit refused `CHAIN_UNAVAILABLE`
+  on the cold five-second read and then `NOT_STAKING` with `shortfallLuna 200000000` from a
+  real staker read; the detail view with `earned` for the viewer only and `null` for everyone
+  else; `GET /api/plan/:id` with a real `headBlock` 16,343,325; the public proof by short id
+  and by uuid, signed out, with `inviteToken: null`; `NOT_A_MEMBER` for a stranger; leave,
+  leave again (`NOT_A_MEMBER`), re-join (fresh membership at zero); and every page of §9
+  loaded, including the mode-B `/pay` and the non-member `/leaving`, which redirect rather
+  than dead-end.
+- **A real included-but-failed transaction tracked end to end**, through HTTP and SQL:
+  `POST /api/tx` with the recorded testnet retire `70a282c0…` → `SUBMITTED`, then
+  `GET /api/tx/:hash` → **`INCLUDED_FAILED` with 170,877 confirmations**, written back to
+  `tracked_txs` with `checked_at`; a duplicate hash → `DUPLICATE_HASH`; the pay route refused
+  that hash with `NOT_TRACKED`. This is the first time the tracker's failure branch has run
+  against a live node through the whole stack rather than from fixtures.
+- **CoinGecko**: USD timed out on the cold read (the deliberate five-second abort) and then
+  answered 0.00025454; EUR 0.0002268; GMD `NO_QUOTE`, as documented.
+- **`pnpm gate`** (log `.cache/audit-gate-2026-11-09.log`), from a stopped dev server and a
+  deleted `.next`: typecheck, lint, **156 unit tests and 37 adversarial tests, 0 failures,
+  0 skips** (was 148/37), Next build compiled clean in 28.6 s (10/10 static pages, 26 routes,
+  no warnings), Q16 production-artifact guards, secret scan and 19 exact dependency pins
+  across 5 manifests all passed. **Exit 1 only at `check:tracked`**, because this slice is
+  uncommitted; the human commits. Nothing else in the gate failed.
+- **`pnpm check:scenes`** (log `.cache/scenes-2026-11-09e.log`, record
+  `.cache/scene-measurements.json`): **148 scenes × 2 themes × {390, 375, 320} = 888 frames,
+  0 failures** — nothing crossing the frame, no horizontal scroll, every tap target ≥ 44 px.
+  Run again after the UI fixes landed. Frames inspected directly, now that the capture is no
+  longer clipped: the entry screen, the squad page, the settled squad in both themes (the
+  banner with no action bar under it), the payment in flight, and the six README shots.
+- New tests (8): `input-and-polling` (5 — every shape of a pasted address, eight refusals in
+  five languages, and the poll's retryable-versus-final rule over `UNAVAILABLE`,
+  `NOT_TRACKED`, `INVALID_INPUT`, `AUTH_REFUSED`, a final verdict and a whole unknown
+  window); `store-ids` (1 — the uuid guard, proven to run *before* the query by running with
+  no database configured); `ui-screens` +1 (a settled squad offers nothing the server would
+  refuse); `ui-leaving` +1 (step four says nothing about withdrawing while a payment is in
+  flight), plus the read-age assertions in `i18n`. One existing assertion was updated rather
+  than worked around — the "after two minutes" wording it pinned is deliberately gone.
+
+### Not verified by this slice
+No wallet, no Nimiq Pay approval sheet, no phone, no mainnet. `navigator.share` still has
+never run. The retry after a real failure still has never fired. The database is still a local
+throwaway cluster, **not Neon**, so the pooled concurrent-commit refusal remains unproven. The
+go-live checklist is a written procedure: no Vercel build, no Neon branch and no mainnet read
+has happened. Everything the earlier slices left unverified stays unverified.
+
+### Next
+- Commit this slice and the four before it (`check:tracked` is the only gate step failing).
+- Decide the four Majors in `docs/AUDIT.md` (share on the create screen, the sticky action
+  bar on six screens, the §7.6 refusal code instead of a boolean, a suggested commit amount).
+- **Go live**: `docs/GO-LIVE.md` — `pnpm db:reset-data`, `NEXT_PUBLIC_NIMIQ_NETWORK=mainnet`
+  in Vercel, redeploy, then the phone pass on Default. Fill in the ☐ fields in
+  `docs/SUBMISSION.md` (payout address, video link, lead name) and the video placeholder at
+  the top of the README.
+- The phone pass itself is what proves the list at the end of `docs/AUDIT.md`: the three
+  leaving steps, a Mode A payment, the share sheet, the retry after a real failure, and
+  `getHostLanguage()`/`getHostFiat()` returning real values.
+- Still open from earlier slices: Neon through the pooler (including the concurrent-commit
+  refusal), the mock chain provider (`?chain=mock`), Remotion, and `rm -rf /tmp/squad-scenes-*`
+  for the profiles left before the teardown was fixed.
+
+## The four Majors and the seven listed Minors, approved and fixed — 2026-11-10 (Slice F)
+
+The operator approved every finding `docs/AUDIT.md` had left for a decision
+("fix all the majors and minors i approve"). All 22 findings of the audit are now fixed:
+3 Blockers + 8 Minors in Slice E, **4 Majors + 7 Minors here**. `docs/AUDIT.md` is updated
+in place — the findings are left as written and each carries what was actually done.
+
+**No protected file was touched.** `git status` over `member-status.ts`, `release.ts`,
+`commitments.ts`, `tx-tracker.ts`, `payment-check.ts`, `rpc-schemas.ts`,
+`staking-actions.ts`, `app/api/auth/verify/route.ts` and `src/wallet/` is empty.
+
+### The four Majors
+- **M-1 · the create screen printed the invite URL.** The share step now hands the link to
+  the phone's own share sheet, with a quiet **Copy link** and a "Copied" confirmation. The
+  `navigator` call moved into one new `apps/web/src/hooks/use-share-link.ts`, which the squad
+  page now uses too — its inline copy of the same logic is gone, so the two screens cannot
+  drift again. `AbortError` (the sheet dismissed) is a decision, not a failure, and anything
+  else falls through to the clipboard. `packages/ui` stays pure: `onShare` / `onCopyInvite` /
+  `shared` are props. New scene `create-share-copied`.
+- **M-2 · half the screens had a sticky action bar.** The `.sign-in-footer, .sheet-footer`
+  rule is deleted and the six screens that used it (create — both steps — commit, pay,
+  leave-confirm, My squads, privacy notice) render `<footer className="action-bar">`. The
+  main action is now pinned inside `--safe-bottom` on every screen, which is what the longest
+  ones (create, commit) needed: their action used to sit below the fold.
+- **M-3 · a payment whose refusal was already final still read "Sent".** `deriveLeavingSteps`
+  takes `payment: PaymentOutcome | null` — `{ verified: true }` or `{ verified: false, code }`
+  — instead of a boolean. `WRONG_RECIPIENT`, `PAYMENT_DATA_MISMATCH`, `PAYMENT_SHORT` and
+  `TX_FAILED` are final, so the step reads `failed` the moment the chain says so instead of
+  waiting for the tracker's five-second poll; `TX_NOT_CONFIRMED` and an unreadable
+  transaction still read `pending`, because those can still change. The machine still does no
+  I/O. This is the "rough edge" recorded on 2026-11-08, closed.
+- **M-4 · the commit sheet suggested no amount.** New pure
+  `apps/web/src/core/commit-suggestion.ts`: the member's own commitment if they have one,
+  otherwise an even share of a Mode A target **rounded down** to whole NIM, and nothing at
+  all for Mode B or a squad with no target. It is a function of the squad row and the member
+  count and **never of a balance** (which stays server-side); `joinView` sends it as
+  `suggestion`, the field is pre-filled with it, and one hint line says where the number came
+  from, so it reads as a suggestion rather than a decision the app made.
+
+### The seven Minors
+- **n-1 · two codes with no producer**, decided both ways. `STALE_READ` is **deleted** —
+  nothing ever served a `lastKnown` snapshot *as* a stale read, and every screen already
+  prints the age of the read it shows, which is the honest form of the same thing.
+  `LEAVE_BLOCKED` is **wired** (n-4). A new test scans every `.ts`/`.tsx` under
+  `apps/web/app` and `apps/web/src`, with the `FLAGS` table itself cut out so a code cannot
+  vouch for itself, and fails if any catalogue code has no producer.
+- **n-2 · `GET /api/tx/:hash` was not scoped to the caller.** It now looks the hash up with
+  `getTrackedTx` and answers **`NOT_TRACKED` (404)** unless the row is the caller's — the
+  same answer an invented hash gets. `SquadHandlerDeps` gained a `store` of exactly
+  `Pick<SquadStore, 'getTrackedTx'>`.
+- **n-3 · `joined_at` survived a re-join.** `joined_at = now()` in the `DO UPDATE` of
+  `joinMembership`, which already reset `left_at` and `committed_luna`. "Earned since
+  joining" was measuring over a period the member was not in the squad.
+- **n-4 · two store verdicts were discarded.** `leave` answers **`LEAVE_BLOCKED`** (409,
+  retryable, "your stake is untouched") when `markLeft` matches no row, instead of reporting
+  a release that did not happen; `join` **re-reads** when `joinMembership` matches no row —
+  a current membership is the same success the other request got, anything else is
+  `UNAVAILABLE`.
+- **n-5 · the entry screen's one action was the quiet style.** "Sign in with Nimiq Pay" is
+  now the filled ink `.primary-button`, with the spinner and `aria-busy` while Nimiq Pay
+  holds the approval; the two link states match it. The gradient pill stays for genuinely
+  secondary actions.
+- **n-6 · the ⓘ sheet had no scrim tap and no Escape.** Both are now React handlers on the
+  scrim element — no `window` listener, no effect, so the component is still a pure function
+  of `t`. A tap *inside* the sheet is excluded by comparing `target` with `currentTarget`
+  rather than by stopping the event on the way up.
+- **n-7 · the price route emitted codes the catalogue did not name.** `TIMEOUT` (retryable)
+  and `NO_QUOTE` (not retryable) are in `catalog.ts` with words in all five languages. The
+  fiat line still simply disappears; nothing on screen changed. The catalogue is now 42
+  codes (was 41).
+
+Eight rows added to `docs/DECISIONS.md`, one per decision above.
+
+### What ran
+- `pnpm gate` (log `.cache/approved-gate-2026-11-10.log`), from a stopped dev server and a
+  deleted `.next`: typecheck, lint, **163 unit tests and 37 adversarial tests, 0 failures,
+  0 skips** (was 156/37), Next build compiled clean in 34.3 s (10/10 static pages, **28
+  routes**, no warnings), Q16 production-artifact guards, secret scan and 19 exact dependency
+  pins across 5 manifests all passed. **Exit 1 only at `check:tracked`**, because the slice is
+  uncommitted; the human commits. Nothing else in the gate failed.
+- New tests (7 beyond the 156): `tests/unit/squad-http.test.ts` (3 — the hash scoping with a
+  stranger, an unknown hash, the owner's own verdict and a malformed hash that never reaches
+  the store; the leave verdict; the join re-read in three shapes), `i18n` +1 (the
+  producer scan plus the three codes that changed), `ui-screens` +1 (the filled entry action,
+  its spinner, and the ⓘ sheet's two new handlers called directly on the returned element),
+  and assertions added to `ui.test.ts` (the create screen prints no URL and has a copied
+  state) and to the M-1…M-4 suites written earlier in this batch.
+- `pnpm check:scenes` (log `.cache/scenes-2026-11-10.log`, record
+  `.cache/scene-measurements.json`, `measuredAt 2026-11-10T19:22:51Z`): **150 scenes × 2
+  themes × {390, 375, 320} = 900 frames, 0 failures** — nothing crossing the frame, no
+  horizontal scroll, every tap target ≥ 44 px. Two new scenes since Slice E
+  (`create-share-copied`, `commit-suggested-yours`).
+- Frames inspected directly: the entry screen (the filled "Sign in with Nimiq Pay" in the
+  pinned bar), `create-share-copied` (no URL anywhere, "Share invite" plus "Copied", and
+  "Open the squad" in the sticky bar), and `commit-ready` (the suggestion line under the
+  field, "Suggested 3,000 NIM: an even share of the goal"). The other seven re-shot scenes
+  are measured and screenshotted but not inspected.
+- `/tmp` cleaned: the six leaked Chromium profiles were removed in this session (the four
+  pre-fix ones at ~9 MB each, and two 8 KB shells this session's own runs left behind). The
+  teardown still leaves an empty shell on some runs; it is 8 KB rather than 165 MB, so it is
+  recorded rather than chased.
+
+### Not verified by this slice
+- **No wallet, no Nimiq Pay approval sheet, no phone, no mainnet, no database and no chain
+  read.** Everything here is server logic, pure UI and their tests; nothing signed, sent or
+  read anything. In particular `navigator.share` on the create screen has still never run —
+  it needs a secure context and a real device, exactly as on the squad page.
+- The n-2, n-3 and n-4 behaviour is proven against the in-memory twin only. **n-3 is a change
+  to SQL that has not run**: the next database session must re-join a member and check
+  `joined_at` moved.
+- M-3's final-refusal branch is proven from recorded verdicts; no payment has ever been sent,
+  so no step has read `failed` from a real mismatched marker.
+- Everything the earlier slices left unverified stays unverified.
+
+### Next
+- Commit Slices A–F (`check:tracked` is the only gate step failing).
+- **Go live**: `docs/GO-LIVE.md` — `pnpm db:reset-data`, `NEXT_PUBLIC_NIMIQ_NETWORK=mainnet`
+  in Vercel, redeploy, then the phone pass. Fill in the ☐ fields in `docs/SUBMISSION.md`
+  (payout address, video link, lead name) and the video placeholder in the README.
+- The phone pass proves what the audit could not: the three leaving steps, a Mode A payment,
+  the share sheet on two screens now, the retry after a real failure, and
+  `getHostLanguage()` / `getHostFiat()` returning real values.
+- Still open from earlier slices: Neon through the pooler (including the concurrent-commit
+  refusal and the three queries the in-memory twin alone has exercised), the mock chain
+  provider (`?chain=mock`), and Remotion.

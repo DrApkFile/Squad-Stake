@@ -25,6 +25,7 @@ export function squadHandlers(): SquadHandlers {
       inviteToken: () => randomBytes(INVITE_TOKEN_BYTES).toString('hex'), hash: sha256,
     }),
     tracker: createTxTracker({ store, rpc, now: Date.now }),
+    store,
     commit: { store, rpc, now: Date.now },
     origin: serverEnv().APP_ORIGIN,
     async sessionAddress(request) {

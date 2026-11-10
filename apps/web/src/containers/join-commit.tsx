@@ -7,6 +7,7 @@ import { catalogError } from '../core/errors/catalog';
 import { useLang } from '../i18n/client';
 import { commitResponse, joinSquadResponse, trackedTxResponse } from '../core/squad-contract';
 import { planStakingAction } from '../core/staking-actions';
+import { useSceneTime } from '../hooks/use-scene-time';
 import { useTxPoll } from '../hooks/use-tx-poll';
 import { sendStakingAction } from '../wallet/staking';
 import type { JoinView } from '../core/view-contract';
@@ -17,8 +18,14 @@ export function JoinCommitContainer({ view, token, now, initialLang }: {
   view: JoinView; token: string; now: number; initialLang: Lang;
 }) {
   const lang = useLang(initialLang);
-  const [amountNim, setAmountNim] = useState('');
+  // The field opens on the server's suggestion rather than empty, so the member is changing a
+  // number instead of inventing one (docs/AUDIT.md, M-4). It is the initial value only: once
+  // they type, this never fights them, and nothing is committed without their tap.
+  const [amountNim, setAmountNim] = useState(
+    () => (view.suggestion === null ? '' : String(view.suggestion.amountLuna / LUNA_PER_NIM)),
+  );
   const poll = useTxPoll();
+  const t = useSceneTime();
   /** The transaction being followed, so the manual re-check knows what to ask about. */
   const [pendingTx, setPendingTx] = useState<{ hash: string; amountLuna: number } | null>(null);
   const [state, setState] = useState<JoinCommitState>(() => {
@@ -67,7 +74,7 @@ export function JoinCommitContainer({ view, token, now, initialLang }: {
   async function awaitInclusion(hash: string, amountLuna: number) {
     setPendingTx({ hash, amountLuna });
     const verdict = await poll.follow(hash, (tracked) => {
-      setState({ status: 'pending', confirmations: tracked.confirmations ?? 0,
+      setState({ status: 'pending', confirmations: tracked.confirmations,
         requiredConfirmations: tracked.requiredConfirmations });
     });
     if (verdict === null) return;              // Still unknown: the sheet says so, and waits.
@@ -105,8 +112,10 @@ export function JoinCommitContainer({ view, token, now, initialLang }: {
   return <JoinCommitSheet squad={view.squad} amountNim={amountNim} state={state} now={now} readAt={readAt}
     onAmountChange={setAmountNim}
     stalled={poll.stalled}
+    t={t}
     lang={lang}
     pool={view.pool}
+    suggestion={view.suggestion}
     {...(pendingTx ? { onRefresh: () => void guarded(() =>
       awaitInclusion(pendingTx.hash, pendingTx.amountLuna)) } : {})}
     back={{ label: strings(lang).common.backSquads, href: '/squads' }}

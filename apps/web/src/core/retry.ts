@@ -10,8 +10,8 @@ import type { LeavingStepState } from '@squad-stake/ui';
  *
  * The rule has to be pure, because the dangerous half of it is not "offer a button" but
  * "offer which button": a resend is only ever allowed while the chain still says that step is
- * the member's to take. Once a hash exists the step is `pending` and the answer drops back to
- * a re-read, so no control on the screen can put a second transaction on the wire
+ * the member's to take. Once a hash is in flight the step is `pending` and the answer drops
+ * back to a re-read, so no control on the screen can put a second transaction on the wire
  * (AGENTS.md invariant 8, briefing/FAILURE_MODES.md: check status before resending, never
  * auto-retry). Nothing here retries by itself either — it decides what a tap is allowed to do.
  */
@@ -33,10 +33,20 @@ export function retryOffer(input: {
 }): RetryOffer {
   if (!input.retryable) return { kind: 'none' };
   if (input.lastKind === null) return { kind: 'reread' };
-  // Anything but `available` means the chain has moved on: a hash is out (`pending`), the
-  // action is done, or it is not this member's to take yet. Reading is then the only honest
-  // answer, and it is still an answer — the member is never left without a control.
-  return input.lastStepState === 'available'
+  // `available` is a step waiting to be taken. `failed` is the same step after an attempt the
+  // chain included but did not execute — reported from a phone, 2026-11-09: "it said
+  // transaction failed, it was included in a block but didn't execute and the fee was spent,
+  // so what do I do". That verdict is final and it is a verdict about a transaction that moved
+  // nothing, so the step really is the member's to take again, and doing so is not a second
+  // send of anything: the first one is over. The step machine only reports `failed` while the
+  // step's own precondition still holds (server/core/leave-steps.ts), so this cannot offer a
+  // tap the chain would reject — and the container re-reads the plan and lets the pure planner
+  // refuse before any of it reaches the wallet.
+  //
+  // Everything else means the chain has moved on: a hash is in flight (`pending`), the action
+  // is done, or it is not this member's to take yet. Reading is then the only honest answer,
+  // and it is still an answer — the member is never left without a control.
+  return input.lastStepState === 'available' || input.lastStepState === 'failed'
     ? { kind: 'resend', tx: input.lastKind }
     : { kind: 'reread' };
 }

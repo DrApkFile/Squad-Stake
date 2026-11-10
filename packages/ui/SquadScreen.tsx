@@ -2,6 +2,7 @@ import { MemberList } from './MemberList';
 import { GradientBorderButton } from './GradientBorderButton';
 import { OrbitSquad } from './OrbitSquad';
 import { ScreenHeader } from './ScreenHeader';
+import { RefreshButton } from './Spinner';
 import { InfoButton, InfoSheet } from './InfoSheet';
 import { countdown, daysBetween, formatDay, formatLuna, formatMoment, readAge } from './format';
 import { fiatLine, fiatNote, type FiatRate } from './fiat';
@@ -85,6 +86,8 @@ export interface SquadScreenProps {
   onCloseInfo?: (() => void) | undefined;
   onLeave?: (() => void) | undefined;
   onRefresh?: (() => void) | undefined;
+  /** True while that read is in flight. */
+  refreshing?: boolean | undefined;
   t?: number | undefined;
   demoLabel?: string | undefined;
   back?: { label: string; href: string } | undefined;
@@ -137,6 +140,7 @@ export function SquadScreen({
   onCloseInfo,
   onLeave,
   onRefresh,
+  refreshing = false,
   t = 0,
   demoLabel,
   back,
@@ -193,9 +197,8 @@ export function SquadScreen({
         {/* Every chain figure on this page can be re-read on demand, whether or not the last
             read failed: the age above is only meaningful next to a way to renew it. */}
         {onRefresh && (
-          <button className="secondary-button secondary-button-quiet" onClick={onRefresh}>
-            {s.common.refreshChain}
-          </button>
+          <RefreshButton quiet onClick={onRefresh} refreshing={refreshing} t={t}
+            label={s.common.refreshChain} busyLabel={s.common.refreshing} />
         )}
 
         {exit !== null && (
@@ -311,16 +314,22 @@ export function SquadScreen({
         </section>
         {fiat !== null && <p className="fine-print fine-print-left">{fiatNote(fiat, now, lang)}</p>}
       </div>
-      <footer className="action-bar">
-        <a className="primary-button" href={commitUrl}>
-          {you === undefined || you.committedLuna === 0
-            ? s.squad.commitMine
-            : s.squad.changeCommitment}
-        </a>
-        {onLeave && (
-          <button className="secondary-button" onClick={onLeave}>{s.squad.leaveSquad}</button>
-        )}
-      </footer>
+      {/* A settled squad binds no stake any more, and the server refuses both of these with
+          SQUAD_CLOSED (`isActive`, server/core/{commitments,squads}.ts). Offering them anyway
+          sends the member to a sheet that can only refuse, so the banner above is the whole
+          end of the story and the bar is not rendered (docs/AUDIT.md, F-2). */}
+      {!completed && (
+        <footer className="action-bar">
+          <a className="primary-button" href={commitUrl}>
+            {you === undefined || you.committedLuna === 0
+              ? s.squad.commitMine
+              : s.squad.changeCommitment}
+          </a>
+          {onLeave && (
+            <button className="secondary-button" onClick={onLeave}>{s.squad.leaveSquad}</button>
+          )}
+        </footer>
+      )}
       <InfoSheet info={info} t={t} onClose={onCloseInfo} lang={lang} />
     </main>
   );

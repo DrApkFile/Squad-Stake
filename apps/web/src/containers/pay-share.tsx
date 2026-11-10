@@ -10,6 +10,7 @@ import {
 } from '../core/squad-contract';
 import { planPayment } from '../core/staking-actions';
 import { useLang } from '../i18n/client';
+import { useSceneTime } from '../hooks/use-scene-time';
 import { useTxPoll } from '../hooks/use-tx-poll';
 import { sendPayment } from '../wallet/staking';
 
@@ -27,6 +28,7 @@ export function PayShareContainer({ initial, now, explorerBase, initialLang, dem
 }) {
   const poll = useTxPoll();
   const lang = useLang(initialLang);
+  const t = useSceneTime();
   const [plan, setPlan] = useState(initial);
   const [state, setState] = useState<PayShareState>(() => firstState(initial, initialLang));
   const [tzOffsetMinutes, setTz] = useState(0);
@@ -86,7 +88,7 @@ export function PayShareContainer({ initial, now, explorerBase, initialLang, dem
   /** Waits for execution and finality, then asks the server for the §7.6 verdict. */
   async function follow(hash: string) {
     const verdict = await poll.follow(hash, (tracked) => {
-      setState({ status: 'pending', hash, confirmations: tracked.confirmations ?? 0,
+      setState({ status: 'pending', hash, confirmations: tracked.confirmations,
         requiredConfirmations: tracked.requiredConfirmations });
     });
     if (verdict === null) return;                 // Still unknown: nothing resent, sheet waits.
@@ -112,6 +114,7 @@ export function PayShareContainer({ initial, now, explorerBase, initialLang, dem
     canPay: plan.steps.pay?.state === 'available' || plan.steps.pay?.state === 'failed',
     stalled: poll.stalled,
     explorerBase,
+    t,
     lang,
     onPay: () => void guarded(pay),
     ...(pending === null

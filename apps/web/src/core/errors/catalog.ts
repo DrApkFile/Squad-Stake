@@ -22,6 +22,13 @@ const FLAGS: Record<keyof Strings['errors'], ErrorFlags> = {
   INVALID_INPUT: { retryable: true, changedAnything: false },
   UNAVAILABLE: { retryable: true, changedAnything: false },
   NETWORK_ERROR: { retryable: true, changedAnything: false },
+  // A read that ran out of time, and a currency nothing quotes. Neither reaches a screen
+  // today — the fiat line simply disappears rather than showing an error — but they are real
+  // codes the price route emits, and without them here a future caller would degrade them to
+  // "Squad Stake is unavailable", which is wrong for a missing exchange rate
+  // (docs/AUDIT.md, n-7).
+  TIMEOUT: { retryable: true, changedAnything: false },
+  NO_QUOTE: { retryable: false, changedAnything: false },
   WALLET_ERROR: { retryable: true, changedAnything: false },
   TX_DECLINED: { retryable: true, changedAnything: false },
   TX_REJECTED: { retryable: true, changedAnything: false },
@@ -40,7 +47,6 @@ const FLAGS: Record<keyof Strings['errors'], ErrorFlags> = {
   SQUAD_CLOSED: { retryable: false, changedAnything: false },
   SQUAD_NOT_FOUND: { retryable: false, changedAnything: false },
   NOT_A_MEMBER: { retryable: false, changedAnything: false },
-  STALE_READ: { retryable: true, changedAnything: false },
   LEAVE_BLOCKED: { retryable: true, changedAnything: false },
   // Nothing was sent: the planner refused before the wallet opened.
   ALREADY_LEAVING: { retryable: false, changedAnything: false },

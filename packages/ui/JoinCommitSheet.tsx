@@ -2,6 +2,7 @@ import { daysBetween, formatDay, formatLuna, readAge } from './format';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { PoolCard, type PoolView } from './PoolCard';
 import { ScreenHeader } from './ScreenHeader';
+import { RefreshButton, Spinner } from './Spinner';
 
 export type { PoolView } from './PoolCard';
 
@@ -10,7 +11,9 @@ export type JoinCommitState =
   | { status: 'ready'; freeLuna: number }
   | { status: 'needs-stake'; shortfallLuna: number; action: 'create' | 'add'; feeLuna: number }
   | { status: 'waiting' }
-  | { status: 'pending'; confirmations: number; requiredConfirmations: number }
+  /** `confirmations` is null until a count has actually been read: never a zero stood in
+   * for it, which is the sentence "0 of 60 confirmations" (docs/PROGRESS.md 2026-11-09). */
+  | { status: 'pending'; confirmations: number | null; requiredConfirmations: number }
   | { status: 'failed'; message: string; nextAction: string; changedAnything: boolean }
   | { status: 'committed'; committedLuna: number; freeLuna: number };
 
@@ -31,6 +34,12 @@ export interface JoinCommitSheetProps {
    * screen then sends no `create` and chooses no validator.
    */
   pool?: PoolView | null | undefined;
+  /**
+   * Where the amount in the field came from (docs/AUDIT.md, M-4). A suggestion the member can
+   * overwrite, said out loud so nobody thinks the app decided their share for them. Null when
+   * there was nothing honest to suggest, and the field simply starts empty.
+   */
+  suggestion?: { amountLuna: number; basis: 'yours' | 'share' } | null | undefined;
   onAmountChange?: (value: string) => void;
   onCommit?: () => void;
   onApprove?: () => void;
@@ -39,6 +48,10 @@ export interface JoinCommitSheetProps {
    * (briefing/FAILURE_MODES.md, "after a timeout or submission error, check status before
    * resending"). */
   onRefresh?: () => void;
+  /** True while that read is in flight. */
+  refreshing?: boolean | undefined;
+  /** Seconds since the scene started; drives the spinners. */
+  t?: number | undefined;
   /** Polling ran for its two minutes without a verdict. */
   stalled?: boolean;
   demoLabel?: string;
@@ -47,8 +60,9 @@ export interface JoinCommitSheetProps {
 
 /** Screen 6. One sheet for every outcome of joining and committing (PRD §7.3). */
 export function JoinCommitSheet({
-  squad, amountNim, state, now, readAt, pool = null, onAmountChange, onCommit, onApprove,
-  onRefresh, stalled = false, demoLabel, back, lang = DEFAULT_LANG,
+  squad, amountNim, state, now, readAt, pool = null, suggestion = null,
+  onAmountChange, onCommit, onApprove,
+  onRefresh, refreshing = false, t = 0, stalled = false, demoLabel, back, lang = DEFAULT_LANG,
 }: JoinCommitSheetProps) {
   const s = strings(lang);
   const busy = state.status === 'waiting' || state.status === 'pending';
@@ -77,6 +91,13 @@ export function JoinCommitSheet({
         <input className="field-input" type="text" inputMode="decimal" value={amountNim}
           placeholder="2000" disabled={busy}
           onChange={(event) => onAmountChange?.(event.target.value)} />
+        {suggestion !== null && (
+          <span className="field-hint">
+            {suggestion.basis === 'yours'
+              ? s.commit.amountYours(formatLuna(suggestion.amountLuna, lang))
+              : s.commit.amountShare(formatLuna(suggestion.amountLuna, lang))}
+          </span>
+        )}
       </label>}
 
       <div className="sheet-status" data-status={state.status} role="status" aria-live="polite">
@@ -100,7 +121,9 @@ export function JoinCommitSheet({
         </>}
         {state.status === 'pending' && <>
           <p className="status-title">{s.commit.pendingTitle}</p>
-          <p>{s.commit.pendingBody(state.confirmations, state.requiredConfirmations)}</p>
+          <p>{state.confirmations === null
+            ? s.tx.confirmationsUnread
+            : s.commit.pendingBody(state.confirmations, state.requiredConfirmations)}</p>
           {stalled && <p>{s.commit.stalled}</p>}
         </>}
         {state.status === 'failed' && <>
@@ -117,17 +140,19 @@ export function JoinCommitSheet({
 
       {creating && pool !== null && <PoolCard pool={pool} lang={lang} />}
     </div>
-    <footer className="sheet-footer">
+    <footer className="action-bar">
       {state.status === 'not-staking' || state.status === 'needs-stake'
+        /* No busy branch here on purpose: `busy` is derived from the state, and approving
+           moves the sheet to `waiting`, which renders the other button saying so. */
         ? <button className="primary-button" onClick={onApprove} disabled={busy}>
           {state.status === 'not-staking' ? s.commit.createStaker : s.commit.addStake}
         </button>
         : <button className="primary-button" onClick={onCommit} disabled={busy || done}>
+          {busy && <Spinner t={t} />}
           {busy ? s.common.waiting : done ? s.commit.committed : s.commit.commit}
         </button>}
-      {stalled && <button className="secondary-button" onClick={onRefresh}>
-        {s.common.checkStatusAgain}
-      </button>}
+      {stalled && <RefreshButton onClick={onRefresh} refreshing={refreshing} t={t}
+        label={s.common.checkStatusAgain} busyLabel={s.common.refreshing} />}
       <p className="fine-print">{s.common.cannotMoveNim}</p>
     </footer>
   </main>;

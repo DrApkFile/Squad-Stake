@@ -1,5 +1,6 @@
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
+import { RefreshButton, Spinner } from './Spinner';
 
 export type TxStatusState = 'pending' | 'failed' | 'done' | 'unknown';
 
@@ -15,6 +16,10 @@ export interface TxStatusProps {
   /** Reads the chain again. It never resends anything — that is the whole point of offering
    * it (briefing/FAILURE_MODES.md: check status before resending, never auto-retry). */
   onRefresh?: (() => void) | undefined;
+  /** True while that read is in flight, so the control says so instead of looking inert. */
+  refreshing?: boolean | undefined;
+  /** Seconds since the scene started; drives the spinner. */
+  t?: number | undefined;
   lang?: Lang | undefined;
 }
 
@@ -33,14 +38,22 @@ function title(state: TxStatusState, lang: Lang) {
  */
 export function TxStatus({
   state, hash, confirmations = null, requiredConfirmations, stalled = false,
-  explorerUrl = null, onRefresh, lang = DEFAULT_LANG,
+  explorerUrl = null, onRefresh, refreshing = false, t = 0, lang = DEFAULT_LANG,
 }: TxStatusProps) {
   const s = strings(lang);
   return (
     <div className="tx-status" data-state={state} role="status" aria-live="polite">
-      <p className="status-title">{title(state, lang)}</p>
+      <p className="status-title">
+        {(state === 'pending' || refreshing) && <Spinner t={t} />}
+        {title(state, lang)}
+      </p>
       {state === 'pending' && requiredConfirmations !== undefined && (
-        <p>{s.tx.confirmations(confirmations ?? 0, requiredConfirmations)}</p>
+        /* A count nobody read is worded, never printed as a digit: `confirmations ?? 0` here
+         * is what put "0 of 60 confirmations" on a phone beside a transaction the chain had
+         * already executed (docs/PROGRESS.md 2026-11-09, the same defect as MemberList's). */
+        <p>{confirmations === null
+          ? s.tx.confirmationsUnread
+          : s.tx.confirmations(confirmations, requiredConfirmations)}</p>
       )}
       {state === 'failed' && <p>{s.tx.failedBody}</p>}
       {state === 'unknown' && <p>{s.tx.unknownBody}</p>}
@@ -52,9 +65,8 @@ export function TxStatus({
         </p>
       )}
       {onRefresh && (
-        <button className="secondary-button secondary-button-quiet" onClick={onRefresh}>
-          {s.common.checkStatusAgain}
-        </button>
+        <RefreshButton quiet onClick={onRefresh} refreshing={refreshing} t={t}
+          label={s.common.checkStatusAgain} busyLabel={s.common.refreshing} />
       )}
     </div>
   );

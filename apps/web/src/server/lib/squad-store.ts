@@ -75,6 +75,11 @@ export const squadStore: SquadStore = {
     });
   },
   async getSquad(id) {
+    // A squad id reaches this from a URL path, and `squads.id` is a uuid column: Postgres
+    // answers anything else with "invalid input syntax for type uuid", which reached the
+    // public proof page as a 500 instead of a not-found (docs/AUDIT.md, F-3). An id that
+    // cannot be a uuid is simply a squad that does not exist.
+    if (!z.uuid().safeParse(id).success) return null;
     const rows = await db()`SELECT id, short_id, name, mode, target_luna, recipient, goal_at,
       organiser, state, invite_token FROM squads WHERE id = ${id}`;
     return rows[0] ? toSquad(rows[0]) : null;
@@ -97,10 +102,13 @@ export const squadStore: SquadStore = {
   },
   async joinMembership(membership) {
     // A re-join clears left_at and starts from zero: leaving removed the commitment (§7.8).
+    // `joined_at` moves too, because "earned since joining" measures from it and the member
+    // was not in this squad during the gap (docs/AUDIT.md, n-3). The in-memory twin has
+    // always done this; only the SQL kept the first join's timestamp.
     const rows = await db()`INSERT INTO memberships (squad_id, address, personal_target_luna)
       VALUES (${membership.squadId}, ${membership.address}, ${membership.personalTargetLuna})
       ON CONFLICT (squad_id, address) DO UPDATE SET left_at = NULL, committed_luna = 0,
-        personal_target_luna = ${membership.personalTargetLuna}
+        joined_at = now(), personal_target_luna = ${membership.personalTargetLuna}
       WHERE memberships.left_at IS NOT NULL RETURNING address`;
     return rows.length === 1;
   },

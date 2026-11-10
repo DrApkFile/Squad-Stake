@@ -1,5 +1,6 @@
 import { ScreenHeader } from './ScreenHeader';
 import { TxStatus } from './TxStatus';
+import { RefreshButton, Spinner } from './Spinner';
 import { formatLuna, formatMoment, readAge } from './format';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 
@@ -7,7 +8,8 @@ export type PayShareState =
   | { status: 'ready' }
   /** The approval sheet is open in Nimiq Pay. Not our UI, and never recreated. */
   | { status: 'waiting' }
-  | { status: 'pending'; hash: string; confirmations: number; requiredConfirmations: number }
+  /** Null until a count has been read; `TxStatus` words it rather than printing a digit. */
+  | { status: 'pending'; hash: string; confirmations: number | null; requiredConfirmations: number }
   | { status: 'checking'; hash: string }
   /** The payment is on the chain but does not settle this share (Q15). */
   | { status: 'refused'; hash: string; message: string; nextAction: string }
@@ -30,6 +32,10 @@ export interface PayShareSheetProps {
   explorerBase?: string | null | undefined;
   onPay?: (() => void) | undefined;
   onRefresh?: (() => void) | undefined;
+  /** True while that read is in flight. */
+  refreshing?: boolean | undefined;
+  /** Seconds since the scene started; drives the spinners. */
+  t?: number | undefined;
   back?: { label: string; href: string } | undefined;
   demoLabel?: string | undefined;
   lang?: Lang | undefined;
@@ -43,7 +49,7 @@ export interface PayShareSheetProps {
  */
 export function PayShareSheet({
   squad, recipient, shareLuna, roster, state, now, tzOffsetMinutes, readAt, canPay,
-  stalled = false, explorerBase = null, onPay, onRefresh, back, demoLabel,
+  stalled = false, explorerBase = null, onPay, onRefresh, refreshing = false, t = 0, back, demoLabel,
   lang = DEFAULT_LANG,
 }: PayShareSheetProps) {
   const s = strings(lang);
@@ -110,6 +116,7 @@ export function PayShareSheet({
           <TxStatus state="pending" hash={state.hash} confirmations={state.confirmations}
             requiredConfirmations={state.requiredConfirmations} stalled={stalled}
             explorerUrl={explorer(state.hash)} lang={lang}
+            refreshing={refreshing} t={t}
             {...(onRefresh ? { onRefresh } : {})} />
         )}
         {(state.status === 'refused' || done) && (
@@ -117,14 +124,14 @@ export function PayShareSheet({
             explorerUrl={explorer(state.hash)} lang={lang} />
         )}
       </div>
-      <footer className="sheet-footer">
+      <footer className="action-bar">
         <button className="primary-button" onClick={onPay} disabled={busy || done || !canPay}>
+          {busy && <Spinner t={t} />}
           {busy ? s.common.waiting : done ? s.pay.paidButton : s.pay.payButton}
         </button>
         {stalled && !done && (
-          <button className="secondary-button" onClick={onRefresh}>
-            {s.common.checkStatusAgain}
-          </button>
+          <RefreshButton onClick={onRefresh} refreshing={refreshing} t={t}
+            label={s.common.checkStatusAgain} busyLabel={s.common.refreshing} />
         )}
         <p className="fine-print">{s.pay.fineprint}</p>
       </footer>
