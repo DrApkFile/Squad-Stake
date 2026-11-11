@@ -94,20 +94,16 @@ export function SquadContainer({
 
   const inviteUrl = view.inviteToken === null ? null : `${inviteBase}/s/${view.inviteToken}`;
   const proofUrl = `${inviteBase}/proof/${view.squad.shortId}`;
+  // The same page, opened in the app: `from` is what the proof page's back chevron uses to
+  // return here, and it validates the id before building that href.
+  const proofHref = `/proof/${view.squad.shortId}?from=${view.squadId}`;
 
   // One link, handed over the way a phone does it; the hook explains why it is never
   // printed (src/hooks/use-share-link.ts).
   const invite = useShareLink(inviteUrl, view.squad.name);
 
-  const [proofCopied, setProofCopied] = useState(false);
-  const copyProof = useCallback(async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setProofCopied(true);
-    } catch {
-      setProofCopied(false);
-    }
-  }, []);
+  // The public link gets the same hook, so a refused clipboard write says so here too.
+  const proof = useShareLink(proofUrl, view.squad.name);
 
   const leave = useCallback(async () => {
     if (leaving) return;
@@ -180,16 +176,19 @@ export function SquadContainer({
     readAt: view.readAt,
     inviteUrl,
     proofUrl,
+    proofHref,
     commitUrl: inviteUrl ?? `/squads/${view.squadId}`,
     leavingUrl: `/squads/${view.squadId}/leaving`,
     payments: view.payments,
     state: view.state,
     payUrl: view.squad.mode === 'A' ? `/squads/${view.squadId}/pay` : null,
     shared: invite.shared,
+    copyFailed: invite.failed,
     onShare: () => void invite.share(),
     onCopyInvite: () => void invite.copy(),
-    onCopyProof: copyProof,
-    proofCopied,
+    onCopyProof: () => void proof.copy(),
+    proofCopied: proof.shared,
+    proofCopyFailed: proof.failed,
     // The words come from the catalogue here, not inside the sheet, so the sheet stays a
     // dumb surface and every language renders through the same component.
     info: infoKey === null ? null : {

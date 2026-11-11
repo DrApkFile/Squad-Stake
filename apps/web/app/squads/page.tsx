@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { MySquadsContainer } from '../../src/containers/my-squads';
 import { currentLang } from '../../src/i18n/server';
 import { identiconsFor } from '../../src/server/lib/identicon';
-import { currentAddress } from '../../src/server/lib/session-page';
+import { currentAddress, signInFirstUrl } from '../../src/server/lib/session-page';
 import { mySquadsView } from '../../src/server/lib/squad-view';
 import { statusTone } from '@squad-stake/ui';
 
@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic';
 /** Screen 3. The first screen after signing in, and where "Create squad" lives. */
 export default async function MySquadsPage() {
   const address = await currentAddress();
-  if (address === null) redirect('/');
+  // Signed out: say so on the entry screen and come straight back here (not a bare '/').
+  if (address === null) redirect(signInFirstUrl('/squads'));
   const squads = await mySquadsView(address);
   const identicons = await identiconsFor(squads.flatMap((squad) => squad.members));
   const cards = squads.map((squad) => ({

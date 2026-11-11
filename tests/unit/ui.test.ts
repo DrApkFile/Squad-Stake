@@ -15,7 +15,7 @@ import { DEMO_LABEL } from '../../packages/ui/scenes/demo/squad';
 import { errors } from '../../apps/web/src/core/errors/catalog';
 
 test('Q17 every welcome/sign-in scene renders deterministically from props alone', () => {
-  assert.equal(signInScenes.length, 8);
+  assert.equal(signInScenes.length, 9);
   for (const scene of signInScenes) {
     const first = renderToStaticMarkup(createElement(SignInScreen, scene.props));
     assert.equal(first, renderToStaticMarkup(createElement(SignInScreen, scene.props)));

@@ -69,6 +69,9 @@ export const de: Strings = {
     titleTx: 'Transaktion',
     copyLink: 'Link kopieren',
     copied: 'Kopiert',
+    copyFailed: 'Kopieren nicht möglich. Nutze Teilen.',
+    viewProofPage: 'Öffentliche Seite ansehen',
+    linkPreviewLabel: 'Link',
     tryAgain: 'Erneut versuchen',
     checkAgain: 'Chain abfragen',
     moreInfo: 'Mehr dazu',
@@ -287,6 +290,22 @@ export const de: Strings = {
     changeCommitment: 'Meine Zusage ändern',
     shareInvite: 'Einladung teilen',
     leaveSquad: 'Gruppe verlassen',
+  },
+
+  notice: {
+    notFoundTitle: 'Diese Seite gibt es hier nicht.',
+    notFoundBody: 'Vielleicht stimmt der Link nicht, oder die Gruppe wurde entfernt. Es hat sich nichts geändert, und es wurde kein NIM bewegt.',
+    errorTitle: 'Bei uns ist etwas schiefgegangen.',
+    errorBody: 'Diese Seite konnte nicht erstellt werden. Deine Gruppe und dein Stake sind unberührt – nichts hier kann von allein NIM bewegen.',
+    errorReference: (digest: string) => `Referenz ${digest}`,
+    inviteInvalidTitle: 'Dieser Einladungslink ist ungültig.',
+    inviteInvalidBody: 'Er ist vielleicht vertippt, oder die Gruppe ist geschlossen. Bitte um einen neuen Link.',
+    signInFirstTitle: 'Melde dich an, um diese Seite zu öffnen.',
+    signInFirstBody: 'Diese Seite gehört einer Gruppe und braucht zuerst deine Wallet-Signatur. Danach geht es direkt dorthin zurück.',
+    notAMemberTitle: 'Du bist nicht in dieser Gruppe.',
+    notAMemberBody: 'Das ist ihre öffentliche Ansicht: dieselben Status, aus der Kette gelesen, ohne den Einladungslink.',
+    home: 'Zum Start',
+    mySquads: 'Zu meinen Gruppen',
   },
 
   mySquads: {

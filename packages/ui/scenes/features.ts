@@ -2,7 +2,7 @@ import { LANGS, strings, type Lang } from '../i18n';
 import {
   demoCommittedTotal, demoBackedTotal, demoEarnedMeasured, demoEarnedUnknown, demoFiat,
   demoGoalAt, demoInviteUrl, demoLeaveBy, demoNow, demoPoolDirect, demoPoolFallback,
-  demoPoolRestake, demoProofUrl, demoReadAt, demoRoster, demoSharedSquad, demoSquadPage,
+  demoPoolRestake, demoProofHref, demoProofUrl, demoReadAt, demoRoster, demoSharedSquad, demoSquadPage,
   demoTemplateDates, demoTzOffsetMinutes,
 } from './demo/squad';
 import type { CreateSquadScreenProps } from '../CreateSquadScreen';
@@ -57,6 +57,7 @@ const squadBase = {
   readAt: demoReadAt,
   inviteUrl: demoInviteUrl,
   proofUrl: demoProofUrl,
+  proofHref: demoProofHref,
   commitUrl: '/s/4f1c8a7b2d9e0315a6c4b8d7e2f10934',
   leavingUrl: '/squads/sample-squad-1/leaving',
   tzOffsetMinutes: demoTzOffsetMinutes,

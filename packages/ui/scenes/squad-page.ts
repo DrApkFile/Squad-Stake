@@ -10,16 +10,21 @@ import {
   demoLeaveBy,
   demoNow,
   demoCardMembers,
+  demoProofHref,
   demoProofUrl,
   demoReadAt,
   demoRoster,
   demoSquadPage,
 } from './demo/squad';
 import { stageTotalsOf } from '../progress';
+import { strings } from '../i18n';
 import type { MemberRowView } from '../MemberList';
 import type { MySquadsScreenProps, SquadCardView } from '../MySquadsScreen';
 import type { ProofScreenProps } from '../ProofScreen';
 import type { SquadScreenProps } from '../SquadScreen';
+
+/** The fixtures render in English, like every other scene; the `lang-*` scenes cover the rest. */
+const noticeStrings = strings('en').notice;
 
 const CARDS: readonly SquadCardView[] = [
   {
@@ -112,6 +117,7 @@ const squadBase = {
   readAt: demoReadAt,
   inviteUrl: demoInviteUrl,
   proofUrl: demoProofUrl,
+  proofHref: demoProofHref,
   commitUrl: '/s/4f1c8a7b2d9e0315a6c4b8d7e2f10934',
   leavingUrl: '/squads/sample-squad-1/leaving',
   tzOffsetMinutes: demoTzOffsetMinutes,
@@ -189,6 +195,10 @@ const PAID_ROSTER: readonly MemberRowView[] = demoRoster.map(
 );
 
 export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[] = [
+  // A refused clipboard write, which used to leave a tap that did nothing at all. The link is
+  // not lost: Share is still there, and the message says so.
+  { id: 'squad-page-copy-failed',
+    props: { ...squadBase, t: 4, copyFailed: true, proofCopyFailed: true } },
   { id: 'squad-page-loading', props: { ...squadBase, backedLuna: null, readAt: null, members: [], loading: true, t: 0 } },
   { id: 'squad-page-backed', props: { ...squadBase, t: 4 } },
   { id: 'squad-page-counting-up', props: { ...squadBase, t: 0.5 } },
@@ -382,6 +392,42 @@ export const proofScenes: readonly { id: string; props: ProofScreenProps }[] = [
       network: 'testnet',
       verify: { endpoint: 'https://rpc.testnet.nimiqwatch.com', method: 'getStakerByAddress' },
       apiUrl: 'https://squad.example/api/proof/q7m2bt4h',
+    },
+  },
+  // A member-only page redirected a stranger here, and this is the page saying so rather than
+  // swapping itself in silently (`app/squads/[id]/page.tsx`). The back chevron is the squad's
+  // own when a member opened their proof link from inside the app.
+  {
+    id: 'proof-view-not-a-member',
+    props: {
+      squad: demoSquadPage,
+      members: demoRoster.map((member) => ({ ...member, isYou: false })),
+      stages: demoStages,
+      committedLuna: demoCommittedTotal,
+      now: demoNow,
+      readAt: demoReadAt,
+      network: 'testnet',
+      verify: { endpoint: 'https://rpc.testnet.nimiqwatch.com', method: 'getStakerByAddress' },
+      apiUrl: 'https://squad.example/api/proof/q7m2bt4h',
+      notice: {
+        title: noticeStrings.notAMemberTitle,
+        body: noticeStrings.notAMemberBody,
+      },
+    },
+  },
+  {
+    id: 'proof-view-from-squad',
+    props: {
+      squad: demoSquadPage,
+      members: demoRoster.map((member) => ({ ...member, isYou: false })),
+      stages: demoStages,
+      committedLuna: demoCommittedTotal,
+      now: demoNow,
+      readAt: demoReadAt,
+      network: 'testnet',
+      verify: { endpoint: 'https://rpc.testnet.nimiqwatch.com', method: 'getStakerByAddress' },
+      apiUrl: 'https://squad.example/api/proof/q7m2bt4h',
+      back: { label: noticeStrings.mySquads, href: '/squads/0f1d2c3b-4a59-4687-9b0c-1d2e3f405162' },
     },
   },
   {

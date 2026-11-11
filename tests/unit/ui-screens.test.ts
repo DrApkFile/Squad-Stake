@@ -10,10 +10,12 @@ import { OrbitScene } from '../../packages/ui/OrbitSquad';
 import { ProofScreen } from '../../packages/ui/ProofScreen';
 import { SignInScreen } from '../../packages/ui/SignInScreen';
 import { InfoSheet } from '../../packages/ui/InfoSheet';
+import { NoticeScreen } from '../../packages/ui/NoticeScreen';
 import { PayShareSheet } from '../../packages/ui/PayShareSheet';
 import { SquadScreen } from '../../packages/ui/SquadScreen';
 import { TxStatusScene } from '../../packages/ui/TxStatus';
 import { REDUCED_MOTION_T, typedChars } from '../../packages/ui/motion';
+import { noticeScenes } from '../../packages/ui/scenes/notice';
 import { mySquadsScenes, proofScenes, squadPageScenes } from '../../packages/ui/scenes/squad-page';
 import { orbitScenes } from '../../packages/ui/scenes/orbit';
 import { leavingScenes } from '../../packages/ui/scenes/leaving';
@@ -35,6 +37,8 @@ test('Q17 every new scene renders twice to the same bytes from props alone', () 
     { component: LeavingSteps, scenes: leavingScenes },
     { component: PayShareSheet, scenes: payShareScenes },
     { component: TxStatusScene, scenes: txStatusScenes },
+    // The screens a page shows when it cannot show itself (app/{not-found,error}.tsx).
+    { component: NoticeScreen, scenes: noticeScenes },
   ] as const;
   let rendered = 0;
   for (const { component, scenes } of groups) {
@@ -56,7 +60,11 @@ test('Q17 every new scene renders twice to the same bytes from props alone', () 
   // once a hash exists, where no retry may be offered.
   // 1 added by the audit pass: a payment in flight, where step four must not claim the
   // withdrawal is unfinished (docs/AUDIT.md, m-4).
-  assert.equal(rendered, 7 + 5 + 18 + 3 + 8 + 3 + 27 + 13 + 4);
+  // 4 added by the links/failures pass: a refused clipboard write on the squad page, the
+  // entry screen a members-only page sent someone to, and the proof view's two arrivals
+  // (redirected here, and opened from your own squad).
+  // 4 notice scenes: missing page, server fault, that fault retrying, invalid invite.
+  assert.equal(rendered, 7 + 5 + 19 + 5 + 9 + 3 + 27 + 13 + 4 + 4);
 });
 
 test('Q17 the same t always renders the same frame, and a different t renders a different one', () => {

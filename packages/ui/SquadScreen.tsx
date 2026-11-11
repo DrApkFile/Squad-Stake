@@ -4,7 +4,7 @@ import { OrbitSquad } from './OrbitSquad';
 import { ScreenHeader } from './ScreenHeader';
 import { RefreshButton } from './Spinner';
 import { InfoButton, InfoSheet } from './InfoSheet';
-import { countdown, daysBetween, formatDay, formatLuna, formatMoment, readAge } from './format';
+import { countdown, daysBetween, formatDay, formatLuna, formatMoment, readAge, shortLink } from './format';
 import { fiatLine, fiatNote, type FiatRate } from './fiat';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { statusTone } from './status';
@@ -52,7 +52,14 @@ export interface SquadScreenProps {
   /** Null for squads created before the invite token was kept (migration 003): the page then
    * says the link cannot be recovered instead of showing a broken one. */
   inviteUrl: string | null;
+  /** The public link, as it is copied and previewed: absolute, so it works when it is sent. */
   proofUrl: string;
+  /**
+   * Where the "View proof page" control navigates. The app's own path rather than the shared
+   * URL, carrying where to come back to, so the proof page's back chevron returns here
+   * instead of sending a member out to the start.
+   */
+  proofHref: string;
   commitUrl: string;
   /** Screen 7. Offered from the banner, because that is where the member is told to act. */
   leavingUrl: string;
@@ -77,6 +84,9 @@ export interface SquadScreenProps {
   onCopyInvite?: (() => void) | undefined;
   onCopyProof?: ((url: string) => void) | undefined;
   proofCopied?: boolean | undefined;
+  /** A clipboard write can be refused; it used to fail with nothing on screen. */
+  copyFailed?: boolean | undefined;
+  proofCopyFailed?: boolean | undefined;
   /**
    * The ⓘ sheet, if one is open. The container owns which one, so this component stays pure
    * and the video can render any frame of the rise by passing `openedT` and `t`.
@@ -122,6 +132,7 @@ export function SquadScreen({
   readAt,
   inviteUrl,
   proofUrl,
+  proofHref,
   commitUrl,
   leavingUrl,
   payments = null,
@@ -135,6 +146,8 @@ export function SquadScreen({
   onCopyInvite,
   onCopyProof,
   proofCopied = false,
+  copyFailed = false,
+  proofCopyFailed = false,
   info,
   onOpenInfo,
   onCloseInfo,
@@ -298,19 +311,34 @@ export function SquadScreen({
               <button className="link-button" type="button" onClick={onCopyInvite}>
                 {shared ? s.common.copied : s.common.copyLink}
               </button>
+              {/* Shortened, and deliberately **not** a link: opening your own invite while
+                  signed in only brings you back to this page, so a tappable preview would
+                  be a control that appears to do nothing. */}
+              <p className="link-preview">
+                <span className="link-preview-label">{s.common.linkPreviewLabel}</span>
+                {shortLink(inviteUrl)}
+              </p>
+              {copyFailed && <p className="meta meta-warn" role="alert">{s.common.copyFailed}</p>}
               <p className="meta">{s.squad.inviteHint}</p>
             </>
           )}
         </section>
-        {/* The public view is worth sharing with someone outside the squad, so the link is
-            still available — as a copy, like the invite, rather than as printed text. */}
+        {/* The public view is worth sharing with someone outside the squad — and worth
+            looking at yourself before sending it, which is what the button is for. Normal
+            navigation, so the top bar's back chevron returns here. */}
         <section className="card">
           <h2 className="card-title">{s.common.titleProof}</h2>
           <p className="meta">{s.squad.proofNote}</p>
+          <a className="secondary-button" href={proofHref}>{s.common.viewProofPage}</a>
           <button className="link-button" type="button"
             onClick={() => onCopyProof?.(proofUrl)}>
             {proofCopied ? s.common.copied : s.common.copyLink}
           </button>
+          <p className="link-preview">
+            <span className="link-preview-label">{s.common.linkPreviewLabel}</span>
+            {shortLink(proofUrl)}
+          </p>
+          {proofCopyFailed && <p className="meta meta-warn" role="alert">{s.common.copyFailed}</p>}
         </section>
         {fiat !== null && <p className="fine-print fine-print-left">{fiatNote(fiat, now, lang)}</p>}
       </div>

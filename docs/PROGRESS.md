@@ -1836,3 +1836,130 @@ Eight rows added to `docs/DECISIONS.md`, one per decision above.
 - Still open from earlier slices: Neon through the pooler (including the concurrent-commit
   refusal and the three queries the in-memory twin alone has exercised), the mock chain
   provider (`?chain=mock`), and Remotion.
+
+## Link previews, an in-app proof page, and no silent failure — 2026-11-11 (Slice G)
+
+Two requests in one turn: the squad page and the create success screen should show the two
+links as *recognisable* previews with a real way to open the proof page, and **no page may
+fail silently** — every failure says what happened and offers a way on.
+
+**No protected file was touched.** `git status` over `member-status.ts`, `release.ts`,
+`commitments.ts`, `tx-tracker.ts`, `payment-check.ts`, `rpc-schemas.ts`, `rpc.ts`,
+`staking-actions.ts`, `app/api/auth/verify/route.ts` and `src/wallet/` is empty.
+
+### Part 1 — the links
+
+- **`shortLink(url)`** in `packages/ui/format.ts`, pure: drops the scheme and `www.`, drops a
+  query or fragment, and elides the middle of the **last** segment only — the part that is a
+  secret or an id — keeping four characters and the last three
+  (`…/s/979d0a1b2c3d4e5f70` → `squad-stake.vercel.app/s/979d…f70`). A segment of nine
+  characters or fewer is left whole, so a short id like `/proof/q7m2bt4h` still reads in full.
+  The elision is deliberate: it is enough to recognise a link and **never** enough to retype
+  one, which is the point — the full URL only ever leaves through Share or Copy.
+- **Public proof card** (squad page): a visible **View proof page** control beside Copy link.
+  It is an ordinary `<a>` to `/proof/<shortId>?from=<squadId>`, so it is in-app navigation and
+  the proof screen gets a back chevron straight to the squad it came from — not an external
+  link, not a new tab. Under it, the muted read-only preview.
+- **Invite card**: Share invite and Copy link keep their behaviour and gain the same preview.
+  The invite preview is deliberately **not** tappable — opening your own invite while signed
+  in only walks you back to your own squad.
+- Both previews are plain `<p class="link-preview">`: a test asserts each contains no `<a>`
+  and no `<button>`, that there are exactly two of them on the squad page, and that the
+  fixture's own absolute `inviteUrl` appears nowhere in the rendered markup.
+- The create success screen gained the same preview under its share step.
+- `ProofScreen` takes an optional `back` (defaulting to "Open Squad Stake" → `/`), so the
+  public page still works for a stranger who has no squad to go back to.
+
+### Part 2 — no page fails silently
+
+Before this slice four paths ended in nothing or in a bare redirect: an unknown route rendered
+Next's built-in 404, a thrown render error rendered Next's built-in error page, a bad invite
+token called `notFound()`, and five pages called `redirect('/')` for a signed-out visitor — so
+a judge following a squad link was dropped on the welcome screen with no explanation of why.
+
+- New pure **`packages/ui/NoticeScreen.tsx`** — title, body, an optional reference, one action
+  and an optional retry with the shared `Spinner`. `role="alert"`, sticky `.action-bar`.
+- **`app/not-found.tsx`**, **`app/error.tsx`** and **`app/global-error.tsx`** render it.
+  `error.tsx` shows `error.digest` as a **Reference** (so a report can be matched to a server
+  log) and wires `reset` to **Try again**. `global-error.tsx` replaces the root layout, so it
+  brings its own `<html>`/`<body>` and is English only — nothing it needs may be able to throw.
+- Every body says what did **not** happen: "Nothing has changed, and no NIM has moved."
+- **Redirects explain themselves.** `signInFirstUrl(path)` sends a signed-out visitor to
+  `/?next=<path>`, and the welcome screen renders a notice saying which page is waiting and
+  why a signature comes first; after signing in they land on that page, not on `/squads`.
+  A non-member of a squad is sent to `/proof/<id>?notice=not-a-member`, which says so and then
+  shows the public view rather than dead-ending.
+- **Both query parameters that become links are validated server-side**, in
+  `session-page.ts`: `onwardPath` accepts only a path starting with a single `/` and
+  containing no backslash, and `squadPathFrom` **rebuilds** the path from a uuid it matched
+  rather than echoing the parameter. An adversarial test drives `//evil.example`,
+  `javascript:`, `data:`, a backslash form and path traversal through both.
+- `use-share-link.ts`'s state is now `'idle' | 'copied' | 'failed'`, so a refused clipboard
+  write says **"Could not copy. Use Share instead."** instead of looking like a dead button.
+  Both screens that offer a copy show it.
+- A new test scans every `.ts`/`.tsx` under `apps/web/app` and `apps/web/src` and fails if any
+  page redirects to a bare `'/'` — the shape this slice removed.
+
+### What ran
+- `pnpm gate` (log `.cache/links-gate-2026-11-11.log`), from a stopped dev server and a
+  deleted `.next`: typecheck, lint, **171 unit tests and 38 adversarial tests, 0 failures,
+  0 skips** (was 163/37), Next build compiled clean in 33.1 s (**9/9** static pages, 26
+  routes, no warnings), Q16 production-artifact guards, secret scan and 19 exact dependency
+  pins across 5 manifests all passed. **Exit 1 only at `check:tracked`**, because the slice is
+  uncommitted; the human commits. Nothing else in the gate failed.
+  - The static-page count moved **10/10 → 9/9** deliberately: `/_not-found` is now dynamic,
+    because `app/not-found.tsx` carries `export const dynamic = 'force-dynamic'` so it can read
+    `Accept-Language` and answer in the visitor's own language. It is still prerendered-free
+    rather than missing; the route table lists all 26 routes.
+- New tests (8, in `tests/unit/links-and-failures.test.ts`): the preview's shapes; both
+  previews plus the in-app proof href; the copy failure on both screens; the four notice
+  screens; the two redirects explaining themselves; `onwardPath` against hostile inputs; the
+  five-language notice strings; and the source scan for a bare `redirect('/')`. Plus one
+  adversarial test — `a crafted return link can never leave this origin`.
+- Three existing assertions were updated rather than worked around, because the UI
+  deliberately gained scenes: the scene-count sum in `ui-screens.test.ts` and
+  `signInScenes.length` 8 → 9 in `ui.test.ts`.
+- **9 new fixture scenes**: `notice-not-found`, `notice-server-error`,
+  `notice-error-retrying`, `notice-invite-invalid` (new file `packages/ui/scenes/notice.ts`),
+  `sign-in-sent-here`, `squad-page-copy-failed`, `proof-view-not-a-member`,
+  `proof-view-from-squad`, `create-share-copy-failed`. 159 scenes registered (was 150).
+- `pnpm check:scenes` against the dev server on port 3210 (logs
+  `.cache/scenes-2026-11-11.log` and `.cache/scenes-2026-11-11-full.log`, record
+  `.cache/scene-measurements.json`, `measuredAt 2026-11-11T01:36:51Z`): **159 scenes × 2
+  themes × {390, 375, 320} = 954 frames, 0 failures** — nothing crossing the frame, no
+  horizontal scroll, every tap target ≥ 44 px. It was run twice: the second run restored the
+  whole-suite record after a deliberate 11-scene re-run for screenshots had overwritten it
+  with its own 66 frames. Both whole-suite runs report the same 954/0.
+- Frames inspected directly: `notice-not-found` (light), `notice-server-error` (dark — the
+  Reference line, Try again above Go to the start), `sign-in-sent-here` (the "Sign in to open
+  that page" notice above the heading), `proof-view-not-a-member` (the back chevron and the
+  "You are not in this squad" card), `create-share-copy-failed` (the preview reading
+  `squad.example/s/samp…ken`, no full URL, and the copy-failure line), and both of the squad
+  page's link cards in light **and** dark — Share invite + Copy link + `squad.example/s/4f1c…934`,
+  and Public proof with **View proof page** + Copy link + `squad.example/proof/q7m2bt4h`
+  (a short id is left whole), with "Could not copy. Use Share instead." under each in the
+  copy-failed fixture.
+- `scripts/measure-scenes.mjs` gained **`SHOT_SCROLL`**, which scrolls the screen *inside* the
+  phone frame before a screenshot, so a card below the fold can be looked at. A taller clip was
+  tried first and came back blank: the frame is 844 px tall and scrolls internally, so clipping
+  past it only photographs the page behind it. It changes nothing that is measured — the
+  measurements are read from the DOM in CSS pixels, and they are taken before it runs.
+
+### Not verified by this slice
+- **`navigator.share` and the clipboard have still never run.** Both need a secure context and
+  a real device; the copy-failure branch and the share path are reasoned from the Web Share and
+  Clipboard contracts and covered by fixtures, not observed.
+- **No failure screen has been triggered by a real failure.** `app/error.tsx` and
+  `app/global-error.tsx` are proven by their fixtures and by the build, never by a thrown
+  render; no `error.digest` has been read off a real server log.
+- No wallet, no Nimiq Pay approval sheet, no phone, no mainnet, no database and no chain read
+  in this slice. Everything the earlier slices left unverified stays unverified.
+
+### Next
+- Commit Slices A–G (`check:tracked` is the only gate step failing).
+- **Go live**: `docs/GO-LIVE.md` — `pnpm db:reset-data`, `NEXT_PUBLIC_NIMIQ_NETWORK=mainnet`
+  in Vercel, redeploy, then the phone pass. Fill in the ☐ fields in `docs/SUBMISSION.md`
+  and the video placeholder in the README.
+- The phone pass: the three leaving steps, a Mode A payment, both share sheets, the retry
+  after a real failure, and `getHostLanguage()` / `getHostFiat()` returning real values.
+- Still open: Neon through the pooler, the mock chain provider (`?chain=mock`), Remotion.

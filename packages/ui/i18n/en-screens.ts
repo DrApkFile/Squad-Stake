@@ -133,6 +133,27 @@ export const enScreens = {
     leaveSquad: 'Leave squad',
   },
 
+  /**
+   * Screens that exist only to explain a failure. Nothing in this app may fail silently: a
+   * page that cannot be shown says what happened, what it means for the member's NIM, and
+   * where to go next.
+   */
+  notice: {
+    notFoundTitle: 'That page is not here.',
+    notFoundBody: 'The link may be wrong or the squad may have been removed. Nothing has changed, and no NIM has moved.',
+    errorTitle: 'Something went wrong on our side.',
+    errorBody: 'This page could not be built. Your squad and your stake are untouched — nothing here can move NIM on its own.',
+    errorReference: (digest: string) => `Reference ${digest}`,
+    inviteInvalidTitle: 'That invite link is not valid.',
+    inviteInvalidBody: 'It may be mistyped, or the squad may be closed. Ask whoever invited you for a fresh link.',
+    signInFirstTitle: 'Sign in to open that page.',
+    signInFirstBody: 'That page is a squad’s own, so it needs your wallet signature first. You will come straight back to it.',
+    notAMemberTitle: 'You are not in this squad.',
+    notAMemberBody: 'This is its public view: the same statuses, read from the chain, without the invite link.',
+    home: 'Go to the start',
+    mySquads: 'Go to my squads',
+  },
+
   mySquads: {
     eyebrow: 'YOUR SQUADS',
     headingEmpty: 'Start a squad.',

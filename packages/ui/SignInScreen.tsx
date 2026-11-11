@@ -36,6 +36,12 @@ export interface SignInScreenProps {
   /** Seconds since the screen appeared; drives the typewriter, the orbit and the entrances. */
   t?: number | undefined;
   demoLabel?: string | undefined;
+  /**
+   * Why the visitor is on this screen rather than the one they asked for — a page that needs
+   * a signature sent them here. A redirect with no explanation is a silent failure: the member
+   * taps a squad and lands on a welcome screen that looks like it forgot them.
+   */
+  notice?: { title: string; body: string } | null | undefined;
   lang?: Lang | undefined;
 }
 
@@ -50,6 +56,7 @@ export function SignInScreen({
   onwardUrl = '/squads',
   t = 0,
   demoLabel,
+  notice = null,
   lang = DEFAULT_LANG,
 }: SignInScreenProps) {
   const s = strings(lang);
@@ -59,6 +66,12 @@ export function SignInScreen({
     <main className="sign-in" aria-busy={waiting}>
       <ScreenHeader demoLabel={demoLabel} lang={lang} />
       <div className="sign-in-body">
+        {notice && (
+          <section className="card" role="status">
+            <h2 className="card-title">{notice.title}</h2>
+            <p className="meta">{notice.body}</p>
+          </section>
+        )}
         <TypewriterHeading lead={s.signIn.headingLead} emphasis={s.signIn.headingEmphasis} t={t} />
         <p className="intro" style={vars({ '--enter': entranceProgress(t, 18) })}>
           {s.signIn.intro}

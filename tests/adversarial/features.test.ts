@@ -11,6 +11,7 @@ import { memberEarned, type EarnedDeps } from '../../apps/web/src/server/core/me
 import { squadDetail } from '../../apps/web/src/server/core/squad-detail';
 import { SquadScreen } from '../../packages/ui/SquadScreen';
 import { squadPageScenes } from '../../packages/ui/scenes/squad-page';
+import { onwardPath, squadPathFrom } from '../../apps/web/src/server/lib/session-page';
 import { ADDRESSES, detailHarness } from '../support/squads';
 import type { Validator } from '../../apps/web/src/server/core/chain';
 
@@ -156,4 +157,28 @@ test('a client-supplied earned figure cannot reach a screen through the view', (
   const markup = renderToStaticMarkup(createElement(SquadScreen as never,
     { ...backed.props, members } as never));
   assert.doesNotMatch(markup, /SOMETHING_ELSE/);
+});
+
+test('a crafted return link can never leave this origin', () => {
+  // Both guards turn a query parameter into an `href` on a screen, which is the whole attack:
+  // `//evil.example` is a protocol-relative URL a browser follows off-site, and a scheme in
+  // an href runs. Each rebuilds this app's own path instead of echoing what it was given.
+  for (const hostile of [
+    '//evil.example', 'https://evil.example/squads', 'http:/evil.example',
+    'javascript:alert(document.cookie)', 'data:text/html,<script>1</script>',
+    '/\\evil.example', '\\\\evil.example', '/squads/../../etc/passwd\\',
+    ' //evil.example', '', 'squads', undefined,
+  ]) {
+    const onward = onwardPath(hostile as string | undefined);
+    assert.ok(onward === null || (onward.startsWith('/') && !onward.startsWith('//')),
+      `onwardPath(${String(hostile)}) = ${String(onward)}`);
+    assert.equal(squadPathFrom(hostile as string | undefined), null, String(hostile));
+  }
+  // What is allowed is a path, and for the back chevron, only a uuid rebuilt into a route.
+  assert.equal(onwardPath('/squads/new'), '/squads/new');
+  assert.equal(squadPathFrom('0f1d2c3b-4a59-4687-9b0c-1d2e3f405162'),
+    '/squads/0f1d2c3b-4a59-4687-9b0c-1d2e3f405162');
+  // A uuid-shaped id with anything appended is not a uuid.
+  assert.equal(squadPathFrom('0f1d2c3b-4a59-4687-9b0c-1d2e3f405162/../../x'), null);
+  assert.equal(squadPathFrom('0F1D2C3B-4A59-4687-9B0C-1D2E3F405162'), null);
 });

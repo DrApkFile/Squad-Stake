@@ -95,5 +95,6 @@ export function CreateSquadContainer({ minGoalDate, inviteBase, initialLang, tem
     onShare={() => void invite.share()}
     onCopyInvite={() => void invite.copy()}
     shared={invite.shared}
+    copyFailed={invite.failed}
     onSubmit={() => void submit()} />;
 }

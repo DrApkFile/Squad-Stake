@@ -1,3 +1,4 @@
+import { shortLink } from './format';
 import { GradientBorderButton } from './GradientBorderButton';
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
 import { ScreenHeader } from './ScreenHeader';
@@ -42,6 +43,8 @@ export interface CreateSquadScreenProps {
   onCopyInvite?: (() => void) | undefined;
   /** True once the link has been copied, so the control can say so. */
   shared?: boolean | undefined;
+  /** A refused clipboard write used to leave a tap that did nothing. */
+  copyFailed?: boolean | undefined;
   demoLabel?: string;
   lang?: Lang | undefined;
 }
@@ -49,7 +52,8 @@ export interface CreateSquadScreenProps {
 /** Screen 4. Controlled: every value and the minimum date come in as props. */
 export function CreateSquadScreen({
   values, minGoalDate, templateDates, error, created, busy = false, t = 0, onChange, onSubmit,
-  onShare, onCopyInvite, shared = false, demoLabel, back, lang = DEFAULT_LANG,
+  onShare, onCopyInvite, shared = false, copyFailed = false, demoLabel, back,
+  lang = DEFAULT_LANG,
 }: CreateSquadScreenProps) {
   const s = strings(lang);
   const modeA = values.mode === 'A';
@@ -64,6 +68,13 @@ export function CreateSquadScreen({
         <button className="link-button" type="button" onClick={onCopyInvite}>
           {shared ? s.common.copied : s.common.copyLink}
         </button>
+        {/* Shortened for recognition, never for retyping, and not a link: opening your own
+            invite while signed in only returns you to your own squad (packages/ui/format.ts). */}
+        <p className="link-preview">
+          <span className="link-preview-label">{s.common.linkPreviewLabel}</span>
+          {shortLink(created.inviteUrl)}
+        </p>
+        {copyFailed && <p className="meta meta-warn" role="alert">{s.common.copyFailed}</p>}
         <p className="field-hint">{s.create.inviteHint}</p>
       </div>
       <footer className="action-bar">

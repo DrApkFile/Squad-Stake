@@ -24,6 +24,8 @@ export { PayShareSheet } from './PayShareSheet';
 export type { PayShareSheetProps, PayShareState } from './PayShareSheet';
 export { TxStatus, TxStatusScene } from './TxStatus';
 export type { TxStatusProps, TxStatusState } from './TxStatus';
+export { NoticeScreen } from './NoticeScreen';
+export type { NoticeScreenProps } from './NoticeScreen';
 export { ProofScreen } from './ProofScreen';
 export type { ProofScreenProps } from './ProofScreen';
 export { exitBanner, leavingHint, stageLine, stageTotalsOf } from './progress';
@@ -57,7 +59,7 @@ export type { MemberStatusName } from './status';
 export { REDUCED_MOTION_T } from './motion';
 export {
   formatLuna, formatNim, formatCount, formatPercent, formatDay, formatDayIn, formatTimeIn, formatMoment,
-  zoneLabel, countdown, daysBetween, readAge, shortAddress,
+  zoneLabel, countdown, daysBetween, readAge, shortAddress, shortLink,
 } from './format';
 export { DEFAULT_LANG, LANGS, isLang, parseLang, pickLang, strings } from './i18n';
 export { fiatLine, fiatNote, fiatValue } from './fiat';

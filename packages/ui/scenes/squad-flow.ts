@@ -37,6 +37,12 @@ export const createSquadScenes: readonly { id: string; props: CreateSquadScreenP
     ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
     recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
   }, created: { shortId: 'k3m9p2qr', inviteUrl: 'https://squad.example/s/sample-invite-token', squadUrl: '/squads/sample' } } },
+  // The clipboard refused. Share is still there, and the line says so rather than leaving a
+  // tap that did nothing (src/hooks/use-share-link.ts).
+  { id: 'create-share-copy-failed', props: { minGoalDate, copyFailed: true, values: {
+    ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
+    recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',
+  }, created: { shortId: 'k3m9p2qr', inviteUrl: 'https://squad.example/s/sample-invite-token', squadUrl: '/squads/sample' } } },
   { id: 'create-busy', props: { minGoalDate, busy: true, values: {
     ...emptyValues, name: 'Lisbon in April', targetNim: '12000',
     recipient: 'NQ21 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V 7V7V', goalDate: '2026-12-18',

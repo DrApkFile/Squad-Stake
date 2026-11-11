@@ -19,16 +19,19 @@ import { useCallback, useState } from 'react';
  * Shared by the create screen's share step and the squad page (docs/AUDIT.md, M-1).
  */
 export function useShareLink(url: string | null, title: string) {
-  const [shared, setShared] = useState(false);
+  // Three states, not a boolean: a clipboard write can be refused (an insecure context, a
+  // browser that asks first, a denied permission) and that used to set the flag back to false,
+  // which rendered as a tap that did nothing at all. The screen says so instead.
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const copy = useCallback(async () => {
     if (url === null) return false;
     try {
       await navigator.clipboard.writeText(url);
-      setShared(true);
+      setState('copied');
       return true;
     } catch {
-      setShared(false);
+      setState('failed');
       return false;
     }
   }, [url]);
@@ -38,13 +41,15 @@ export function useShareLink(url: string | null, title: string) {
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({ title, url });
+        setState('idle');
         return;
       } catch (error) {
+        // Dismissing the sheet is a decision, and it leaves the screen exactly as it was.
         if (error instanceof Error && error.name === 'AbortError') return;
       }
     }
     await copy();
   }, [copy, title, url]);
 
-  return { shared, share, copy };
+  return { shared: state === 'copied', failed: state === 'failed', share, copy };
 }

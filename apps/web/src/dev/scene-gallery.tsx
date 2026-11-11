@@ -3,14 +3,16 @@
 import type { ReactNode } from 'react';
 import {
   BrandSheet, CreateSquadScreen, JoinCommitSheet, LeaveConfirm, LeavingSteps, MemberStatusScene,
-  MySquadsScreen, OrbitScene, PayShareSheet, PrivacyNotice, ProofScreen, SignInScreen, SquadScreen,
+  MySquadsScreen, NoticeScreen, OrbitScene, PayShareSheet, PrivacyNotice, ProofScreen,
+  SignInScreen, SquadScreen,
   TxStatusScene,
 } from '@squad-stake/ui';
 import {
   brandScenes, createSquadScenes, DEMO_LABEL, featureCommitScenes, featureCreateScenes,
   featureMySquadsScenes, featureSquadScenes, joinCommitScenes, leaveScenes, leavingScenes,
   memberStatusScenes,
-  mySquadsScenes, orbitScenes, payShareScenes, privacyScenes, proofScenes, signInScenes,
+  mySquadsScenes, noticeScenes, orbitScenes, payShareScenes, privacyScenes, proofScenes,
+  signInScenes,
   squadPageScenes, txStatusScenes,
 } from '@squad-stake/ui/scenes';
 
@@ -45,6 +47,8 @@ function registry(): readonly { id: string; node: ReactNode }[] {
     ...from(featureSquadScenes, (props) => <SquadScreen {...props} demoLabel={DEMO_LABEL} />),
     ...from(featureMySquadsScenes, (props) => <MySquadsScreen {...props} demoLabel={DEMO_LABEL} />),
     ...from(featureCreateScenes, (props) => <CreateSquadScreen {...props} demoLabel={DEMO_LABEL} />),
+    // The screens a failed page shows (app/{not-found,error,global-error}.tsx).
+    ...from(noticeScenes, (props) => <NoticeScreen {...props} demoLabel={SYNTHETIC} />),
     // The brand itself, at the sizes it is used at (packages/ui/brand).
     ...from(brandScenes, (props) => <BrandSheet {...props} demoLabel={SYNTHETIC} />),
   ];

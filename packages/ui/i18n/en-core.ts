@@ -88,6 +88,12 @@ export const enCore = {
     titleTx: 'Transaction',
     copyLink: 'Copy link',
     copied: 'Copied',
+    /* A clipboard write can be refused — an insecure context, a browser that asks first, a
+     * denied permission. It used to fail silently, which left a tap that did nothing. */
+    copyFailed: 'Could not copy. Use Share instead.',
+    viewProofPage: 'View proof page',
+    /* The shortened link under a share card: enough to recognise, never enough to retype. */
+    linkPreviewLabel: 'Link',
     /* The control beside a failure. A read that failed is re-read; a send that was never made
      * is offered again. Neither ever resends a wallet call by itself (AGENTS.md invariant 8). */
     tryAgain: 'Try again',

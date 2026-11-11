@@ -69,6 +69,9 @@ export const es: Strings = {
     titleTx: 'Transacción',
     copyLink: 'Copiar enlace',
     copied: 'Copiado',
+    copyFailed: 'No se ha podido copiar. Usa Compartir.',
+    viewProofPage: 'Ver la página pública',
+    linkPreviewLabel: 'Enlace',
     tryAgain: 'Reintentar',
     checkAgain: 'Consultar la cadena',
     moreInfo: 'Más sobre esto',
@@ -287,6 +290,22 @@ export const es: Strings = {
     changeCommitment: 'Cambiar mi compromiso',
     shareInvite: 'Compartir invitación',
     leaveSquad: 'Dejar el grupo',
+  },
+
+  notice: {
+    notFoundTitle: 'Esta página no está aquí.',
+    notFoundBody: 'Puede que el enlace sea incorrecto o que el grupo ya no exista. No ha cambiado nada y no se ha movido ningún NIM.',
+    errorTitle: 'Algo ha fallado por nuestra parte.',
+    errorBody: 'No se ha podido construir esta página. Tu grupo y tu stake están intactos: nada de aquí puede mover NIM por sí solo.',
+    errorReference: (digest: string) => `Referencia ${digest}`,
+    inviteInvalidTitle: 'Ese enlace de invitación no es válido.',
+    inviteInvalidBody: 'Puede estar mal escrito o el grupo puede estar cerrado. Pide un enlace nuevo a quien te invitó.',
+    signInFirstTitle: 'Inicia sesión para abrir esa página.',
+    signInFirstBody: 'Esa página es de un grupo, así que necesita la firma de tu monedero. Volverás directamente a ella.',
+    notAMemberTitle: 'No estás en este grupo.',
+    notAMemberBody: 'Esta es su vista pública: los mismos estados, leídos de la cadena, sin el enlace de invitación.',
+    home: 'Ir al inicio',
+    mySquads: 'Ir a mis grupos',
   },
 
   mySquads: {

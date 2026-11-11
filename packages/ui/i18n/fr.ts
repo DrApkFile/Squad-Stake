@@ -69,6 +69,9 @@ export const fr: Strings = {
     titleTx: 'Transaction',
     copyLink: 'Copier le lien',
     copied: 'Copié',
+    copyFailed: 'Copie impossible. Utilise Partager.',
+    viewProofPage: 'Voir la page publique',
+    linkPreviewLabel: 'Lien',
     tryAgain: 'Réessayer',
     checkAgain: 'Interroger la chaîne',
     moreInfo: 'En savoir plus',
@@ -287,6 +290,22 @@ export const fr: Strings = {
     changeCommitment: 'Changer mon engagement',
     shareInvite: 'Partager l’invitation',
     leaveSquad: 'Quitter le groupe',
+  },
+
+  notice: {
+    notFoundTitle: 'Cette page n’est pas ici.',
+    notFoundBody: 'Le lien est peut-être erroné, ou le groupe a été supprimé. Rien n’a changé et aucun NIM n’a bougé.',
+    errorTitle: 'Quelque chose a échoué de notre côté.',
+    errorBody: 'Cette page n’a pas pu être construite. Ton groupe et ton stake sont intacts : rien ici ne peut déplacer des NIM tout seul.',
+    errorReference: (digest: string) => `Référence ${digest}`,
+    inviteInvalidTitle: 'Ce lien d’invitation n’est pas valide.',
+    inviteInvalidBody: 'Il est peut-être mal saisi, ou le groupe est fermé. Demande un nouveau lien à la personne qui t’a invité.',
+    signInFirstTitle: 'Connecte-toi pour ouvrir cette page.',
+    signInFirstBody: 'Cette page appartient à un groupe : elle demande d’abord la signature de ton portefeuille. Tu y reviendras aussitôt.',
+    notAMemberTitle: 'Tu n’es pas dans ce groupe.',
+    notAMemberBody: 'Voici sa vue publique : les mêmes statuts, lus sur la chaîne, sans le lien d’invitation.',
+    home: 'Aller au début',
+    mySquads: 'Aller à mes groupes',
   },
 
   mySquads: {

@@ -9,13 +9,15 @@ import { useLang } from '../i18n/client';
 import { useSceneTime } from '../hooks/use-scene-time';
 import { signIn } from '../wallet/sign-in';
 
-export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onwardUrl = '/squads', invitedTo, initialLang }: {
+export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onwardUrl = '/squads', invitedTo, notice, initialLang }: {
   devIdentity: string | null;
   initialAddress: string | null;
   openInPayUrl: string;
   /** Where a completed sign-in lands. An invite sends the visitor back to the invite.  */
   onwardUrl?: string;
   invitedTo?: string;
+  /** Why the visitor was sent here, when a page redirected them (src/server/lib/session-page.ts). */
+  notice?: { title: string; body: string };
   /** The server's guess from Accept-Language; Nimiq Pay's own setting wins after mount. */
   initialLang: Lang;
 }) {
@@ -66,5 +68,6 @@ export function SignInContainer({ devIdentity, initialAddress, openInPayUrl, onw
   return <SignInScreen state={state} onSignIn={handleSignIn} t={t} lang={lang}
     example={demoExample} goals={demoGoals} onwardUrl={onwardUrl}
     {...(outsideHost ? { openInPayUrl } : {})}
+    {...(notice === undefined ? {} : { notice })}
     {...(demoLabel === undefined ? {} : { demoLabel })} />;
 }

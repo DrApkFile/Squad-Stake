@@ -1027,6 +1027,43 @@ button { font: inherit; }
   line-height: 1.45;
 }
 
+/* A failure that used to be silent: a refused clipboard write, beside the control that asked
+   for it. Not an error page — nothing is lost, the link is still one tap away in Share. */
+.meta-warn {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The shortened link under a share card. Display only — the full URL is never printed — so it
+   is text, not a control, and it carries no tap target. Monospace, because this is the one
+   kind of string here that is read character by character to recognise it (AGENTS.md keeps
+   mono for amounts, addresses and hashes); `anywhere` so a long host cannot push a 320 px
+   screen sideways. */
+.link-preview {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  /* `--muted` (5.59:1), not `--faint` (3.46:1): this is small text to be read, and the faint
+     step only clears the 3.0 floor for non-text. */
+  color: var(--muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.link-preview-label {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: var(--space-2);
+}
+
+/* The heading of a notice screen: the size of a card title, not of a hero — the page is an
+   explanation, and shouting it does not make it clearer. */
+.notice-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-lg);
+  line-height: 1.25;
+}
+
 /* The main action, pinned inside the safe area. `position: sticky` keeps it in the normal flow,
    so the content above can still scroll past it and nothing is covered at the end of the page. */
 .action-bar {

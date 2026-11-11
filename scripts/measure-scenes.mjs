@@ -9,6 +9,7 @@
 //
 // Usage: pnpm dev (DEV_HARNESS=1) in one shell, then `pnpm check:scenes`.
 //   SCENES_URL=http://localhost:3000  CHROMIUM=/usr/bin/chromium  SHOTS=id,id  pnpm check:scenes
+//   SHOT_SCROLL=900 scrolls inside the phone frame before a screenshot, to look below the fold.
 import { spawn } from 'node:child_process';
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -20,6 +21,19 @@ const WIDTHS = [390, 375, 320];
 const THEMES = ['light', 'dark'];
 const MIN_TAP = 44;
 const SHOTS = (process.env.SHOTS ?? '').split(',').map((id) => id.trim()).filter(Boolean);
+/** SHOT_SCROLL scrolls the screen inside the phone frame before a screenshot, so a card below
+    the fold can be looked at. The frame itself is 844 tall and scrolls internally, so a taller
+    clip would only photograph the page behind it. It changes nothing that is measured: the
+    measurements are read from the DOM in CSS pixels, not from the image, and they are taken
+    before this runs. */
+const SHOT_SCROLL = Number(process.env.SHOT_SCROLL ?? 0);
+const SCROLL_FRAME = (top) => `(() => {
+  const frame = document.querySelector('.scene-frame');
+  const scroller = [frame, ...frame.querySelectorAll('*')]
+    .find((node) => node.scrollHeight > node.clientHeight + 4) ?? frame;
+  scroller.scrollTop = ${top};
+  return scroller.scrollTop;
+})()`;
 /** SCENES=a,b limits the run to those ids, for looking at one frame again. */
 const ONLY = (process.env.SCENES ?? '').split(',').map((id) => id.trim()).filter(Boolean);
 
@@ -296,6 +310,10 @@ async function main() {
         }
         if (problems.length > 0) failures.push({ id, theme, width, problems });
         if (SHOTS.includes(id) && width === 390) {
+          if (SHOT_SCROLL > 0) {
+            await client.send('Runtime.evaluate',
+              { expression: SCROLL_FRAME(SHOT_SCROLL), returnByValue: true }, sessionId);
+          }
           // An explicit CSS clip, because mobile emulation applies a page scale of its own:
           // a plain captureScreenshot returned a 390 px image holding the left 390 px of a
           // ~474 px-wide layout, so every frame looked clipped at the right and the brand

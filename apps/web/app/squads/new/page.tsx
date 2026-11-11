@@ -7,6 +7,7 @@ import { authService } from '../../../src/server/lib/auth';
 import { SESSION_COOKIE } from '../../../src/server/lib/auth-http';
 import { currentLang } from '../../../src/i18n/server';
 import { serverEnv } from '../../../src/server/lib/env';
+import { signInFirstUrl } from '../../../src/server/lib/session-page';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,8 @@ export default async function CreateSquadPage() {
     catch { /* A failed session read cannot create an authenticated UI. */ }
   }
   // Creating a squad needs a verified wallet (PRD §11); sign-in lives at the root.
-  if (!address) redirect('/');
+  // The reason travels with the redirect, and brings them back here after signing in.
+  if (!address) redirect(signInFirstUrl('/squads/new'));
   // One clock for both: the earliest date the form accepts and the dates the templates
   // suggest, so a template can never pre-fill a date the form would reject.
   const now = Date.now();

@@ -1,3 +1,4 @@
+import { strings } from '../i18n';
 import { REDUCED_MOTION_T } from '../motion';
 import { demoExample, demoGoals } from './demo/squad';
 import type { SignInScreenProps } from '../SignInScreen';
@@ -8,11 +9,18 @@ import type { SignInScreenProps } from '../SignInScreen';
 // frame a reduced-motion viewer sees).
 const base = { example: demoExample, goals: demoGoals };
 
+const noticeStrings = strings('en').notice;
+
 export const signInScenes: readonly { id: string; props: SignInScreenProps }[] = [
   { id: 'sign-in-start', props: { ...base, t: 0, state: { status: 'idle' } } },
   { id: 'sign-in-typing', props: { ...base, t: 1, state: { status: 'idle' } } },
   { id: 'sign-in-idle', props: { ...base, t: 4, state: { status: 'idle' } } },
   { id: 'sign-in-reduced-motion', props: { ...base, t: REDUCED_MOTION_T, state: { status: 'idle' } } },
+  // Sent here by a members-only page. The screen says why, and signing in returns them to it
+  // (`?next=`, src/server/lib/session-page.ts) — a redirect that explains itself.
+  { id: 'sign-in-sent-here', props: { ...base, t: 4, state: { status: 'idle' },
+    onwardUrl: '/squads/0f1d2c3b-4a59-4687-9b0c-1d2e3f405162',
+    notice: { title: noticeStrings.signInFirstTitle, body: noticeStrings.signInFirstBody } } },
   { id: 'sign-in-waiting', props: { ...base, t: 4, state: { status: 'waiting' } } },
   { id: 'sign-in-declined', props: { ...base, t: 4, state: { status: 'declined', message: 'Sign-in declined. Nothing changed.', nextAction: 'Try again when you’re ready.' } } },
   { id: 'sign-in-error', props: { ...base, t: 4, state: { status: 'error', message: 'Squad Stake is unavailable right now.', nextAction: 'Please try again shortly.' } } },

@@ -145,3 +145,27 @@ export function formatPercent(fraction: number, lang: Lang = DEFAULT_LANG) {
   const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/0+$/, '');
   return percent(text.replace('.', decimal));
 }
+
+/**
+ * A link shortened for **recognition, not for typing**: `squad-stake.vercel.app/proof/a1b2…9f`.
+ *
+ * No screen prints a full URL — it is the one string that must not be mistyped, and a phone
+ * cannot select it comfortably, so the whole link only ever travels by the share sheet or the
+ * clipboard (docs/AUDIT.md, M-1). But a card with two buttons and no link at all gives the
+ * organiser nothing to recognise, so this is what is shown instead: enough of the address to
+ * see that a link exists and which one it is, and never enough to retype.
+ *
+ * Deliberately a string walk rather than `new URL`: this runs in `packages/ui`, it must not
+ * throw on whatever it is handed, and a relative path shortens just as usefully as an
+ * absolute one.
+ */
+export function shortLink(url: string) {
+  const withoutScheme = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/^www\./i, '');
+  const [path = ''] = withoutScheme.split(/[?#]/);
+  const trimmed = path.replace(/\/+$/, '');
+  const parts = trimmed.split('/');
+  const last = parts.at(-1) ?? '';
+  // Short enough to read whole; anything longer is an id, and an id is what gets elided.
+  if (parts.length < 2 || last.length <= 9) return trimmed;
+  return [...parts.slice(0, -1), `${last.slice(0, 4)}…${last.slice(-3)}`].join('/');
+}

@@ -38,6 +38,18 @@ export interface ProofScreenProps {
   } | null | undefined;
   /** PRD §9.11: the same estimate a member sees, with its source and age. */
   fiat?: FiatRate | null | undefined;
+  /**
+   * Where this page's back chevron goes. A member who tapped "View proof page" on their own
+   * squad is returned to that squad; a reader who arrived from a shared link is sent forward
+   * into the app, which is the default.
+   */
+  back?: { label: string; href: string } | undefined;
+  /**
+   * Why this page is being shown instead of another one — today, that the viewer is not in
+   * this squad and was sent here rather than to a 404 or a silent redirect. Never a failure
+   * of this page: everything below it is real.
+   */
+  notice?: { title: string; body: string } | null | undefined;
   demoLabel?: string | undefined;
   lang?: Lang | undefined;
 }
@@ -55,6 +67,8 @@ export function ProofScreen({
   apiUrl,
   payments = null,
   fiat = null,
+  back,
+  notice = null,
   demoLabel,
   lang = DEFAULT_LANG,
 }: ProofScreenProps) {
@@ -63,9 +77,17 @@ export function ProofScreen({
     <main className="sheet">
       {/* A reader may have arrived from anywhere, so the way out is forward: the app itself.
           The label says that, rather than repeating the brand line beside it. */}
-      <ScreenHeader back={{ label: s.common.openSquadStake, href: '/' }}
+      <ScreenHeader back={back ?? { label: s.common.openSquadStake, href: '/' }}
         title={s.common.titleProof} demoLabel={demoLabel} lang={lang} />
       <div className="sheet-body">
+        {/* A redirect that explains itself: the member asked for a squad page and got this
+            one, and silently swapping the page for another is how an app loses someone. */}
+        {notice && (
+          <section className="card" role="status">
+            <h2 className="card-title">{notice.title}</h2>
+            <p className="meta">{notice.body}</p>
+          </section>
+        )}
         <p className="eyebrow">{s.proof.eyebrow(squad.shortId.toUpperCase())}</p>
         <h1>{squad.name}</h1>
         <p className="intro">

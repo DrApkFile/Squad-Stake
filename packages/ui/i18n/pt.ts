@@ -69,6 +69,9 @@ export const pt: Strings = {
     titleTx: 'Transação',
     copyLink: 'Copiar ligação',
     copied: 'Copiado',
+    copyFailed: 'Não foi possível copiar. Usa Partilhar.',
+    viewProofPage: 'Ver a página pública',
+    linkPreviewLabel: 'Ligação',
     tryAgain: 'Tentar de novo',
     checkAgain: 'Consultar a cadeia',
     moreInfo: 'Saber mais',
@@ -287,6 +290,22 @@ export const pt: Strings = {
     changeCommitment: 'Mudar o meu compromisso',
     shareInvite: 'Partilhar o convite',
     leaveSquad: 'Sair do grupo',
+  },
+
+  notice: {
+    notFoundTitle: 'Esta página não está aqui.',
+    notFoundBody: 'A ligação pode estar errada ou o grupo pode ter sido removido. Nada mudou e nenhum NIM foi movido.',
+    errorTitle: 'Algo correu mal do nosso lado.',
+    errorBody: 'Não foi possível construir esta página. O teu grupo e o teu stake estão intactos — nada aqui move NIM sozinho.',
+    errorReference: (digest: string) => `Referência ${digest}`,
+    inviteInvalidTitle: 'Essa ligação de convite não é válida.',
+    inviteInvalidBody: 'Pode estar mal escrita ou o grupo pode estar fechado. Pede uma ligação nova a quem te convidou.',
+    signInFirstTitle: 'Inicia sessão para abrir essa página.',
+    signInFirstBody: 'Essa página é de um grupo, por isso precisa da assinatura da tua carteira. Voltas logo a ela.',
+    notAMemberTitle: 'Não estás neste grupo.',
+    notAMemberBody: 'Esta é a vista pública: os mesmos estados, lidos da cadeia, sem a ligação de convite.',
+    home: 'Ir para o início',
+    mySquads: 'Ir para os meus grupos',
   },
 
   mySquads: {

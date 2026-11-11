@@ -124,6 +124,9 @@ export const demoSquadPage = {
 
 export const demoInviteUrl = 'https://squad.example/s/4f1c8a7b2d9e0315a6c4b8d7e2f10934';
 export const demoProofUrl = 'https://squad.example/proof/q7m2bt4h';
+/** The same page as an in-app path, with where to come back to — what "View proof page"
+ * opens, while `demoProofUrl` is what Copy link hands over. */
+export const demoProofHref = '/proof/q7m2bt4h?from=0f1d2c3b-4a59-4687-9b0c-1d2e3f405162';
 
 // --- Leaving steps and Mode A settlement (screens 7, 8, 9) ----------------
 // Still hand-written sample data. The hashes below are invented from a fixed pattern, not
