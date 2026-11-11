@@ -2116,3 +2116,61 @@ nested clip (the values *are* composition-local) plus one `timeline_track_too_de
 deliberate and left. The first run also reported two **runtime** errors — "Browser process did
 not exit after forced shutdown" — which are the checker's own teardown on a machine with
 1.4 GB free, not a fault in the composition.
+
+### The render, and the one defect that is fixed in the source but not in the published film
+
+`node apps/video/scripts/render.mjs`, 07:26–07:49 UTC on 2026-11-11, one worker (the machine
+resolved to `workerCount: 1` with ~2 GB free), 4,950 frames. Measured with `ffprobe` off the
+finished file, not asserted:
+
+| | |
+|---|---|
+| `apps/video/out/squad-stake-demo.mp4` | **1920 × 1080 · 30 fps · H.264 High · AAC 48 kHz stereo 199 kbit/s** |
+| duration | **165.000 s = 2:45 exactly** (4,950 frames) |
+| size | **14.7 MB** — the 100 MB ceiling never came close, so the re-encode branch did not run |
+| `out/poster.jpg` | the end card at 162 s, 53 KB, the one generated file in git |
+
+**This is the file that is published** at <https://youtu.be/iYhnj-aDvJ8>, and the README,
+`JUDGING.md` and `docs/SUBMISSION.md` now carry that link.
+
+A still was taken every five seconds and all 33 were looked at. Thirty-two were right. The
+thirty-third kind was not: **at each of the three "Approved in Nimiq Pay" moments the phone
+screen was blank grey.** No media shot is lit during an approval cut, so the scrim dimmed an
+empty screen and the neutral card floated over nothing. Fixed in `scripts/screens.mjs`: each
+approval now carries the shot before it forward as a *backdrop* under the scrim — a still
+simply holds, a clip continues from where the previous shot ended, pulled back if the footage
+would run out — and no tap is drawn on a backdrop, because the finger has left the screen.
+Two smaller things went with it: the scrim moved **inside** the dolly, so it tracks the phone
+instead of sitting at the untransformed position, and the scrim and card were lifted to
+z-index 60/70, because shots are numbered upward from 2 and a late cut's z-index had climbed
+over the dim that was supposed to cover it.
+
+Verified by snapshot at all three instants (78.6 s, 91.9 s, 128.2 s): the invite screen under
+"Signed in", the commit sheet reading "Waiting…" under "Approved in Nimiq Pay", and step one of
+the exit with its 2,000 NIM field under the third. **It is not in the rendered file.** The
+re-render was stopped at the operator's instruction once the film was already published, so
+the repository's composition is one fix ahead of the video on YouTube. Re-running
+`pnpm video:render` produces the corrected film; publishing it would mean a new upload.
+
+**Not produced: the 1080 × 1920 vertical cut of the first minute.** `compositions/vertical.html`
+is written and `scripts/render.mjs` renders it after the master, but that stage was reached only
+in the stopped run, so no vertical file exists and the composition has never been rendered.
+
+### Repository weight, measured rather than assumed
+`apps/video` is **436 KB** in git — the scripts, the six compositions, `narration.json`,
+`assets/manifest.json` and the self-hosted fonts. The 318 MB on disk (`.venv` 240 MB,
+`assets/` 47 MB of clips and stills, `capture/` 16 MB, `out/` 15 MB) was already ignored and
+never entered git, so ignoring the folder itself would cost the pipeline's source and save
+nothing. The heaviest tracked file in the whole repository was **`assets/music.mp3`, 3.3 MB** —
+also the file `THIRD_PARTY_NOTICES.md` records as having no licence, attribution or ID3 tags
+here. It is now in `.gitignore` and `git rm --cached`-ed: still on disk so `pnpm video:render`
+works, no longer redistributed by the repository. Its blob stays in history, so `.git` is
+unchanged at 13 MB; only a history rewrite would reclaim that, which is not worth doing.
+
+### What did not run in this session
+`pnpm gate` was started from a deleted `.next` and **stopped by the operator partway through
+the adversarial tests**, so it is *not* green for this slice: typecheck and lint passed and the
+unit suite had run, but the Next build, `test:production`, the secret scan, `deps:check` and
+`check:tracked` did not run. `pnpm test` was run separately earlier in the session and passed
+**171 unit tests, 0 failures, 0 skips** after the fixture change. `pnpm check:scenes` has not
+been run since `squad-page-leave-by` was re-anchored.

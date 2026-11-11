@@ -29,3 +29,9 @@ apps/video/.render-tmp/
 apps/video/renders/
 apps/video/out/
 !apps/video/out/poster.jpg
+
+# The music bed. 3.3 MB, and THIRD_PARTY_NOTICES.md records that this repository holds no
+# licence, attribution or ID3 tags for it, so it is not ours to redistribute. The video that
+# uses it is published; the track itself stays out of git.
+assets/music.mp3
+apps/video/assets/music.mp3
