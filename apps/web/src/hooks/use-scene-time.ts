@@ -10,7 +10,7 @@ const STEPS_PER_SECOND = 15;
 /**
  * The one place in the app that reads a clock for animation. Components take `t` — seconds
  * since the screen appeared — as a prop and derive their frame from it (AGENTS.md "UI purity"
- * 6), so the Remotion video can pass `frame / fps` to the very same components.
+ * 6), so the HyperFrames video can pass `frame / fps` to the very same components.
  *
  * With `prefers-reduced-motion` this returns a single frozen `t` at which every entrance has
  * finished and the typewriter is complete, and never schedules a frame.

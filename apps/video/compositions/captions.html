@@ -1,0 +1,583 @@
+<template>
+  <style>
+    /* Burned-in captions: judges often watch muted, so the words carry the film on their own.
+       Inside the 80% title-safe box, one group visible at a time, each absolutely positioned
+       so a hidden one cannot push the next one down (/hyperframes captions.md). */
+    #root { position: absolute; inset: 0; pointer-events: none; }
+    #root .cap {
+      position: absolute;
+      left: 0; right: 0; bottom: 74px;
+      text-align: center;
+      padding: 0 160px;
+      opacity: 0;
+      overflow: visible;
+    }
+    #root .cap-text {
+      display: inline-block;
+      font-family: Mulish, sans-serif;
+      font-weight: 700;
+      font-size: 42px;
+      line-height: 1.24;
+      letter-spacing: -0.012em;
+      color: #0b0b0c;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 2px 28px rgba(11, 11, 12, 0.1);
+      border-radius: 14px;
+      padding: 10px 22px;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+  </style>
+  <div id="root" data-composition-id="captions" data-width="1920" data-height="1080">
+    <div
+      class="clip cap"
+      id="cap-0"
+      data-start="1.88"
+      data-duration="1.61"
+    ><span class="cap-text">Five friends are saving for</span></div>
+    <div
+      class="clip cap"
+      id="cap-1"
+      data-start="3.53"
+      data-duration="0.648"
+    ><span class="cap-text">a trip.</span></div>
+    <div
+      class="clip cap"
+      id="cap-2"
+      data-start="4.54"
+      data-duration="2.385"
+    ><span class="cap-text">One of them collects everyone’s money.</span></div>
+    <div
+      class="clip cap"
+      id="cap-3"
+      data-start="7.287"
+      data-duration="1.649"
+    ><span class="cap-text">Now one person carries all</span></div>
+    <div
+      class="clip cap"
+      id="cap-4"
+      data-start="8.976"
+      data-duration="0.61"
+    ><span class="cap-text">the risk —</span></div>
+    <div
+      class="clip cap"
+      id="cap-5"
+      data-start="9.626"
+      data-duration="1.649"
+    ><span class="cap-text">and everyone else just has</span></div>
+    <div
+      class="clip cap"
+      id="cap-6"
+      data-start="11.315"
+      data-duration="1.13"
+    ><span class="cap-text">to trust them.</span></div>
+    <div
+      class="clip cap"
+      id="cap-7"
+      data-start="13.807"
+      data-duration="1.558"
+    ><span class="cap-text">That’s how group saving works</span></div>
+    <div
+      class="clip cap"
+      id="cap-8"
+      data-start="15.405"
+      data-duration="1.212"
+    ><span class="cap-text">almost everywhere.</span></div>
+    <div
+      class="clip cap"
+      id="cap-9"
+      data-start="16.979"
+      data-duration="1.653"
+    ><span class="cap-text">Someone holds the pot.</span></div>
+    <div
+      class="clip cap"
+      id="cap-10"
+      data-start="18.994"
+      data-duration="1.709"
+    ><span class="cap-text">Nobody else can check it.</span></div>
+    <div
+      class="clip cap"
+      id="cap-11"
+      data-start="21.065"
+      data-duration="0.987"
+    ><span class="cap-text">And while it waits,</span></div>
+    <div
+      class="clip cap"
+      id="cap-12"
+      data-start="22.092"
+      data-duration="1.464"
+    ><span class="cap-text">the money does nothing.</span></div>
+    <div
+      class="clip cap"
+      id="cap-13"
+      data-start="23.918"
+      data-duration="1.489"
+    ><span class="cap-text">If the holder spends it,</span></div>
+    <div
+      class="clip cap"
+      id="cap-14"
+      data-start="25.447"
+      data-duration="1.807"
+    ><span class="cap-text">disappears, or simply makes a</span></div>
+    <div
+      class="clip cap"
+      id="cap-15"
+      data-start="27.294"
+      data-duration="2.195"
+    ><span class="cap-text">mistake, the whole group loses.</span></div>
+    <div
+      class="clip cap"
+      id="cap-16"
+      data-start="30.851"
+      data-duration="1.623"
+    ><span class="cap-text">So we built Squad Stake,</span></div>
+    <div
+      class="clip cap"
+      id="cap-17"
+      data-start="32.514"
+      data-duration="2.16"
+    ><span class="cap-text">a mini app inside Nimiq Pay.</span></div>
+    <div
+      class="clip cap"
+      id="cap-18"
+      data-start="35.036"
+      data-duration="1.656"
+    ><span class="cap-text">Save together for anything —</span></div>
+    <div
+      class="clip cap"
+      id="cap-19"
+      data-start="36.732"
+      data-duration="1.735"
+    ><span class="cap-text">and nobody holds the pot.</span></div>
+    <div
+      class="clip cap"
+      id="cap-20"
+      data-start="38.829"
+      data-duration="1.688"
+    ><span class="cap-text">Every member’s share stays in</span></div>
+    <div
+      class="clip cap"
+      id="cap-21"
+      data-start="40.557"
+      data-duration="0.973"
+    ><span class="cap-text">their own wallet,</span></div>
+    <div
+      class="clip cap"
+      id="cap-22"
+      data-start="41.57"
+      data-duration="1.807"
+    ><span class="cap-text">staked on the Nimiq blockchain,</span></div>
+    <div
+      class="clip cap"
+      id="cap-23"
+      data-start="43.417"
+      data-duration="2.007"
+    ><span class="cap-text">earning while the squad waits.</span></div>
+    <div
+      class="clip cap"
+      id="cap-24"
+      data-start="45.786"
+      data-duration="1.77"
+    ><span class="cap-text">And the squad’s progress isn’t</span></div>
+    <div
+      class="clip cap"
+      id="cap-25"
+      data-start="47.596"
+      data-duration="1.547"
+    ><span class="cap-text">typed into a database.</span></div>
+    <div
+      class="clip cap"
+      id="cap-26"
+      data-start="49.505"
+      data-duration="1.882"
+    ><span class="cap-text">It’s read straight from the chain.</span></div>
+    <div
+      class="clip cap"
+      id="cap-27"
+      data-start="52.749"
+      data-duration="1.905"
+    ><span class="cap-text">Signing in is one signature</span></div>
+    <div
+      class="clip cap"
+      id="cap-28"
+      data-start="54.694"
+      data-duration="0.968"
+    ><span class="cap-text">in Nimiq Pay —</span></div>
+    <div
+      class="clip cap"
+      id="cap-29"
+      data-start="55.702"
+      data-duration="0.752"
+    ><span class="cap-text">no account,</span></div>
+    <div
+      class="clip cap"
+      id="cap-30"
+      data-start="56.494"
+      data-duration="1.085"
+    ><span class="cap-text">no password.</span></div>
+    <div
+      class="clip cap"
+      id="cap-31"
+      data-start="57.941"
+      data-duration="0.9"
+    ><span class="cap-text">Create a squad:</span></div>
+    <div
+      class="clip cap"
+      id="cap-32"
+      data-start="58.881"
+      data-duration="1.151"
+    ><span class="cap-text">pick a quick start,</span></div>
+    <div
+      class="clip cap"
+      id="cap-33"
+      data-start="60.072"
+      data-duration="0.712"
+    ><span class="cap-text">like a trip,</span></div>
+    <div
+      class="clip cap"
+      id="cap-34"
+      data-start="60.824"
+      data-duration="0.9"
+    ><span class="cap-text">set a goal day,</span></div>
+    <div
+      class="clip cap"
+      id="cap-35"
+      data-start="61.764"
+      data-duration="1.724"
+    ><span class="cap-text">and choose how you save.</span></div>
+    <div
+      class="clip cap"
+      id="cap-36"
+      data-start="63.85"
+      data-duration="0.873"
+    ><span class="cap-text">Together goals,</span></div>
+    <div
+      class="clip cap"
+      id="cap-37"
+      data-start="64.763"
+      data-duration="2.534"
+    ><span class="cap-text">where everyone saves their own target.</span></div>
+    <div
+      class="clip cap"
+      id="cap-38"
+      data-start="67.659"
+      data-duration="1.069"
+    ><span class="cap-text">Or a shared goal,</span></div>
+    <div
+      class="clip cap"
+      id="cap-39"
+      data-start="68.768"
+      data-duration="1.265"
+    ><span class="cap-text">with one total and a</span></div>
+    <div
+      class="clip cap"
+      id="cap-40"
+      data-start="70.073"
+      data-duration="1.852"
+    ><span class="cap-text">recipient fixed up front.</span></div>
+    <div
+      class="clip cap"
+      id="cap-41"
+      data-start="72.287"
+      data-duration="1.933"
+    ><span class="cap-text">Then share one invite link.</span></div>
+    <div
+      class="clip cap"
+      id="cap-42"
+      data-start="75.582"
+      data-duration="1.264"
+    ><span class="cap-text">Friends open the link,</span></div>
+    <div
+      class="clip cap"
+      id="cap-43"
+      data-start="76.886"
+      data-duration="0.434"
+    ><span class="cap-text">sign in,</span></div>
+    <div
+      class="clip cap"
+      id="cap-44"
+      data-start="77.36"
+      data-duration="1.584"
+    ><span class="cap-text">and commit their share.</span></div>
+    <div
+      class="clip cap"
+      id="cap-45"
+      data-start="79.306"
+      data-duration="1.775"
+    ><span class="cap-text">If they’re not staking yet,</span></div>
+    <div
+      class="clip cap"
+      id="cap-46"
+      data-start="81.121"
+      data-duration="1.774"
+    ><span class="cap-text">Squad Stake picks a staking</span></div>
+    <div
+      class="clip cap"
+      id="cap-47"
+      data-start="82.935"
+      data-duration="1.775"
+    ><span class="cap-text">pool that actually pays its</span></div>
+    <div
+      class="clip cap"
+      id="cap-48"
+      data-start="84.75"
+      data-duration="0.565"
+    ><span class="cap-text">stakers —</span></div>
+    <div
+      class="clip cap"
+      id="cap-49"
+      data-start="85.355"
+      data-duration="1.438"
+    ><span class="cap-text">and shows its name and</span></div>
+    <div
+      class="clip cap"
+      id="cap-50"
+      data-start="86.833"
+      data-duration="0.296"
+    ><span class="cap-text">fee —</span></div>
+    <div
+      class="clip cap"
+      id="cap-51"
+      data-start="87.169"
+      data-duration="2.573"
+    ><span class="cap-text">before Nimiq Pay asks for approval.</span></div>
+    <div
+      class="clip cap"
+      id="cap-52"
+      data-start="90.104"
+      data-duration="2.19"
+    ><span class="cap-text">The stake never leaves their wallet.</span></div>
+    <div
+      class="clip cap"
+      id="cap-53"
+      data-start="92.656"
+      data-duration="1.996"
+    ><span class="cap-text">A commitment only counts once</span></div>
+    <div
+      class="clip cap"
+      id="cap-54"
+      data-start="94.692"
+      data-duration="2.137"
+    ><span class="cap-text">its transaction is executed and</span></div>
+    <div
+      class="clip cap"
+      id="cap-55"
+      data-start="96.869"
+      data-duration="1.555"
+    ><span class="cap-text">final on the chain.</span></div>
+    <div
+      class="clip cap"
+      id="cap-56"
+      data-start="99.786"
+      data-duration="2.41"
+    ><span class="cap-text">Now everyone sees honest progress.</span></div>
+    <div
+      class="clip cap"
+      id="cap-57"
+      data-start="102.558"
+      data-duration="0.845"
+    ><span class="cap-text">Saved, short,</span></div>
+    <div
+      class="clip cap"
+      id="cap-58"
+      data-start="103.443"
+      data-duration="1.798"
+    ><span class="cap-text">leaving, back in the wallet</span></div>
+    <div
+      class="clip cap"
+      id="cap-59"
+      data-start="105.281"
+      data-duration="1.662"
+    ><span class="cap-text">— every status comes from</span></div>
+    <div
+      class="clip cap"
+      id="cap-60"
+      data-start="106.983"
+      data-duration="1.253"
+    ><span class="cap-text">a fresh chain read,</span></div>
+    <div
+      class="clip cap"
+      id="cap-61"
+      data-start="108.276"
+      data-duration="2.195"
+    ><span class="cap-text">with its age right beside it.</span></div>
+    <div
+      class="clip cap"
+      id="cap-62"
+      data-start="110.833"
+      data-duration="2.364"
+    ><span class="cap-text">Nobody sees anyone else’s balance.</span></div>
+    <div
+      class="clip cap"
+      id="cap-63"
+      data-start="113.559"
+      data-duration="1.451"
+    ><span class="cap-text">And the public proof page</span></div>
+    <div
+      class="clip cap"
+      id="cap-64"
+      data-start="115.05"
+      data-duration="2.606"
+    ><span class="cap-text">lets anyone repeat the check themselves.</span></div>
+    <div
+      class="clip cap"
+      id="cap-65"
+      data-start="119.018"
+      data-duration="1.994"
+    ><span class="cap-text">Unstaking on Nimiq takes twelve</span></div>
+    <div
+      class="clip cap"
+      id="cap-66"
+      data-start="121.052"
+      data-duration="1.337"
+    ><span class="cap-text">to twenty-four hours,</span></div>
+    <div
+      class="clip cap"
+      id="cap-67"
+      data-start="122.429"
+      data-duration="1.6"
+    ><span class="cap-text">so Squad Stake tells each</span></div>
+    <div
+      class="clip cap"
+      id="cap-68"
+      data-start="124.069"
+      data-duration="2.648"
+    ><span class="cap-text">member exactly when to start leaving.</span></div>
+    <div
+      class="clip cap"
+      id="cap-69"
+      data-start="127.079"
+      data-duration="2.074"
+    ><span class="cap-text">Three approvals bring the NIM back.</span></div>
+    <div
+      class="clip cap"
+      id="cap-70"
+      data-start="129.515"
+      data-duration="1.079"
+    ><span class="cap-text">For a shared goal,</span></div>
+    <div
+      class="clip cap"
+      id="cap-71"
+      data-start="130.634"
+      data-duration="1.266"
+    ><span class="cap-text">each share is paid to</span></div>
+    <div
+      class="clip cap"
+      id="cap-72"
+      data-start="131.94"
+      data-duration="0.892"
+    ><span class="cap-text">the recipient —</span></div>
+    <div
+      class="clip cap"
+      id="cap-73"
+      data-start="132.872"
+      data-duration="1.837"
+    ><span class="cap-text">and verified on the chain.</span></div>
+    <div
+      class="clip cap"
+      id="cap-74"
+      data-start="136.071"
+      data-duration="1.844"
+    ><span class="cap-text">NIM does the heavy lifting:</span></div>
+    <div
+      class="clip cap"
+      id="cap-75"
+      data-start="137.955"
+      data-duration="1.495"
+    ><span class="cap-text">identity by signature,</span></div>
+    <div
+      class="clip cap"
+      id="cap-76"
+      data-start="139.49"
+      data-duration="2.123"
+    ><span class="cap-text">native staking for the savings,</span></div>
+    <div
+      class="clip cap"
+      id="cap-77"
+      data-start="141.653"
+      data-duration="1.774"
+    ><span class="cap-text">payments, and the chain as</span></div>
+    <div
+      class="clip cap"
+      id="cap-78"
+      data-start="143.467"
+      data-duration="1.616"
+    ><span class="cap-text">the source of truth.</span></div>
+    <div
+      class="clip cap"
+      id="cap-79"
+      data-start="145.445"
+      data-duration="0.85"
+    ><span class="cap-text">Trips, gifts,</span></div>
+    <div
+      class="clip cap"
+      id="cap-80"
+      data-start="146.335"
+      data-duration="0.85"
+    ><span class="cap-text">rent buffers,</span></div>
+    <div
+      class="clip cap"
+      id="cap-81"
+      data-start="147.225"
+      data-duration="1.125"
+    ><span class="cap-text">group purchases —</span></div>
+    <div
+      class="clip cap"
+      id="cap-82"
+      data-start="148.39"
+      data-duration="2.069"
+    ><span class="cap-text">anything a group saves for.</span></div>
+    <div
+      class="clip cap"
+      id="cap-83"
+      data-start="151.821"
+      data-duration="0.839"
+    ><span class="cap-text">No custody.</span></div>
+    <div
+      class="clip cap"
+      id="cap-84"
+      data-start="152.7"
+      data-duration="1.399"
+    ><span class="cap-text">No trust required.</span></div>
+    <div
+      class="clip cap"
+      id="cap-85"
+      data-start="154.139"
+      data-duration="1.099"
+    ><span class="cap-text">Just proof.</span></div>
+    <div
+      class="clip cap"
+      id="cap-86"
+      data-start="155.6"
+      data-duration="0.848"
+    ><span class="cap-text">Squad Stake —</span></div>
+    <div
+      class="clip cap"
+      id="cap-87"
+      data-start="156.488"
+      data-duration="0.917"
+    ><span class="cap-text">save together,</span></div>
+    <div
+      class="clip cap"
+      id="cap-88"
+      data-start="157.445"
+      data-duration="1.655"
+    ><span class="cap-text">nobody holds the pot.</span></div>
+  </div>
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      const groups = [{"id":"cap-0","start":1.88,"end":3.49},{"id":"cap-1","start":3.53,"end":4.178},{"id":"cap-2","start":4.54,"end":6.925},{"id":"cap-3","start":7.287,"end":8.936},{"id":"cap-4","start":8.976,"end":9.586},{"id":"cap-5","start":9.626,"end":11.275},{"id":"cap-6","start":11.315,"end":12.445},{"id":"cap-7","start":13.807,"end":15.365},{"id":"cap-8","start":15.405,"end":16.617},{"id":"cap-9","start":16.979,"end":18.632},{"id":"cap-10","start":18.994,"end":20.703},{"id":"cap-11","start":21.065,"end":22.052},{"id":"cap-12","start":22.092,"end":23.556},{"id":"cap-13","start":23.918,"end":25.407},{"id":"cap-14","start":25.447,"end":27.254},{"id":"cap-15","start":27.294,"end":29.489},{"id":"cap-16","start":30.851,"end":32.474},{"id":"cap-17","start":32.514,"end":34.674},{"id":"cap-18","start":35.036,"end":36.692},{"id":"cap-19","start":36.732,"end":38.467},{"id":"cap-20","start":38.829,"end":40.517},{"id":"cap-21","start":40.557,"end":41.53},{"id":"cap-22","start":41.57,"end":43.377},{"id":"cap-23","start":43.417,"end":45.424},{"id":"cap-24","start":45.786,"end":47.556},{"id":"cap-25","start":47.596,"end":49.143},{"id":"cap-26","start":49.505,"end":51.387},{"id":"cap-27","start":52.749,"end":54.654},{"id":"cap-28","start":54.694,"end":55.662},{"id":"cap-29","start":55.702,"end":56.454},{"id":"cap-30","start":56.494,"end":57.579},{"id":"cap-31","start":57.941,"end":58.841},{"id":"cap-32","start":58.881,"end":60.032},{"id":"cap-33","start":60.072,"end":60.784},{"id":"cap-34","start":60.824,"end":61.724},{"id":"cap-35","start":61.764,"end":63.488},{"id":"cap-36","start":63.85,"end":64.723},{"id":"cap-37","start":64.763,"end":67.297},{"id":"cap-38","start":67.659,"end":68.728},{"id":"cap-39","start":68.768,"end":70.033},{"id":"cap-40","start":70.073,"end":71.925},{"id":"cap-41","start":72.287,"end":74.22},{"id":"cap-42","start":75.582,"end":76.846},{"id":"cap-43","start":76.886,"end":77.32},{"id":"cap-44","start":77.36,"end":78.944},{"id":"cap-45","start":79.306,"end":81.081},{"id":"cap-46","start":81.121,"end":82.895},{"id":"cap-47","start":82.935,"end":84.71},{"id":"cap-48","start":84.75,"end":85.315},{"id":"cap-49","start":85.355,"end":86.793},{"id":"cap-50","start":86.833,"end":87.129},{"id":"cap-51","start":87.169,"end":89.742},{"id":"cap-52","start":90.104,"end":92.294},{"id":"cap-53","start":92.656,"end":94.652},{"id":"cap-54","start":94.692,"end":96.829},{"id":"cap-55","start":96.869,"end":98.424},{"id":"cap-56","start":99.786,"end":102.196},{"id":"cap-57","start":102.558,"end":103.403},{"id":"cap-58","start":103.443,"end":105.241},{"id":"cap-59","start":105.281,"end":106.943},{"id":"cap-60","start":106.983,"end":108.236},{"id":"cap-61","start":108.276,"end":110.471},{"id":"cap-62","start":110.833,"end":113.197},{"id":"cap-63","start":113.559,"end":115.01},{"id":"cap-64","start":115.05,"end":117.656},{"id":"cap-65","start":119.018,"end":121.012},{"id":"cap-66","start":121.052,"end":122.389},{"id":"cap-67","start":122.429,"end":124.029},{"id":"cap-68","start":124.069,"end":126.717},{"id":"cap-69","start":127.079,"end":129.153},{"id":"cap-70","start":129.515,"end":130.594},{"id":"cap-71","start":130.634,"end":131.9},{"id":"cap-72","start":131.94,"end":132.832},{"id":"cap-73","start":132.872,"end":134.709},{"id":"cap-74","start":136.071,"end":137.915},{"id":"cap-75","start":137.955,"end":139.45},{"id":"cap-76","start":139.49,"end":141.613},{"id":"cap-77","start":141.653,"end":143.427},{"id":"cap-78","start":143.467,"end":145.083},{"id":"cap-79","start":145.445,"end":146.295},{"id":"cap-80","start":146.335,"end":147.185},{"id":"cap-81","start":147.225,"end":148.35},{"id":"cap-82","start":148.39,"end":150.459},{"id":"cap-83","start":151.821,"end":152.66},{"id":"cap-84","start":152.7,"end":154.099},{"id":"cap-85","start":154.139,"end":155.238},{"id":"cap-86","start":155.6,"end":156.448},{"id":"cap-87","start":156.488,"end":157.405},{"id":"cap-88","start":157.445,"end":159.1}];
+      for (const group of groups) {
+        const node = "#" + group.id;
+        tl.fromTo(node, { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.14, ease: "power3.out" }, group.start);
+        tl.to(node, { opacity: 0, duration: 0.1, ease: "power2.in" }, group.end - 0.1);
+        /* A hard kill, so a group can never be left on screen by a seek. */
+        tl.set(node, { opacity: 0, visibility: "hidden" }, group.end);
+        tl.set(node, { visibility: "visible" }, group.start - 0.001);
+      }
+      window.__timelines["captions"] = tl;
+    })();
+  </script>
+</template>

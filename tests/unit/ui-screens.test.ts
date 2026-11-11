@@ -71,7 +71,7 @@ test('Q17 the same t always renders the same frame, and a different t renders a 
   const scene = signInScenes.find((entry) => entry.id === 'sign-in-start');
   assert.ok(scene);
   const at = (t: number) => render(SignInScreen, { ...scene.props, t });
-  // Determinism is what lets Remotion render frame by frame (AGENTS.md "UI purity" 6).
+  // Determinism is what lets the video renderer draw frame by frame (AGENTS.md "UI purity" 6).
   assert.equal(at(0.5), at(0.5));
   assert.equal(at(2.25), at(2.25));
   assert.notEqual(at(0), at(0.8));          // the typewriter has moved

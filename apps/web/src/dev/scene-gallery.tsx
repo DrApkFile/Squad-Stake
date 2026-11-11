@@ -22,7 +22,7 @@ const CHAIN = 'SYNTHETIC TESTNET UI FIXTURE · NOT MAINNET PROOF';
 /**
  * A client component, because the fixtures include screens with form controls: React Server
  * Components may not emit a DOM event handler, and `packages/ui` is deliberately free of
- * 'use client' so the Remotion renderer can import the same files.
+ * 'use client' so the HyperFrames renderer can import the same files.
  */
 function registry(): readonly { id: string; node: ReactNode }[] {
   const from = <P,>(

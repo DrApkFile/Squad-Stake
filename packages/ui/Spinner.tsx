@@ -16,7 +16,7 @@ export interface SpinnerProps {
 /**
  * A turning arc, as a pure function of `t` (AGENTS.md "UI purity" 6): the angle is computed
  * here and handed to CSS as a custom property, so there is no `@keyframes` loop, no timer, and
- * Remotion renders frame `n` of the turn without having played the ones before it.
+ * HyperFrames renders frame `n` of the turn without having played the ones before it.
  *
  * Decorative by itself — it is always `aria-hidden`, and the control that owns it carries the
  * `aria-busy` and the changed label a screen reader actually announces.

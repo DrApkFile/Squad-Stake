@@ -4,7 +4,7 @@
 
 # Squad Stake
 
-### 👉 **Live app: <https://squad-stake.vercel.app>** · **Judges: start here → [JUDGING.md](JUDGING.md)** · **Demo video: _(link to be added before submission)_**
+### 👉 **Live app: <https://squad-stake.vercel.app>** · **Judges: start here → [JUDGING.md](JUDGING.md)** · **Demo video: <https://youtu.be/iYhnj-aDvJ8>**
 
 **Save together for anything — and nobody holds the pot. Every member's share stays staked in
 their own wallet, earning, and the squad's progress is read off the Nimiq chain instead of being
@@ -93,8 +93,12 @@ Repeated from `briefing/PROOF_PLAN.md`, which is the ledger this project holds i
   **recorded real testnet envelopes**, and every refusal in them has been exercised against the
   live node — but no leaving or payment transaction has been signed by this build on any network.
 - **Not proven:** real usage. The app went live for judging, not before it.
-- **Not built:** the Remotion demo video renders from `packages/ui`, and `apps/video` is still a
-  placeholder.
+- **The demo video is a recording, not a re-render.** `apps/video` drives the real app in a
+  headless browser at 390 x 844 and composes those clips in HyperFrames, so what the video
+  shows is the running app, not components replayed from fixtures. The states a wallet is
+  needed to reach (an approval, a countdown, a paid roster) are the app's own fixture scenes,
+  from `packages/ui/scenes/demo/`, and every squad and amount in it is hand-written sample
+  data.
 - **No `direct`-pool earnings figure is possible yet:** no Nimiq validator publishes a payout
   address (0 of 21 mainnet, 0 of 13 testnet when checked on 2026-11-08), so those payouts cannot
   be told apart from any other transfer. The screen says exactly that instead of estimating.

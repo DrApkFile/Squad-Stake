@@ -1,0 +1,184 @@
+<template>
+  <style>
+    /* The hook. Five friends, one pot, one person's risk — drawn, not written: the narration
+       says it, so the picture shows it instead of repeating it in type (/hyperframes
+       explainer.md, "a narrator repeating the text on screen word for word" is a tell).
+       The only type on screen is the one fact the voice never gives: the amount. */
+    #root { position: absolute; inset: 0; overflow: hidden; }
+    #root .stage { position: absolute; inset: 0; }
+    #root .ring {
+      position: absolute; left: 50%; top: 430px;
+      width: 520px; height: 520px; margin-left: -260px;
+      border: 2px dashed rgba(11, 11, 12, 0.16);
+      border-radius: 50%;
+      opacity: 0;
+    }
+    #root .friend {
+      position: absolute; left: 50%; top: 430px;
+      width: 96px; height: 96px; margin: -48px 0 0 -48px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 2px solid rgba(11, 11, 12, 0.16);
+      box-shadow: 0 10px 30px rgba(11, 11, 12, 0.08);
+      opacity: 0;
+    }
+    #root .friend i {
+      position: absolute; inset: 20px;
+      border-radius: 50%;
+      background: rgba(11, 11, 12, 0.14);
+      display: block;
+    }
+    #root .coin {
+      position: absolute; left: 50%; top: 430px;
+      width: 34px; height: 34px; margin: -17px 0 0 -17px;
+      border-radius: 50%;
+      background: radial-gradient(120% 120% at 32% 28%, #ffd45e, var(--gold));
+      box-shadow: 0 4px 12px rgba(233, 178, 19, 0.45);
+      opacity: 0;
+    }
+    #root .pot {
+      position: absolute; left: 50%; top: 430px;
+      width: 150px; height: 150px; margin: -75px 0 0 -75px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 2px solid rgba(11, 11, 12, 0.18);
+      box-shadow: 0 18px 44px rgba(11, 11, 12, 0.1);
+      opacity: 0;
+    }
+    #root .pot-fill {
+      position: absolute; left: 11px; right: 11px; bottom: 11px;
+      height: 0;
+      border-radius: 0 0 64px 64px;
+      background: linear-gradient(180deg, #ffd45e, var(--gold));
+    }
+    #root .risk {
+      position: absolute; left: 50%; top: 430px;
+      width: 206px; height: 206px; margin: -103px 0 0 -103px;
+      border-radius: 50%;
+      border: 3px solid var(--red);
+      opacity: 0;
+    }
+    #root .mark {
+      position: absolute; left: 50%; top: 96px; margin-left: 96px;
+      width: 52px; text-align: center;
+      font-family: Mulish, sans-serif; font-weight: 700; font-size: 62px; color: var(--red);
+      opacity: 0;
+    }
+    #root .thread {
+      position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+      overflow: visible;
+    }
+    #root .thread path { stroke: rgba(11, 11, 12, 0.3); stroke-width: 2; fill: none; stroke-dasharray: 7 9; }
+    #root .chip {
+      position: absolute; left: 50%; top: 772px; margin-left: -230px;
+      width: 460px; text-align: center;
+      padding: 16px 0;
+      border-radius: 999px;
+      background: var(--paper);
+      border: 1px solid var(--hair);
+      font-family: Mulish, sans-serif; font-weight: 600; font-size: 30px; color: var(--muted);
+      opacity: 0;
+    }
+    #root .chip b { font-family: 'Fira Mono', monospace; font-weight: 500; color: var(--ink); }
+  </style>
+
+  <div id="root" data-composition-id="hook" data-width="1920" data-height="1080">
+    <div class="stage">
+      <div class="ring" id="hook-ring"></div>
+      <svg class="thread" id="hook-threads" viewBox="0 0 1920 1080" data-layout-ignore>
+        <!-- Each thread runs from a member's seat to the HOLDER, which is the top seat at
+             (960, 170) — not to the middle of the ring, where by now there is nothing. The
+             picture has to say "everyone's trust points at one person". -->
+        <path id="hook-thread-0" d="M 960 170 L 960 170" />
+        <path id="hook-thread-1" d="M 1207 350 L 960 190" />
+        <path id="hook-thread-2" d="M 1113 641 L 968 196" />
+        <path id="hook-thread-3" d="M 807 641 L 952 196" />
+        <path id="hook-thread-4" d="M 713 350 L 960 190" />
+      </svg>
+
+      <div class="friend" id="hook-friend-0"><i></i></div>
+      <div class="friend" id="hook-friend-1"><i></i></div>
+      <div class="friend" id="hook-friend-2"><i></i></div>
+      <div class="friend" id="hook-friend-3"><i></i></div>
+      <div class="friend" id="hook-friend-4"><i></i></div>
+
+      <div class="coin" id="hook-coin-1"></div>
+      <div class="coin" id="hook-coin-2"></div>
+      <div class="coin" id="hook-coin-3"></div>
+      <div class="coin" id="hook-coin-4"></div>
+
+      <div class="pot" id="hook-pot"><span class="pot-fill" id="hook-pot-fill"></span></div>
+      <div class="risk" id="hook-risk"></div>
+      <div class="mark" id="hook-mark">?</div>
+      <div class="chip" id="hook-chip">Lisbon in April · <b>1,200 NIM</b></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const scene = window.__SQUAD_BEATS.hook;
+      /* b0 "Five friends are saving for a trip." · b1 "One of them collects everyone's money."
+         b2 "Now one person carries all the risk…" */
+      const [b0, b1, b2] = scene.beats;
+      const tl = gsap.timeline({ paused: true });
+
+      /* Five seats on a circle of radius 260, the top seat first: that one becomes the pot. */
+      const RADIUS = 260;
+      const seat = (index) => {
+        const angle = (-90 + index * 72) * Math.PI / 180;
+        return { x: Math.cos(angle) * RADIUS, y: Math.sin(angle) * RADIUS };
+      };
+
+      tl.fromTo("#hook-ring", { opacity: 0, scale: 0.88 },
+        { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, b0 - 0.25);
+
+      for (let index = 0; index < 5; index += 1) {
+        const { x, y } = seat(index);
+        tl.fromTo("#hook-friend-" + index,
+          { opacity: 0, scale: 0.4, x, y },
+          { opacity: 1, scale: 1, x, y, duration: 0.5, ease: "back.out(1.6)" },
+          b0 - 0.1 + index * 0.09);
+      }
+
+      /* The top seat becomes the holder: it grows into the pot and the coins arrive. */
+      tl.fromTo("#hook-pot", { opacity: 0, scale: 0.5, x: 0, y: seat(0).y },
+        { opacity: 1, scale: 1, x: 0, y: seat(0).y, duration: 0.45, ease: "power3.out" }, b1 - 0.15);
+      tl.to("#hook-friend-0", { opacity: 0, duration: 0.25, ease: "power2.in" }, b1 - 0.1);
+
+      for (let index = 1; index < 5; index += 1) {
+        const from = seat(index);
+        const to = seat(0);
+        const at = b1 + 0.25 + (index - 1) * 0.26;
+        tl.fromTo("#hook-coin-" + index,
+          { opacity: 0, x: from.x, y: from.y, scale: 0.6 },
+          { opacity: 1, scale: 1, duration: 0.14, ease: "power2.out" }, at);
+        tl.to("#hook-coin-" + index,
+          { x: to.x, y: to.y + 6, duration: 0.6, ease: "power2.inOut" }, at + 0.1);
+        tl.to("#hook-coin-" + index, { opacity: 0, scale: 0.7, duration: 0.14 }, at + 0.66);
+        tl.to("#hook-pot-fill", { height: 26 * index, duration: 0.3, ease: "power2.out" }, at + 0.68);
+      }
+
+      /* The risk lands on one wallet, and every thread of trust runs to it. */
+      tl.fromTo("#hook-risk", { opacity: 0, scale: 0.72, x: 0, y: seat(0).y },
+        { opacity: 0.9, scale: 1, x: 0, y: seat(0).y, duration: 0.5, ease: "power4.out" }, b2 - 0.1);
+      tl.fromTo("#hook-mark", { opacity: 0, y: 18, scale: 0.8 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "back.out(1.8)" }, b2 + 0.15);
+      for (let index = 1; index < 5; index += 1) {
+        const path = document.querySelector("#hook-thread-" + index);
+        const length = path && path.getTotalLength ? path.getTotalLength() || 320 : 320;
+        tl.fromTo(path,
+          { strokeDasharray: "7 9", strokeDashoffset: length, opacity: 0 },
+          { strokeDashoffset: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
+          b2 + 0.35 + (index - 1) * 0.1);
+      }
+      tl.fromTo("#hook-chip", { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, b2 + 0.8);
+
+      /* Leave clean: the whole stage lifts away into the problem, 40% faster than it arrived. */
+      const out = scene.duration - 0.42;
+      tl.to(".stage", { opacity: 0, scale: 0.97, duration: 0.34, ease: "power3.in" }, out);
+
+      window.__timelines["hook"] = tl;
+    })();
+  </script>
+</template>

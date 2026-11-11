@@ -1,6 +1,7 @@
 # Squad Stake — Architecture
 
-Written 2026-10-22 (v2: Next.js + shared UI package + Remotion video). Hosting: Vercel. DB: Postgres (Neon).
+Written 2026-10-22 (v2: Next.js + shared UI package + a video project). Hosting: Vercel. DB: Postgres (Neon).
+Video renderer changed from Remotion to HyperFrames on 2026-11-11 (`docs/DECISIONS.md`).
 
 ## Repository layout (pnpm workspace)
 ```
@@ -13,7 +14,7 @@ apps/web/             Next.js App Router (Vercel)
   src/server/core/    pure server logic: commitment invariant, member status, release math, payment checks, tx tracker
   src/server/lib/     rpc (nimiqwatch), db, env, cache (server-only)
   app/scenes/         dev-only gallery of every fixture scene at 390x844
-apps/video/           Remotion: phone frame + scripted timeline rendering packages/ui scenes
+apps/video/           HyperFrames: phone frame + GSAP timeline over captured app clips + ui scenes
 evidence/             generated proof files (mainnet run); source for demo fixtures
 ```
 
@@ -23,7 +24,7 @@ Nimiq Pay WebView ── apps/web (Next.js client components) ── packages/ui
         │ HTTPS JSON (session cookie)                          ▲
 apps/web route handlers (Node) ── Postgres                     │ same components
         │                                                      │
-Nimiq JSON-RPC (nimiqwatch)                     apps/video (Remotion, fixtures from evidence/)
+Nimiq JSON-RPC (nimiqwatch)                     apps/video (HyperFrames: captured app + fixtures)
         │                         │
    Postgres (Neon)        Nimiq JSON-RPC: rpc.nimiqwatch.com / rpc.testnet.nimiqwatch.com
 ```

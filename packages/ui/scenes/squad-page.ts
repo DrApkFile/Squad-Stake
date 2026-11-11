@@ -227,8 +227,18 @@ export const squadPageScenes: readonly { id: string; props: SquadScreenProps }[]
     },
   },
   {
+    // This scene runs on its own clock, two days before the leave-by deadline, so its read age
+    // is re-anchored to that clock too. Left on the base fixture's `readAt` it said "Checked
+    // 923 h 45 min ago" — the same class of fixture bug as the countdown one
+    // (docs/PROGRESS.md 2026-11-08), found by looking at a rendered video frame.
     id: 'squad-page-leave-by',
-    props: { ...squadBase, now: demoLeaveBy - 2 * 86_400_000, t: 4 },
+    props: {
+      ...squadBase,
+      members: demoRoster.map((member) => ({ ...member, readAt: LEAVE_BY_NOW - 24_000 })),
+      now: LEAVE_BY_NOW,
+      readAt: LEAVE_BY_NOW - 24_000,
+      t: 4,
+    },
   },
   {
     id: 'squad-page-chain-unavailable',

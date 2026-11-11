@@ -13,7 +13,7 @@ one thing a group savings jar normally cannot: prove the money is there without 
 | NIM | **at least 100 NIM** — the protocol's minimum stake — plus a few luna for fees (creating a staker costs 0.003 NIM) |
 | The app | <https://squad-stake.vercel.app> |
 | Where it goes | **Your NIM never leaves your wallet.** It is staked from your own address to a validator of your own, it earns while it sits there, and you get it back by leaving (step 3 below). Squad Stake has no custody code and cannot move it — only your approval in Nimiq Pay can. |
-| Video | _(link to be added before submission)_ |
+| Video | <https://youtu.be/iYhnj-aDvJ8> (2:45) |
 
 ---
 

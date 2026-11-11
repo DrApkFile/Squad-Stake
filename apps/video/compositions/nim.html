@@ -1,0 +1,231 @@
+<template>
+  <style>
+    /* Why this needs Nimiq, as three mechanisms rather than three adjectives: a signature that
+       is the identity, a stake that keeps earning where it sits, and a settlement cheap enough
+       that a group can do it per member. Then the one line about breadth — use cases, never
+       usage figures (AGENTS.md "Never fabricate"). */
+    #root { position: absolute; inset: 0; overflow: hidden; }
+    #root .stage { position: absolute; inset: 0; }
+
+    #root .cards { position: absolute; left: 0; top: 0; width: 1920px; }
+    #root .card {
+      position: absolute; top: 286px;
+      width: 440px; height: 548px;
+      border-radius: 36px;
+      background: var(--paper);
+      border: 1px solid var(--hair);
+      box-shadow: 0 26px 60px rgba(11, 11, 12, 0.07);
+      opacity: 0;
+    }
+    #root .card h3 {
+      position: absolute; left: 0; right: 0; top: 318px;
+      text-align: center;
+      font-family: Mulish, sans-serif; font-weight: 700; font-size: 40px;
+      letter-spacing: -0.02em; color: var(--ink);
+    }
+    #root .card p {
+      position: absolute; left: 36px; right: 36px; top: 384px;
+      text-align: center;
+      /* 30px, not 27: the renderer's reading floor is 28px (2.6% of the short side), and
+         these are sentences a judge is meant to read, not texture. */
+      font-family: Mulish, sans-serif; font-weight: 400; font-size: 30px;
+      line-height: 1.32; color: var(--muted);
+    }
+    #root .art {
+      position: absolute; left: 0; right: 0; top: 56px; height: 220px;
+    }
+    #root .art svg { display: block; margin: 0 auto; overflow: visible; }
+
+    /* 1 — the signature */
+    #root .tick {
+      position: absolute; left: 50%; top: 124px; margin-left: -34px;
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      background: var(--green);
+      opacity: 0;
+    }
+    #root .tick::after {
+      content: "";
+      position: absolute; left: 23px; top: 17px;
+      width: 18px; height: 31px;
+      border: solid #ffffff; border-width: 0 5px 5px 0;
+      transform: rotate(45deg);
+    }
+
+    /* 2 — the stake */
+    #root .coin {
+      position: absolute; left: 50%; top: 70px; margin-left: -56px;
+      width: 112px; height: 112px;
+      border-radius: 50%;
+      background: radial-gradient(120% 120% at 32% 28%, #ffd45e, var(--gold));
+      box-shadow: 0 0 0 0 rgba(233, 178, 19, 0.5);
+    }
+    /* `.art svg { margin: 0 auto }` is more specific than a class on the same element, so
+       a margin-left here was ignored and the ring drew beside the coin instead of round it.
+       Position it with `left` instead of a margin. */
+    #root .art svg.arc { position: absolute; left: calc(50% - 84px); top: 42px; margin: 0; }
+
+    /* 3 — settlement */
+    #root .blocks { position: absolute; left: 50%; top: 104px; margin-left: -168px; }
+    #root .block {
+      position: absolute; top: 0;
+      width: 72px; height: 72px;
+      border-radius: 16px;
+      background: var(--paper);
+      border: 3px solid rgba(11, 11, 12, 0.16);
+      opacity: 0;
+    }
+    #root .block i {
+      position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+      border-radius: 5px; background: rgba(11, 11, 12, 0.14);
+    }
+    #root .fee {
+      position: absolute; left: 50%; top: 198px; margin-left: -116px;
+      width: 232px; text-align: center;
+      padding: 11px 0; border-radius: 999px;
+      background: var(--ground-deep);
+      font-family: 'Fira Mono', monospace; font-weight: 500; font-size: 29px; color: var(--ink);
+      opacity: 0;
+    }
+
+    /* The breadth line. */
+    #root .uses { position: absolute; inset: 0; opacity: 0; }
+    #root .chip {
+      position: absolute; top: 430px;
+      padding: 22px 42px;
+      border-radius: 999px;
+      background: var(--paper);
+      border: 1px solid var(--hair);
+      box-shadow: 0 14px 34px rgba(11, 11, 12, 0.06);
+      font-family: Mulish, sans-serif; font-weight: 600; font-size: 38px;
+      letter-spacing: -0.012em; color: var(--ink);
+      opacity: 0;
+      white-space: nowrap;
+    }
+    #root .anything {
+      position: absolute; left: 50%; top: 592px; margin-left: -680px;
+      width: 1360px; text-align: center;
+      font-family: Mulish, sans-serif; font-weight: 700; font-size: 62px;
+      letter-spacing: -0.026em; color: var(--muted);
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="nim" data-width="1920" data-height="1080">
+    <div class="stage" id="nim-stage">
+      <div class="cards" id="nim-cards">
+        <div class="card" id="nim-card-0" style="left: 158px">
+          <div class="art" data-layout-ignore>
+            <svg width="300" height="200" viewBox="0 0 300 200">
+              <path id="nim-sign" d="M 34 142 C 74 42, 104 44, 116 104 C 126 154, 148 160, 166 110
+                C 184 60, 214 58, 232 108 C 244 142, 258 142, 272 118"
+                fill="none" stroke="#0b0b0c" stroke-width="7" stroke-linecap="round" />
+            </svg>
+            <span class="tick" id="nim-tick"></span>
+          </div>
+          <h3>Identity by signature</h3>
+          <p>One signed message. No account, no password, no custody of anything.</p>
+        </div>
+
+        <div class="card" id="nim-card-1" style="left: 740px">
+          <div class="art" data-layout-ignore>
+            <svg class="arc" width="168" height="168" viewBox="0 0 168 168">
+              <circle id="nim-arc" cx="84" cy="84" r="78" fill="none"
+                stroke="#e9b213" stroke-width="8" stroke-linecap="round"
+                transform="rotate(-90 84 84)" />
+            </svg>
+            <span class="coin" id="nim-coin"></span>
+          </div>
+          <h3>Native staking</h3>
+          <p>The share stays in its own wallet and earns while the squad saves.</p>
+        </div>
+
+        <div class="card" id="nim-card-2" style="left: 1322px">
+          <div class="art" data-layout-ignore>
+            <div class="blocks">
+              <div class="block" id="nim-block-0" style="left: 0"><i></i></div>
+              <div class="block" id="nim-block-1" style="left: 92px"><i></i></div>
+              <div class="block" id="nim-block-2" style="left: 184px"><i></i></div>
+              <div class="block" id="nim-block-3" style="left: 276px"><i></i></div>
+            </div>
+            <span class="fee" id="nim-fee">fee 0.003 NIM</span>
+          </div>
+          <h3>Settles in seconds</h3>
+          <p>Every step is one on-chain transaction, for a fraction of a cent.</p>
+        </div>
+      </div>
+
+      <div class="uses" id="nim-uses">
+        <div class="chip" id="nim-chip-0" style="left: 212px">Trips</div>
+        <div class="chip" id="nim-chip-1" style="left: 452px">Gifts</div>
+        <div class="chip" id="nim-chip-2" style="left: 682px">Rent buffers</div>
+        <div class="chip" id="nim-chip-3" style="left: 1030px">Group purchases</div>
+        <div class="chip" id="nim-chip-4" style="left: 1464px">Events</div>
+        <div class="anything" id="nim-anything" data-layout-allow-overflow>
+          anything a group saves for together
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const scene = window.__SQUAD_BEATS.nim;
+      /* b0 "Nimiq does the heavy lifting: identity by signature, native staking that actually
+         earns, and transactions that settle in seconds — for a fraction of a cent."
+         b1 "Trips, gifts, rent buffers, group purchases — anything a group saves for together." */
+      const [b0, b1] = scene.beats;
+      const tl = gsap.timeline({ paused: true });
+
+      /* The three cards arrive on the three clauses of one sentence, not all at once. */
+      const at = [b0 + 0.6, b0 + 2.9, b0 + 4.7];
+      for (let index = 0; index < 3; index += 1) {
+        tl.fromTo("#nim-card-" + index, { opacity: 0, y: 46, scale: 0.95 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" }, at[index] - 0.3);
+      }
+
+      /* 1 — the signature is written, then accepted. */
+      const sign = document.querySelector("#nim-sign");
+      const signLength = sign && sign.getTotalLength ? sign.getTotalLength() || 520 : 520;
+      tl.fromTo(sign, { strokeDasharray: signLength, strokeDashoffset: signLength },
+        { strokeDashoffset: 0, duration: 0.95, ease: "power1.inOut" }, at[0]);
+      tl.to(sign, { opacity: 0, duration: 0.24, ease: "power2.in" }, at[0] + 1.15);
+      tl.fromTo("#nim-tick", { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 0.36, ease: "back.out(1.9)" }, at[0] + 1.3);
+
+      /* 2 — the arc closes around the coin once: a stake earning, not a spinner. */
+      const arcLength = 2 * Math.PI * 78;
+      tl.fromTo("#nim-arc",
+        { strokeDasharray: arcLength, strokeDashoffset: arcLength },
+        { strokeDashoffset: arcLength * 0.12, duration: 1.5, ease: "power2.out" }, at[1]);
+      tl.to("#nim-coin",
+        { boxShadow: "0 0 0 16px rgba(233, 178, 19, 0.2)", duration: 0.7, ease: "power2.out" },
+        at[1] + 0.5);
+
+      /* 3 — blocks land, then the real fee this app pays per staking step. */
+      for (let index = 0; index < 4; index += 1) {
+        tl.fromTo("#nim-block-" + index, { opacity: 0, scale: 0.6, y: -14 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.26, ease: "back.out(1.7)" },
+          at[2] + index * 0.17);
+      }
+      tl.fromTo("#nim-fee", { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.34, ease: "power3.out" }, at[2] + 0.86);
+
+      /* The breadth line: the app's own quick starts, as chips, then the claim they make. */
+      tl.to("#nim-cards", { opacity: 0, y: -40, duration: 0.42, ease: "power3.in" }, b1 - 0.45);
+      tl.set("#nim-uses", { opacity: 1 }, b1 - 0.3);
+      for (let index = 0; index < 5; index += 1) {
+        tl.fromTo("#nim-chip-" + index, { opacity: 0, y: 30, scale: 0.92 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "back.out(1.5)" },
+          b1 - 0.2 + index * 0.26);
+      }
+      tl.fromTo("#nim-anything", { opacity: 0, filter: "blur(10px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.46, ease: "power3.out" }, b1 + 2.5);
+
+      const out = scene.duration - 0.45;
+      tl.to("#nim-stage", { opacity: 0, y: -34, duration: 0.38, ease: "power3.in" }, out);
+
+      window.__timelines["nim"] = tl;
+    })();
+  </script>
+</template>

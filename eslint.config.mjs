@@ -4,7 +4,11 @@ import nextPlugin from '@next/eslint-plugin-next';
 import { uiPurity } from './scripts/ui-purity.mjs';
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**', 'spikes/**', '**/next-env.d.ts', '.cache/**'] },
+  // apps/video/.venv is Kokoro's Python environment; pip vendors JavaScript inside it and
+  // none of it is ours. The rest is generated media and render scratch.
+  { ignores: ['**/node_modules/**', '**/.next/**', '**/dist/**', 'spikes/**', '**/next-env.d.ts', '.cache/**',
+    'apps/video/.venv/**', 'apps/video/.hyperframes/**', 'apps/video/.render-tmp/**',
+    'apps/video/out/**', 'apps/video/capture/**', 'apps/video/assets/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

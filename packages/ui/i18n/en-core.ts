@@ -10,7 +10,7 @@ export const enCore = {
   /**
    * Formatting words and separators, per language and **without `Intl`**: a number formatted
    * by ICU differs between Node builds and browsers, and `packages/ui` has to render the same
-   * glyphs in the app and in the Remotion video (AGENTS.md "UI purity" 3).
+   * glyphs in the app and in the HyperFrames video (AGENTS.md "UI purity" 3).
    */
   fmt: {
     /** Thousands separator and decimal mark (CLDR: en uses "1,234.5"). */

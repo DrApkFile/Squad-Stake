@@ -1,4 +1,17 @@
 {
   "name": "@squad-stake/video",
-  "private": true
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node scripts/record.mjs",
+    "capture": "node scripts/capture-app.mjs",
+    "narrate": "node scripts/narrate.mjs",
+    "assets": "node scripts/prepare-assets.mjs",
+    "audio": "node scripts/build-audio.mjs",
+    "compose": "node scripts/compose.mjs",
+    "dev": "npx --yes hyperframes@0.9.31 preview",
+    "check": "npx --yes hyperframes@0.9.31 check",
+    "render": "node scripts/render.mjs",
+    "all": "node scripts/record.mjs && node scripts/narrate.mjs && node scripts/build-audio.mjs && node scripts/compose.mjs && node scripts/render.mjs"
+  }
 }

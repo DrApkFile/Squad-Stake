@@ -10,3 +10,22 @@ coverage/
 .npm-cache/
 .pnpm-store/
 .pnpm-cache/
+
+# apps/video: generated media. The video is rebuilt by `pnpm video:render`, which records the
+# running app, speaks the script with Kokoro and renders — so none of this belongs in git.
+# The poster frame is the one exception, because the README and the submission link to it.
+apps/video/.venv/
+# The HyperFrames CLI's own project state and render artefacts.
+apps/video/.hyperframes/
+apps/video/.narration/
+apps/video/capture/
+apps/video/assets/clips/
+apps/video/assets/stills/
+apps/video/assets/vo/
+apps/video/assets/music/
+apps/video/assets/audio/
+apps/video/assets/master.mp4
+apps/video/.render-tmp/
+apps/video/renders/
+apps/video/out/
+!apps/video/out/poster.jpg

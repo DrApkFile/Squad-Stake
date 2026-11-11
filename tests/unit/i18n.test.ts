@@ -67,7 +67,7 @@ test('§10 the language follows Nimiq Pay, then the browser, and falls back to E
 });
 
 test('§10 numbers, dates and percentages are formatted by the catalogue, not by Intl', () => {
-  // One set of separators per language, so the app and the Remotion render agree glyph for
+  // One set of separators per language, so the app and the HyperFrames render agree glyph for
   // glyph whatever ICU data the machine has (AGENTS.md "UI purity" 3).
   assert.equal(formatLuna(1_234_567_800_000, 'en'), '12,345,678 NIM');
   assert.equal(formatLuna(1_234_567_800_000, 'de'), '12.345.678 NIM');

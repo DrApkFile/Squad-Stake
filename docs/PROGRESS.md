@@ -1963,3 +1963,156 @@ a judge following a squad link was dropped on the welcome screen with no explana
 - The phone pass: the three leaving steps, a Mode A payment, both share sheets, the retry
   after a real failure, and `getHostLanguage()` / `getHostFiat()` returning real values.
 - Still open: Neon through the pooler, the mock chain provider (`?chain=mock`), Remotion.
+
+## The demo video: HyperFrames + Kokoro, built from a recording of the running app — 2026-11-11 (Slice H)
+
+Asked for after Slice G: build the demo video in `apps/video` with **HyperFrames** (HTML + GSAP,
+seeked frame by frame) and **Kokoro** narration, replacing the Remotion plan, with the app
+screens recorded as a screen capture of the **real app** rather than re-rendered from fixtures.
+
+**No protected file was touched.** `git status` over `member-status.ts`, `release.ts`,
+`commitments.ts`, `tx-tracker.ts`, `payment-check.ts`, `rpc-schemas.ts`, `rpc.ts`,
+`staking-actions.ts`, `app/api/auth/verify/route.ts` and `src/wallet/` is empty. Nothing in
+`apps/web` or `packages/ui` changed for the video: the capture drives the app exactly as it is.
+
+### The renderer changed, and so did the reason for the shared UI
+`docs/DECISIONS.md` 2026-11-11 records it. Remotion was chosen on 2026-10-22 so the video could
+"show the UI 100% identical without screen recording". A recording of the real app is strictly
+better evidence than a re-render of its components — it proves the app runs — so the capture is
+the default and fixtures cover only what a wallet approval is needed to reach. The purity rules
+that made the re-render possible are what make the capture deterministic, so `packages/ui` is
+unchanged. `AGENTS.md`, `README.md`, `docs/PRD.md`, `docs/ARCHITECTURE.md` and
+`apps/video/README.md` were updated; the dated Remotion lines in this file and in
+`docs/DECISIONS.md` are history and were left as written.
+
+### The pipeline — `pnpm video:render`
+Six stages, each runnable alone (`apps/video/README.md` has the table). Every script is
+dependency-free Node: the only new third-party things are HyperFrames and Kokoro, both run
+through `npx`/a local venv rather than installed into the workspace, so `pnpm deps:check` still
+sees the same 19 exact pins.
+
+1. **`record.mjs`** — empties the local database, then drives the app through the Chrome
+   DevTools Protocol (`scripts/cdp.mjs`, zero npm dependencies) at **390 × 844**: seven flows
+   captured as screencast clips, 23 fixture scenes as **3× stills**, and a **tap log** of every
+   finger position and timestamp in the phone's own CSS pixels. `seed-squad.mjs` then seats two
+   addresses that really are stakers on Nimiq testnet, so the squad page and the proof page
+   derive their statuses from live chain reads.
+2. **`narrate.mjs`** — Kokoro-82M locally (`af_heart`, speed 0.88), **one WAV per sentence**,
+   silence trimmed off both ends, then a solved layout (below). `--relayout` re-times from the
+   WAVs already on disk without asking Kokoro for a word.
+3. **`prepare-assets.mjs`** — clips, stills and `assets/manifest.json` (clips, stills, taps).
+4. **`build-audio.mjs`** — the voice laid at its exact start, and the music **ducked 18 dB**
+   under it from the narration table rather than by a compressor guessing from level.
+5. **`compose.mjs`** — writes `index.html`, `compositions/captions.html`,
+   `compositions/screens.html` and `compositions/vertical.html` from the measured narration and
+   the tap log. The five motion-graphic scenes are hand-written.
+6. **`render.mjs`** — the master, the vertical cut, the poster and a still every five seconds.
+
+### The layout solver, because "no pauses" is a constraint, not a preference
+The operator asked for no pauses — "JUST A TINY LITTLE BREATHE … not a long pause of even
+3 secs maybe 2 is fine" — and the film is a fixed 2:45 whatever length the voice comes out.
+`narrate.mjs` therefore solves three unknowns against one equation: the breath between
+sentences (0.2–0.7 s), the beat between sections (0.35–1.8 s) and the end card's hold (4–9 s),
+spending slack on breathing first and on the card last. The first run at speed 1.0 left a
+**25 s** static end card; at 0.88 with a fixed 0.2 s breath it still left **14 s**. Solved, the
+same 33 WAVs give **breath 0.58 s × 24, section beat 1.58 s × 8, end card 6.00 s**, with the
+last word at 159.0 s of 165. Re-solving needed no re-speaking (`--relayout`).
+
+### What the capture found, by running the app rather than reading it
+- **The commit sheet said "Pool details unavailable".** The Validators API read had hit the
+  deliberate five-second abort on a cold connection, so §7.7 fell back to the chain-only rule —
+  correct behaviour, and the wrong frame for a video whose narration names the pool. Warmed
+  with one `curl` (1.6 s, well inside the abort) and re-captured: the card now reads
+  **"Not-A-Pool · 11% fee"**, the validator address, "Rewards are added to your stake
+  automatically" and "Picked to spread Squad Stake members across pools".
+- **The commitment field typed `300300`.** The driver's "clear the field" step assigned
+  `el.value = ''` directly. React tracks an input's value with its own setter and *skips* the
+  change event when the DOM value is assigned that way, so React's state stayed at the
+  pre-filled suggestion (PRD M-4, added in Slice F) and the keystrokes appended to it. The
+  clear now goes through the prototype's native setter and **asserts the field is empty**
+  before typing, so this fails loudly instead of being discovered in a frame.
+- Both are faults in the recording tooling, not in the app; no `apps/web` file changed.
+
+### The film
+Six scenes, each mounted over the narration sections it covers, with no gap between them:
+
+| | scene | covers |
+|---|---|---|
+| 0:00–0:13 | `hook.html` | five friends, one pot, one person's risk — drawn, not written |
+| 0:13–0:31 | `problem.html` | the same pot, losing the check, then the yield, then itself |
+| 0:31–0:53 | `intro.html` | the broken ring mended into the mark; three wallets each keeping a coin; a struck-through database → four chain blocks |
+| 0:53–2:16 | `screens.html` | **one phone, held for eighty-three seconds**, with the real app playing inside it |
+| 2:16–2:32 | `nim.html` | signature / native staking / settlement, then the breadth line |
+| 2:32–2:45 | `close.html` | three claims, the lockup, the URL |
+
+`screens.html` is **generated** — by `scripts/screens.mjs`, the cut list — because every time in
+it is derived: 33 cuts anchored to the sentence they belong to (not to a clock), 10 finger-tap
+indicators placed from the capture's log in the phone's own 390 × 844 space, and camera
+push-ins on the thing being named. The generator **refuses to write a film that does not fit
+its footage**: it checks every cut against the real length of the clip, every approval card
+against HyperFrames' own reading floor (0.5 s + 0.3 s a word), and fails with the arithmetic
+rather than rendering a black frame. It caught three real faults — a cut 1.5 s longer than the
+footage left, a cut whose window rewound behind the previous one and so drew the same tap ring
+twice, and two cuts that had drifted past the beat they were written for.
+
+**Nimiq Pay's approval sheet is never recreated** (AGENTS.md "UI purity" 8). Each of the three
+approval moments is a neutral card of ours over a dimmed screen: "Signed in", "Approved in
+Nimiq Pay", "Approved in Nimiq Pay".
+
+All motion is a tween on a wrapper, on one paused GSAP timeline per scene, seeded only from
+`window.__SQUAD_BEATS` and `window.__SQUAD_TAPS` — constants in the document. There is no
+`Date.now()`, no `Math.random()`, no timer and no fetch anywhere in the compositions, so every
+frame is a pure function of timeline time, exactly as `packages/ui` already required.
+
+### Music, and a licence this repository does not have
+The bed is ducked **18 dB** under the voice, with a 0.25 s fall before each speaking block and a
+0.5 s recovery after it, drawn as a trapezoid envelope from the narration table rather than by a
+compressor reacting to level. Measured on the finished track: the music means **−22.9 dB** on the
+end card with no voice and **−40 to −44 dB** while the voice is speaking (voice mean −22.7 dB),
+so the duck lands at 17–21 dB as asked. Both tracks are exactly 165.000 s.
+
+**`assets/music.mp3` has no licence, no attribution file and no ID3 tags in this repository**,
+and it is not tracked in git, so its provenance cannot be established from the repo. The
+operator said they would supply the source; until they do, `THIRD_PARTY_NOTICES.md` says plainly
+that the music's licence is unknown to this project and that this line must be replaced before
+the video is published. That is the one deliverable blocked on something outside the repository.
+
+### The camera had to stop being a crop, and frames are what said so
+The first camera scaled the screen's **own contents** — a crop-zoom — so a push-in read as
+moving closer to the glass rather than as the phone growing. Snapshots at the tap instants
+showed what that costs on this app: at 1.4 the create form read "**tal** target (NIM)",
+"**ecipient** address", "**oal** date". Lowering the cap to 1.22 did not fix it, and the
+arithmetic says it never could: the screens run edge to edge inside a 16 px gutter, so the
+content occupies 358 of 390 px and a centred crop-zoom of `s` shows only `390 / s`. Nothing
+above **1.09** can show a whole row, and 1.09 is not a camera move.
+
+So the camera now dollies the **phone**: a wrapper around the body scales from a rest of 0.96
+to at most 1.3, the 1080 px frame crops the bezel top and bottom, and the screen itself is
+never cut. The body stands on a baseline just above the caption band and stays there — a first
+attempt that also panned to the named row left 180 px of empty page under the phone at 112 s,
+so the pan is clamped to the 176 px of slack a 904 px phone has in a 1080 px frame. What
+actually puts the right rows on screen is the capture, which is already scrolled to them.
+The crop is now **declared** (`data-layout-allow-overflow`), so `hyperframes check` reads it as
+a camera move instead of a panel that escaped its canvas.
+
+Two more faults came out of the same frames, neither of them in the camera:
+
+- **A fixture said the chain had not been read for 38 days.** `squad-page-leave-by` runs on its
+  own clock (two days before the leave-by deadline) but kept the base fixture's `readAt`, so the
+  squad page read "Checked **923 h 45 min** ago". Re-anchored to the scene's own clock; it now
+  reads "Checked 24 s ago". This is the third instance of this class in this repo
+  (2026-11-08 and 2026-11-09 found the other two), and the third found by looking at a picture
+  rather than at the code.
+- **Two different pools, back to back.** The commit sequence held the real card from the
+  capture — "Not-A-Pool · 11% fee", from the live Validators API — and then cut to the
+  `pool-restake` fixture, "Sample Restake Pool · 5% fee". Both were honest and both were
+  labelled, but together they read as a continuity error. The commit sheet is motionless from
+  3 s on, so that window is now a held frame of the **running app** and the fixture is out of
+  the film.
+
+`hyperframes check`: **0 content errors**, 0 motion errors, 0 audio errors, 16/16 text checks
+pass WCAG AA. The 19 warnings are the advisory `nested_media_start_basis_ambiguous` on each
+nested clip (the values *are* composition-local) plus one `timeline_track_too_dense`; both are
+deliberate and left. The first run also reported two **runtime** errors — "Browser process did
+not exit after forced shutdown" — which are the checker's own teardown on a machine with
+1.4 GB free, not a fault in the composition.

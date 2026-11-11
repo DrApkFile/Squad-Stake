@@ -22,7 +22,9 @@
     "db:reset-data": "pnpm --filter @squad-stake/web db:reset-data",
     "gate": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:adversarial && pnpm build && pnpm test:production && pnpm secrets && pnpm deps:check && pnpm check:tracked",
     "check:scenes": "node scripts/measure-scenes.mjs",
-    "brand:export": "node --import tsx scripts/export-brand.mjs"
+    "brand:export": "node --import tsx scripts/export-brand.mjs",
+    "video:render": "pnpm --filter @squad-stake/video all",
+    "video:check": "pnpm --filter @squad-stake/video check"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.5.27",

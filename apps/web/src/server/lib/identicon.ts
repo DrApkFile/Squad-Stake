@@ -10,7 +10,7 @@ import 'server-only';
  * compiled in and nothing is fetched.
  *
  * The SVG is derived from the address with no randomness, so the same address always produces
- * the same markup — which is what lets the Remotion video and the app render identical glyphs.
+ * the same markup — which is what lets the HyperFrames video and the app render identical glyphs.
  * Each identicon's internal clip-path id is derived from the same hash; two of them can collide
  * on one page, which is harmless because the clip shape is the same hexagon in every identicon.
  */

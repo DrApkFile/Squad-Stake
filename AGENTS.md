@@ -17,7 +17,9 @@ pnpm workspace, exact pins, every dependency version at least 14 days old:
 - `apps/web` — **Next.js (App Router) + React + TypeScript strict**, deployed on Vercel. API =
   Next route handlers under `apps/web/app/api/**` with `export const runtime = 'nodejs'`.
 - `packages/ui` — **every screen and component, pure display only** (see "UI purity").
-- `apps/video` — **Remotion** project for the demo video; renders `packages/ui` components.
+- `apps/video` — **HyperFrames** project (HTML + GSAP, rendered frame by frame) for the demo
+  video: motion-graphic scenes plus Playwright/CDP screen capture of the real app, Kokoro
+  narration. See `docs/DECISIONS.md` 2026-11-11.
 - `@nimiq/mini-app-sdk` 0.2.4 (client only) · `@nimiq/core` 2.22.0 (server only) ·
   Postgres (Neon) · Zod.
 
@@ -69,8 +71,8 @@ is normal. `init()` plain Error = not in Nimiq Pay. Every user-visible error is 
    how-to walkthrough, so sample squads and amounts are written by hand and labelled as samples.
    Never show invented usage statistics or traction numbers as if real.
 6. Animations are driven by a `progress` (0–1), `now`, or **`t` (seconds since the scene
-   started)** prop, never by timers inside components, so Remotion can render each frame
-   deterministically. `t` is the convention for the moving components (orbit, typewriter,
+   started)** prop, never by timers inside components, so the video renderer can render each
+   frame deterministically (HyperFrames seeks one paused timeline). `t` is the convention for the moving components (orbit, typewriter,
    count-up, ticker, gradient border); `apps/web/src/hooks/use-scene-time.ts` supplies it in
    the app, the video passes `frame / fps`, and `REDUCED_MOTION_T` is the frozen instant.
 7. Canonical viewport: **390 × 844**. Every scene must look right there in light and dark.

@@ -57,6 +57,32 @@ it was generated from so the derivation stays checkable.
 Recorded responses from all three live in `tests/fixtures/`, unmodified, with the date each was
 recorded (`tests/fixtures/rpc/README.md`, `tests/fixtures/http/README.md`).
 
+## The demo video (`apps/video`)
+
+Built on 2026-11-11; nothing here ships inside the app, and none of it is a runtime dependency.
+
+- **HyperFrames** (`hyperframes@0.9.31`, run through `npx`, not installed into the workspace) —
+  renders the composition HTML frame by frame. Its own notices travel with the package.
+- **GSAP 3.15.0** — loaded from `cdn.jsdelivr.net` by the composition only, inside the renderer.
+  GSAP's standard "no charge" license covers this use; it is never served to a visitor of the
+  app.
+- **Kokoro-82M** (Apache-2.0), via `kokoro-onnx 0.4.7` (MIT) and `onnxruntime 1.31.1` (MIT) in
+  `apps/video/.venv` — the narration voice. It runs **locally**: no script text and no audio
+  leaves this machine. The voice used is `af_heart`.
+- **Mulish** (OFL-1.1) and **Fira Mono** (OFL-1.1) — the same self-hosted files the app uses, so
+  the video and the app draw identical glyphs. Full licences in `packages/ui/fonts/README.md`.
+
+### The music bed — licence not found in this repository
+
+`assets/music.mp3` (3,361,227 bytes, added to the working tree on 2026-10-09) is the track the
+video ducks under the narration. **This repository contains no licence file, no attribution file
+and no ID3 tags for it**, and it is not tracked in git, so its provenance cannot be established
+from the repository. It was supplied by the operator, who has said they will give the source.
+
+Until that source is recorded here, the honest statement is: **the music's licence is unknown to
+this project.** If the video is published, this line is what has to be replaced with the real
+licence and attribution first; there is nothing in the repo that would let anyone else verify it.
+
 ## Not third-party
 
 The logo, the app icon and every screen in `packages/ui` are original to this project. The logo

@@ -36,7 +36,7 @@ fifth is the Nimiq integration, which is 25 of the 100 points.
 | Live URL | `https://squad-stake.vercel.app` |
 | Nimiq Pay deeplink | `https://nimpay.app/miniapps/open/squad-stake.vercel.app` |
 | Repository (public, MIT) | `https://github.com/DrApkFile/Squad-Stake` |
-| Demo video | ☐ **to fill in** — paste the link into `README.md` and `JUDGING.md` too |
+| Demo video | <https://youtu.be/iYhnj-aDvJ8> — 2:45, also in `README.md` and `JUDGING.md` |
 | Team lead name / pseudonym | ☐ **to fill in** |
 | GitHub handle | `DrApkFile` |
 | Contact email | ☐ **to fill in** |

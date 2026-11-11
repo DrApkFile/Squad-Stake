@@ -1,0 +1,103 @@
+<template>
+  <style>
+    /* The close. Three claims, then the mark, the address and nothing else — the last frame is
+       the one a judge screenshots, so it holds dead still for the whole end hold. */
+    #root { position: absolute; inset: 0; overflow: hidden; }
+    #root .stage { position: absolute; inset: 0; }
+
+    #root .claims {
+      position: absolute; left: 50%; top: 318px; margin-left: -760px;
+      width: 1520px; text-align: center;
+    }
+    #root .claim {
+      display: block;
+      font-family: Mulish, sans-serif; font-weight: 700;
+      font-size: 104px; line-height: 1.14; letter-spacing: -0.032em;
+      color: var(--ink);
+      opacity: 0;
+    }
+    #root .claim.last { color: var(--green); }
+
+    #root .end { position: absolute; inset: 0; opacity: 0; }
+    #root .lockup {
+      position: absolute; left: 50%; top: 382px; margin-left: -530px;
+      width: 1060px; height: 184px;
+      opacity: 0;
+    }
+    #root .lockup img { width: 1060px; height: 184px; display: block; }
+    #root .url {
+      position: absolute; left: 50%; top: 622px; margin-left: -500px;
+      width: 1000px; text-align: center;
+      font-family: 'Fira Mono', monospace; font-weight: 500; font-size: 46px;
+      letter-spacing: -0.01em; color: var(--ink);
+      opacity: 0;
+    }
+    #root .rule {
+      position: absolute; left: 50%; top: 710px; margin-left: -120px;
+      width: 240px; height: 2px; background: var(--hair);
+      transform-origin: 50% 50%;
+    }
+    #root .built {
+      position: absolute; left: 50%; top: 750px; margin-left: -520px;
+      width: 1040px; text-align: center;
+      font-family: Mulish, sans-serif; font-weight: 600; font-size: 32px;
+      letter-spacing: 0.01em; color: var(--muted);
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="close" data-width="1920" data-height="1080">
+    <div class="stage" id="close-stage">
+      <div class="claims" id="close-claims" data-layout-allow-overflow>
+        <span class="claim" id="close-claim-0">No custody.</span>
+        <span class="claim" id="close-claim-1">No trust required.</span>
+        <span class="claim last" id="close-claim-2">Just proof.</span>
+      </div>
+
+      <div class="end" id="close-end">
+        <div class="lockup" id="close-lockup">
+          <img src="assets/brand/logo.svg" alt="Squad Stake" />
+        </div>
+        <div class="url" id="close-url">squad-stake.vercel.app</div>
+        <div class="rule" id="close-rule"></div>
+        <div class="built" id="close-built">Built for the Nimiq Mini Apps Competition</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const scene = window.__SQUAD_BEATS.close;
+      /* b0 "No custody. No trust required. Just proof."
+         b1 "Squad Stake — save together, nobody holds the pot." */
+      const [b0, b1] = scene.beats;
+      const tl = gsap.timeline({ paused: true });
+
+      /* One claim per clause, each landing on the word rather than ahead of it. */
+      const claimAt = [b0 + 0.1, b0 + 0.95, b0 + 2.05];
+      for (let index = 0; index < 3; index += 1) {
+        tl.fromTo("#close-claim-" + index, { opacity: 0, y: 26, filter: "blur(12px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.38, ease: "power3.out" },
+          claimAt[index]);
+      }
+
+      /* The name is spoken, so the mark takes the frame: the claims lift, the lockup lands. */
+      tl.to("#close-claims", { opacity: 0, y: -46, duration: 0.4, ease: "power3.in" }, b1 - 0.5);
+      tl.set("#close-end", { opacity: 1 }, b1 - 0.1);
+      tl.fromTo("#close-lockup", { opacity: 0, scale: 0.9, y: 22 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.62, ease: "power3.out" }, b1 - 0.05);
+      tl.fromTo("#close-url", { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, b1 + 1.35);
+      tl.fromTo("#close-rule", { scaleX: 0 },
+        { scaleX: 1, duration: 0.5, ease: "power3.out" }, b1 + 1.6);
+      tl.fromTo("#close-built", { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, b1 + 1.78);
+
+      /* Nothing after this. The end card is the last frame of the film, held still to the end
+         of the scene, so there is no fade to a blank the renderer would have to invent. */
+      tl.to({}, { duration: Math.max(0.1, scene.duration - (b1 + 2.2)) }, b1 + 2.2);
+
+      window.__timelines["close"] = tl;
+    })();
+  </script>
+</template>

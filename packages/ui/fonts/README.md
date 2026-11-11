@@ -1,6 +1,6 @@
 # Fonts
 
-Self-hosted so the web app and the Remotion video render identical glyphs, and so no font is
+Self-hosted so the web app and the HyperFrames video render identical glyphs, and so no font is
 fetched from a network at runtime (AGENTS.md "UI purity" 3).
 
 Nimiq Pay's own `DESIGN.md` names both typefaces ("The Mulish-or-Mono Rule. Type in this product

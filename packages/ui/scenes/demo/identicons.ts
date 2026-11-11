@@ -2,7 +2,7 @@
 //
 // Nimiq identicons for the hand-written sample squads (AGENTS.md "UI purity" 5). The real app
 // generates these in apps/web from each member's verified address; these are the same function
-// applied to invented addresses, so the Remotion video and the scene gallery draw real Nimiq
+// applied to invented addresses, so the HyperFrames video and the scene gallery draw real Nimiq
 // identicons with no network access and no async work inside a component.
 //
 // Produced with @nimiq/identicons 1.6.2.

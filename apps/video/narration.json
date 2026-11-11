@@ -1,0 +1,880 @@
+{
+  "builtAt": "2026-11-11T05:37:18.942Z",
+  "voice": "af_heart",
+  "speed": 0.88,
+  "model": "Kokoro-82M (local)",
+  "total": 165,
+  "leadIn": 2,
+  "breath": 0.582,
+  "gap": 1.582,
+  "endHold": 6,
+  "speechTotal": 144.344,
+  "lastWordAt": 159,
+  "sections": [
+    {
+      "id": "hook",
+      "kind": "graphics",
+      "start": 2,
+      "end": 12.345,
+      "duration": 10.345
+    },
+    {
+      "id": "problem",
+      "kind": "graphics",
+      "start": 13.927,
+      "end": 29.389,
+      "duration": 15.462
+    },
+    {
+      "id": "intro",
+      "kind": "logo",
+      "start": 30.971,
+      "end": 51.287,
+      "duration": 20.315
+    },
+    {
+      "id": "create",
+      "kind": "screens",
+      "start": 52.869,
+      "end": 74.12,
+      "duration": 21.251
+    },
+    {
+      "id": "commit",
+      "kind": "screens",
+      "start": 75.702,
+      "end": 98.324,
+      "duration": 22.621
+    },
+    {
+      "id": "progress",
+      "kind": "screens",
+      "start": 99.906,
+      "end": 117.556,
+      "duration": 17.65
+    },
+    {
+      "id": "goalday",
+      "kind": "screens",
+      "start": 119.138,
+      "end": 134.609,
+      "duration": 15.471
+    },
+    {
+      "id": "nim",
+      "kind": "graphics",
+      "start": 136.191,
+      "end": 150.359,
+      "duration": 14.168
+    },
+    {
+      "id": "close",
+      "kind": "endcard",
+      "start": 151.941,
+      "end": 159,
+      "duration": 7.059
+    }
+  ],
+  "lines": [
+    {
+      "id": "hook-0",
+      "section": "hook",
+      "start": 2,
+      "seconds": 2.078,
+      "file": "assets/vo/hook-0.wav",
+      "text": "Five friends are saving for a trip."
+    },
+    {
+      "id": "hook-1",
+      "section": "hook",
+      "start": 4.66,
+      "seconds": 2.165,
+      "file": "assets/vo/hook-1.wav",
+      "text": "One of them collects everyone’s money."
+    },
+    {
+      "id": "hook-2",
+      "section": "hook",
+      "start": 7.407,
+      "seconds": 4.938,
+      "file": "assets/vo/hook-2.wav",
+      "text": "Now one person carries all the risk — and everyone else just has to trust them."
+    },
+    {
+      "id": "problem-0",
+      "section": "problem",
+      "start": 13.927,
+      "seconds": 2.59,
+      "file": "assets/vo/problem-0.wav",
+      "text": "That’s how group saving works almost everywhere."
+    },
+    {
+      "id": "problem-1",
+      "section": "problem",
+      "start": 17.099,
+      "seconds": 1.433,
+      "file": "assets/vo/problem-1.wav",
+      "text": "Someone holds the pot."
+    },
+    {
+      "id": "problem-2",
+      "section": "problem",
+      "start": 19.114,
+      "seconds": 1.489,
+      "file": "assets/vo/problem-2.wav",
+      "text": "Nobody else can check it."
+    },
+    {
+      "id": "problem-3",
+      "section": "problem",
+      "start": 21.185,
+      "seconds": 2.271,
+      "file": "assets/vo/problem-3.wav",
+      "text": "And while it waits, the money does nothing."
+    },
+    {
+      "id": "problem-4",
+      "section": "problem",
+      "start": 24.038,
+      "seconds": 5.351,
+      "file": "assets/vo/problem-4.wav",
+      "text": "If the holder spends it, disappears, or simply makes a mistake, the whole group loses."
+    },
+    {
+      "id": "intro-0",
+      "section": "intro",
+      "start": 30.971,
+      "seconds": 3.603,
+      "file": "assets/vo/intro-0.wav",
+      "text": "So we built Squad Stake, a mini app inside Nimiq Pay."
+    },
+    {
+      "id": "intro-1",
+      "section": "intro",
+      "start": 35.156,
+      "seconds": 3.211,
+      "file": "assets/vo/intro-1.wav",
+      "text": "Save together for anything — and nobody holds the pot."
+    },
+    {
+      "id": "intro-2",
+      "section": "intro",
+      "start": 38.949,
+      "seconds": 6.375,
+      "file": "assets/vo/intro-2.wav",
+      "text": "Every member’s share stays in their own wallet, staked on the Nimiq blockchain, earning while the squad waits."
+    },
+    {
+      "id": "intro-3",
+      "section": "intro",
+      "start": 45.906,
+      "seconds": 3.137,
+      "file": "assets/vo/intro-3.wav",
+      "text": "And the squad’s progress isn’t typed into a database."
+    },
+    {
+      "id": "intro-4",
+      "section": "intro",
+      "start": 49.625,
+      "seconds": 1.661,
+      "file": "assets/vo/intro-4.wav",
+      "text": "It’s read straight from the chain."
+    },
+    {
+      "id": "create-0",
+      "section": "create",
+      "start": 52.869,
+      "seconds": 4.61,
+      "file": "assets/vo/create-0.wav",
+      "text": "Signing in is one signature in Nimiq Pay — no account, no password."
+    },
+    {
+      "id": "create-1",
+      "section": "create",
+      "start": 58.061,
+      "seconds": 5.327,
+      "file": "assets/vo/create-1.wav",
+      "text": "Create a squad: pick a quick start, like a trip, set a goal day, and choose how you save."
+    },
+    {
+      "id": "create-2",
+      "section": "create",
+      "start": 63.97,
+      "seconds": 3.227,
+      "file": "assets/vo/create-2.wav",
+      "text": "Together goals, where everyone saves their own target."
+    },
+    {
+      "id": "create-3",
+      "section": "create",
+      "start": 67.779,
+      "seconds": 4.046,
+      "file": "assets/vo/create-3.wav",
+      "text": "Or a shared goal, with one total and a recipient fixed up front."
+    },
+    {
+      "id": "create-4",
+      "section": "create",
+      "start": 72.407,
+      "seconds": 1.713,
+      "file": "assets/vo/create-4.wav",
+      "text": "Then share one invite link."
+    },
+    {
+      "id": "commit-0",
+      "section": "commit",
+      "start": 75.702,
+      "seconds": 3.142,
+      "file": "assets/vo/commit-0.wav",
+      "text": "Friends open the link, sign in, and commit their share."
+    },
+    {
+      "id": "commit-1",
+      "section": "commit",
+      "start": 79.426,
+      "seconds": 10.216,
+      "file": "assets/vo/commit-1.wav",
+      "text": "If they’re not staking yet, Squad Stake picks a staking pool that actually pays its stakers — and shows its name and fee — before Nimiq Pay asks for approval."
+    },
+    {
+      "id": "commit-2",
+      "section": "commit",
+      "start": 90.224,
+      "seconds": 1.97,
+      "file": "assets/vo/commit-2.wav",
+      "text": "The stake never leaves their wallet."
+    },
+    {
+      "id": "commit-3",
+      "section": "commit",
+      "start": 92.776,
+      "seconds": 5.548,
+      "file": "assets/vo/commit-3.wav",
+      "text": "A commitment only counts once its transaction is executed and final on the chain."
+    },
+    {
+      "id": "progress-0",
+      "section": "progress",
+      "start": 99.906,
+      "seconds": 2.19,
+      "file": "assets/vo/progress-0.wav",
+      "text": "Now everyone sees honest progress."
+    },
+    {
+      "id": "progress-1",
+      "section": "progress",
+      "start": 102.678,
+      "seconds": 7.693,
+      "file": "assets/vo/progress-1.wav",
+      "text": "Saved, short, leaving, back in the wallet — every status comes from a fresh chain read, with its age right beside it."
+    },
+    {
+      "id": "progress-2",
+      "section": "progress",
+      "start": 110.953,
+      "seconds": 2.144,
+      "file": "assets/vo/progress-2.wav",
+      "text": "Nobody sees anyone else’s balance."
+    },
+    {
+      "id": "progress-3",
+      "section": "progress",
+      "start": 113.679,
+      "seconds": 3.877,
+      "file": "assets/vo/progress-3.wav",
+      "text": "And the public proof page lets anyone repeat the check themselves."
+    },
+    {
+      "id": "goalday-0",
+      "section": "goalday",
+      "start": 119.138,
+      "seconds": 7.479,
+      "file": "assets/vo/goalday-0.wav",
+      "text": "Unstaking on Nimiq takes twelve to twenty-four hours, so Squad Stake tells each member exactly when to start leaving."
+    },
+    {
+      "id": "goalday-1",
+      "section": "goalday",
+      "start": 127.199,
+      "seconds": 1.854,
+      "file": "assets/vo/goalday-1.wav",
+      "text": "Three approvals bring the NIM back."
+    },
+    {
+      "id": "goalday-2",
+      "section": "goalday",
+      "start": 129.635,
+      "seconds": 4.974,
+      "file": "assets/vo/goalday-2.wav",
+      "text": "For a shared goal, each share is paid to the recipient — and verified on the chain."
+    },
+    {
+      "id": "nim-0",
+      "section": "nim",
+      "start": 136.191,
+      "seconds": 8.792,
+      "file": "assets/vo/nim-0.wav",
+      "text": "NIM does the heavy lifting: identity by signature, native staking for the savings, payments, and the chain as the source of truth."
+    },
+    {
+      "id": "nim-1",
+      "section": "nim",
+      "start": 145.565,
+      "seconds": 4.793,
+      "file": "assets/vo/nim-1.wav",
+      "text": "Trips, gifts, rent buffers, group purchases — anything a group saves for."
+    },
+    {
+      "id": "close-0",
+      "section": "close",
+      "start": 151.941,
+      "seconds": 3.198,
+      "file": "assets/vo/close-0.wav",
+      "text": "No custody. No trust required. Just proof."
+    },
+    {
+      "id": "close-1",
+      "section": "close",
+      "start": 155.72,
+      "seconds": 3.28,
+      "file": "assets/vo/close-1.wav",
+      "text": "Squad Stake — save together, nobody holds the pot."
+    }
+  ],
+  "captions": [
+    {
+      "text": "Five friends are saving for",
+      "start": 2,
+      "end": 3.65,
+      "section": "hook"
+    },
+    {
+      "text": "a trip.",
+      "start": 3.65,
+      "end": 4.078,
+      "section": "hook"
+    },
+    {
+      "text": "One of them collects everyone’s money.",
+      "start": 4.66,
+      "end": 6.825,
+      "section": "hook"
+    },
+    {
+      "text": "Now one person carries all",
+      "start": 7.407,
+      "end": 9.096,
+      "section": "hook"
+    },
+    {
+      "text": "the risk —",
+      "start": 9.096,
+      "end": 9.746,
+      "section": "hook"
+    },
+    {
+      "text": "and everyone else just has",
+      "start": 9.746,
+      "end": 11.435,
+      "section": "hook"
+    },
+    {
+      "text": "to trust them.",
+      "start": 11.435,
+      "end": 12.345,
+      "section": "hook"
+    },
+    {
+      "text": "That’s how group saving works",
+      "start": 13.927,
+      "end": 15.525,
+      "section": "problem"
+    },
+    {
+      "text": "almost everywhere.",
+      "start": 15.525,
+      "end": 16.517,
+      "section": "problem"
+    },
+    {
+      "text": "Someone holds the pot.",
+      "start": 17.099,
+      "end": 18.532,
+      "section": "problem"
+    },
+    {
+      "text": "Nobody else can check it.",
+      "start": 19.114,
+      "end": 20.603,
+      "section": "problem"
+    },
+    {
+      "text": "And while it waits,",
+      "start": 21.185,
+      "end": 22.212,
+      "section": "problem"
+    },
+    {
+      "text": "the money does nothing.",
+      "start": 22.212,
+      "end": 23.456,
+      "section": "problem"
+    },
+    {
+      "text": "If the holder spends it,",
+      "start": 24.038,
+      "end": 25.567,
+      "section": "problem"
+    },
+    {
+      "text": "disappears, or simply makes a",
+      "start": 25.567,
+      "end": 27.414,
+      "section": "problem"
+    },
+    {
+      "text": "mistake, the whole group loses.",
+      "start": 27.414,
+      "end": 29.389,
+      "section": "problem"
+    },
+    {
+      "text": "So we built Squad Stake,",
+      "start": 30.971,
+      "end": 32.634,
+      "section": "intro"
+    },
+    {
+      "text": "a mini app inside Nimiq Pay.",
+      "start": 32.634,
+      "end": 34.574,
+      "section": "intro"
+    },
+    {
+      "text": "Save together for anything —",
+      "start": 35.156,
+      "end": 36.852,
+      "section": "intro"
+    },
+    {
+      "text": "and nobody holds the pot.",
+      "start": 36.852,
+      "end": 38.367,
+      "section": "intro"
+    },
+    {
+      "text": "Every member’s share stays in",
+      "start": 38.949,
+      "end": 40.677,
+      "section": "intro"
+    },
+    {
+      "text": "their own wallet,",
+      "start": 40.677,
+      "end": 41.69,
+      "section": "intro"
+    },
+    {
+      "text": "staked on the Nimiq blockchain,",
+      "start": 41.69,
+      "end": 43.537,
+      "section": "intro"
+    },
+    {
+      "text": "earning while the squad waits.",
+      "start": 43.537,
+      "end": 45.324,
+      "section": "intro"
+    },
+    {
+      "text": "And the squad’s progress isn’t",
+      "start": 45.906,
+      "end": 47.716,
+      "section": "intro"
+    },
+    {
+      "text": "typed into a database.",
+      "start": 47.716,
+      "end": 49.043,
+      "section": "intro"
+    },
+    {
+      "text": "It’s read straight from the chain.",
+      "start": 49.625,
+      "end": 51.287,
+      "section": "intro"
+    },
+    {
+      "text": "Signing in is one signature",
+      "start": 52.869,
+      "end": 54.814,
+      "section": "create"
+    },
+    {
+      "text": "in Nimiq Pay —",
+      "start": 54.814,
+      "end": 55.822,
+      "section": "create"
+    },
+    {
+      "text": "no account,",
+      "start": 55.822,
+      "end": 56.614,
+      "section": "create"
+    },
+    {
+      "text": "no password.",
+      "start": 56.614,
+      "end": 57.479,
+      "section": "create"
+    },
+    {
+      "text": "Create a squad:",
+      "start": 58.061,
+      "end": 59.001,
+      "section": "create"
+    },
+    {
+      "text": "pick a quick start,",
+      "start": 59.001,
+      "end": 60.192,
+      "section": "create"
+    },
+    {
+      "text": "like a trip,",
+      "start": 60.192,
+      "end": 60.944,
+      "section": "create"
+    },
+    {
+      "text": "set a goal day,",
+      "start": 60.944,
+      "end": 61.884,
+      "section": "create"
+    },
+    {
+      "text": "and choose how you save.",
+      "start": 61.884,
+      "end": 63.388,
+      "section": "create"
+    },
+    {
+      "text": "Together goals,",
+      "start": 63.97,
+      "end": 64.883,
+      "section": "create"
+    },
+    {
+      "text": "where everyone saves their own target.",
+      "start": 64.883,
+      "end": 67.197,
+      "section": "create"
+    },
+    {
+      "text": "Or a shared goal,",
+      "start": 67.779,
+      "end": 68.888,
+      "section": "create"
+    },
+    {
+      "text": "with one total and a",
+      "start": 68.888,
+      "end": 70.193,
+      "section": "create"
+    },
+    {
+      "text": "recipient fixed up front.",
+      "start": 70.193,
+      "end": 71.825,
+      "section": "create"
+    },
+    {
+      "text": "Then share one invite link.",
+      "start": 72.407,
+      "end": 74.12,
+      "section": "create"
+    },
+    {
+      "text": "Friends open the link,",
+      "start": 75.702,
+      "end": 77.006,
+      "section": "commit"
+    },
+    {
+      "text": "sign in,",
+      "start": 77.006,
+      "end": 77.48,
+      "section": "commit"
+    },
+    {
+      "text": "and commit their share.",
+      "start": 77.48,
+      "end": 78.844,
+      "section": "commit"
+    },
+    {
+      "text": "If they’re not staking yet,",
+      "start": 79.426,
+      "end": 81.241,
+      "section": "commit"
+    },
+    {
+      "text": "Squad Stake picks a staking",
+      "start": 81.241,
+      "end": 83.055,
+      "section": "commit"
+    },
+    {
+      "text": "pool that actually pays its",
+      "start": 83.055,
+      "end": 84.87,
+      "section": "commit"
+    },
+    {
+      "text": "stakers —",
+      "start": 84.87,
+      "end": 85.475,
+      "section": "commit"
+    },
+    {
+      "text": "and shows its name and",
+      "start": 85.475,
+      "end": 86.953,
+      "section": "commit"
+    },
+    {
+      "text": "fee —",
+      "start": 86.953,
+      "end": 87.289,
+      "section": "commit"
+    },
+    {
+      "text": "before Nimiq Pay asks for approval.",
+      "start": 87.289,
+      "end": 89.642,
+      "section": "commit"
+    },
+    {
+      "text": "The stake never leaves their wallet.",
+      "start": 90.224,
+      "end": 92.194,
+      "section": "commit"
+    },
+    {
+      "text": "A commitment only counts once",
+      "start": 92.776,
+      "end": 94.812,
+      "section": "commit"
+    },
+    {
+      "text": "its transaction is executed and",
+      "start": 94.812,
+      "end": 96.989,
+      "section": "commit"
+    },
+    {
+      "text": "final on the chain.",
+      "start": 96.989,
+      "end": 98.324,
+      "section": "commit"
+    },
+    {
+      "text": "Now everyone sees honest progress.",
+      "start": 99.906,
+      "end": 102.096,
+      "section": "progress"
+    },
+    {
+      "text": "Saved, short,",
+      "start": 102.678,
+      "end": 103.563,
+      "section": "progress"
+    },
+    {
+      "text": "leaving, back in the wallet",
+      "start": 103.563,
+      "end": 105.401,
+      "section": "progress"
+    },
+    {
+      "text": "— every status comes from",
+      "start": 105.401,
+      "end": 107.103,
+      "section": "progress"
+    },
+    {
+      "text": "a fresh chain read,",
+      "start": 107.103,
+      "end": 108.396,
+      "section": "progress"
+    },
+    {
+      "text": "with its age right beside it.",
+      "start": 108.396,
+      "end": 110.371,
+      "section": "progress"
+    },
+    {
+      "text": "Nobody sees anyone else’s balance.",
+      "start": 110.953,
+      "end": 113.097,
+      "section": "progress"
+    },
+    {
+      "text": "And the public proof page",
+      "start": 113.679,
+      "end": 115.17,
+      "section": "progress"
+    },
+    {
+      "text": "lets anyone repeat the check themselves.",
+      "start": 115.17,
+      "end": 117.556,
+      "section": "progress"
+    },
+    {
+      "text": "Unstaking on Nimiq takes twelve",
+      "start": 119.138,
+      "end": 121.172,
+      "section": "goalday"
+    },
+    {
+      "text": "to twenty-four hours,",
+      "start": 121.172,
+      "end": 122.549,
+      "section": "goalday"
+    },
+    {
+      "text": "so Squad Stake tells each",
+      "start": 122.549,
+      "end": 124.189,
+      "section": "goalday"
+    },
+    {
+      "text": "member exactly when to start leaving.",
+      "start": 124.189,
+      "end": 126.617,
+      "section": "goalday"
+    },
+    {
+      "text": "Three approvals bring the NIM back.",
+      "start": 127.199,
+      "end": 129.053,
+      "section": "goalday"
+    },
+    {
+      "text": "For a shared goal,",
+      "start": 129.635,
+      "end": 130.754,
+      "section": "goalday"
+    },
+    {
+      "text": "each share is paid to",
+      "start": 130.754,
+      "end": 132.06,
+      "section": "goalday"
+    },
+    {
+      "text": "the recipient —",
+      "start": 132.06,
+      "end": 132.992,
+      "section": "goalday"
+    },
+    {
+      "text": "and verified on the chain.",
+      "start": 132.992,
+      "end": 134.609,
+      "section": "goalday"
+    },
+    {
+      "text": "NIM does the heavy lifting:",
+      "start": 136.191,
+      "end": 138.075,
+      "section": "nim"
+    },
+    {
+      "text": "identity by signature,",
+      "start": 138.075,
+      "end": 139.61,
+      "section": "nim"
+    },
+    {
+      "text": "native staking for the savings,",
+      "start": 139.61,
+      "end": 141.773,
+      "section": "nim"
+    },
+    {
+      "text": "payments, and the chain as",
+      "start": 141.773,
+      "end": 143.587,
+      "section": "nim"
+    },
+    {
+      "text": "the source of truth.",
+      "start": 143.587,
+      "end": 144.983,
+      "section": "nim"
+    },
+    {
+      "text": "Trips, gifts,",
+      "start": 145.565,
+      "end": 146.455,
+      "section": "nim"
+    },
+    {
+      "text": "rent buffers,",
+      "start": 146.455,
+      "end": 147.345,
+      "section": "nim"
+    },
+    {
+      "text": "group purchases —",
+      "start": 147.345,
+      "end": 148.51,
+      "section": "nim"
+    },
+    {
+      "text": "anything a group saves for.",
+      "start": 148.51,
+      "end": 150.359,
+      "section": "nim"
+    },
+    {
+      "text": "No custody.",
+      "start": 151.941,
+      "end": 152.82,
+      "section": "close"
+    },
+    {
+      "text": "No trust required.",
+      "start": 152.82,
+      "end": 154.259,
+      "section": "close"
+    },
+    {
+      "text": "Just proof.",
+      "start": 154.259,
+      "end": 155.138,
+      "section": "close"
+    },
+    {
+      "text": "Squad Stake —",
+      "start": 155.72,
+      "end": 156.608,
+      "section": "close"
+    },
+    {
+      "text": "save together,",
+      "start": 156.608,
+      "end": 157.565,
+      "section": "close"
+    },
+    {
+      "text": "nobody holds the pot.",
+      "start": 157.565,
+      "end": 159,
+      "section": "close"
+    }
+  ]
+}

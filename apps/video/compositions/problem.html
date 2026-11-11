@@ -1,0 +1,173 @@
+<template>
+  <style>
+    /* The problem, in one picture that keeps changing: the pot the hook built is still there,
+       and each sentence takes something away from it — the check, the earnings, and finally
+       the pot itself. One diagram that grows (/hyperframes explainer.md). */
+    #root { position: absolute; inset: 0; overflow: hidden; }
+    #root .stage { position: absolute; inset: 0; }
+
+    #root .tile {
+      position: absolute;
+      width: 150px; height: 150px;
+      border-radius: 28px;
+      border: 2px solid rgba(11, 11, 12, 0.1);
+      background: rgba(255, 255, 255, 0.55);
+      opacity: 0;
+    }
+    #root .tile::after {
+      content: "";
+      position: absolute; left: 50%; top: 50%;
+      width: 44px; height: 44px; margin: -22px 0 0 -22px;
+      border-radius: 50%;
+      background: rgba(233, 178, 19, 0.5);
+    }
+
+    #root .pot {
+      position: absolute; left: 50%; top: 452px;
+      width: 230px; height: 230px; margin: -115px 0 0 -115px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 3px solid rgba(11, 11, 12, 0.2);
+      box-shadow: 0 26px 60px rgba(11, 11, 12, 0.12);
+    }
+    #root .pot-fill {
+      position: absolute; left: 16px; right: 16px; bottom: 16px; height: 118px;
+      border-radius: 0 0 100px 100px;
+      background: linear-gradient(180deg, #ffd45e, var(--gold));
+    }
+    #root .lock {
+      position: absolute; left: 50%; top: 452px;
+      margin: -34px 0 0 -26px;
+      width: 52px; height: 68px;
+      opacity: 0;
+    }
+    #root .lock span {
+      position: absolute; left: 0; bottom: 0; width: 52px; height: 40px;
+      border-radius: 9px; background: var(--ink);
+    }
+    #root .lock i {
+      position: absolute; left: 11px; top: 0; width: 30px; height: 34px;
+      border: 7px solid var(--ink); border-bottom: 0;
+      border-radius: 16px 16px 0 0;
+    }
+
+    #root .eye {
+      position: absolute; left: 50%; top: 452px; margin: -70px 0 0 -92px;
+      width: 184px; height: 140px; opacity: 0;
+    }
+    #root .eye svg { width: 184px; height: 140px; overflow: visible; }
+
+    #root .yield {
+      position: absolute; left: 50%; top: 714px; margin-left: -140px;
+      width: 280px; text-align: center;
+      padding: 16px 0; border-radius: 999px;
+      background: var(--paper); border: 1px solid var(--hair);
+      font-family: 'Fira Mono', monospace; font-weight: 500; font-size: 32px; color: var(--muted);
+      opacity: 0;
+    }
+
+    #root .card {
+      position: absolute; left: 50%; top: 404px; margin-left: -560px;
+      width: 1120px; text-align: center;
+      font-family: Mulish, sans-serif; font-weight: 700;
+      font-size: 96px; line-height: 1.04; letter-spacing: -0.03em;
+      color: var(--ink);
+      opacity: 0;
+    }
+    #root .card em { font-style: normal; color: var(--red); }
+    #root .card-word { display: inline-block; opacity: 0; }
+  </style>
+
+  <div id="root" data-composition-id="problem" data-width="1920" data-height="1080">
+    <div class="stage" id="problem-stage">
+      <div class="tile" id="problem-tile-0" style="left: 338px; top: 268px"></div>
+      <div class="tile" id="problem-tile-1" style="left: 338px; top: 640px"></div>
+      <div class="tile" id="problem-tile-2" style="left: 1432px; top: 268px"></div>
+      <div class="tile" id="problem-tile-3" style="left: 1432px; top: 640px"></div>
+      <div class="tile" id="problem-tile-4" style="left: 596px; top: 160px"></div>
+      <div class="tile" id="problem-tile-5" style="left: 1174px; top: 160px"></div>
+
+      <div class="pot" id="problem-pot"><span class="pot-fill" id="problem-pot-fill"></span></div>
+      <div class="lock" id="problem-lock"><i></i><span></span></div>
+
+      <div class="eye" id="problem-eye" data-layout-ignore>
+        <svg viewBox="0 0 184 140">
+          <path id="problem-eye-path" d="M 10 70 C 50 18, 134 18, 174 70 C 134 122, 50 122, 10 70 Z"
+            fill="none" stroke="#0b0b0c" stroke-width="7" stroke-linecap="round" />
+          <circle cx="92" cy="70" r="24" fill="#0b0b0c" />
+          <line id="problem-eye-strike" x1="16" y1="126" x2="168" y2="14"
+            stroke="#d94432" stroke-width="9" stroke-linecap="round" />
+        </svg>
+      </div>
+
+      <div class="yield" id="problem-yield">0.00% earned</div>
+
+      <div class="card" id="problem-card" data-layout-allow-overflow>
+        <span class="card-word" id="problem-word-0">One&nbsp;pot.</span>
+        <span class="card-word" id="problem-word-1">&nbsp;<em>One&nbsp;point&nbsp;of&nbsp;failure.</em></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const scene = window.__SQUAD_BEATS.problem;
+      /* b0 almost everywhere · b1 someone holds it · b2 nobody can check it
+         b3 the money does nothing · b4 and it can simply be gone */
+      const [b0, b1, b2, b3, b4] = scene.beats;
+      const tl = gsap.timeline({ paused: true });
+
+      /* The pot is already on screen: the hook left it there, so the film does not restart. */
+      tl.fromTo("#problem-pot", { opacity: 0, scale: 0.9, y: -20 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+
+      /* "almost everywhere": the same arrangement, repeated around it, then pushed back. */
+      for (let index = 0; index < 6; index += 1) {
+        tl.fromTo("#problem-tile-" + index, { opacity: 0, scale: 0.8 },
+          { opacity: 1, scale: 1, duration: 0.42, ease: "power3.out" }, b0 + index * 0.08);
+      }
+      tl.to(".tile", { opacity: 0.28, scale: 0.9, duration: 0.6, ease: "power2.inOut" }, b1 - 0.2);
+
+      /* "Someone holds the pot." */
+      tl.fromTo("#problem-lock", { opacity: 0, y: 26, scale: 0.7 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.42, ease: "back.out(1.7)" }, b1 + 0.1);
+
+      /* "Nobody else can check it." — the eye is drawn, then struck through. */
+      tl.to("#problem-lock", { opacity: 0, duration: 0.25 }, b2 - 0.1);
+      const eye = document.querySelector("#problem-eye-path");
+      const eyeLength = eye && eye.getTotalLength ? eye.getTotalLength() || 460 : 460;
+      tl.fromTo("#problem-eye", { opacity: 0 }, { opacity: 1, duration: 0.14 }, b2);
+      tl.fromTo(eye, { strokeDasharray: eyeLength, strokeDashoffset: eyeLength },
+        { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, b2);
+      tl.fromTo("#problem-eye-strike", { scaleX: 0, transformOrigin: "0% 100%" },
+        { scaleX: 1, duration: 0.3, ease: "power4.out" }, b2 + 0.55);
+
+      /* "the money does nothing" — the gold drains to grey and the figure says so. */
+      tl.to("#problem-eye", { opacity: 0, duration: 0.25, ease: "power2.in" }, b3 - 0.15);
+      tl.to("#problem-pot-fill",
+        { background: "linear-gradient(180deg, #d8d6d1, #bdbab3)", duration: 0.7, ease: "power2.inOut" }, b3);
+      tl.fromTo("#problem-yield", { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power3.out" }, b3 + 0.3);
+
+      /* "…the whole group loses." The pot does not fade: it drops out of the frame. */
+      tl.to("#problem-yield", { opacity: 0, duration: 0.22, ease: "power2.in" }, b4 + 0.9);
+      tl.to("#problem-pot-fill", { height: 0, duration: 0.45, ease: "power2.in" }, b4 + 1.0);
+      tl.to("#problem-pot",
+        { y: 420, scale: 0.72, opacity: 0, duration: 0.6, ease: "power3.in" }, b4 + 1.25);
+      tl.to(".tile", { opacity: 0, duration: 0.5, ease: "power2.in" }, b4 + 1.3);
+
+      /* The card lands in the hole the pot left. Word by word, no slide. */
+      tl.set("#problem-card", { opacity: 1 }, b4 + 1.7);
+      for (let index = 0; index < 2; index += 1) {
+        tl.fromTo("#problem-word-" + index, { opacity: 0, filter: "blur(10px)" },
+          { opacity: 1, filter: "blur(0px)", duration: 0.34, ease: "power3.out" },
+          b4 + 1.75 + index * 0.22);
+      }
+
+      const out = scene.duration - 0.4;
+      tl.to("#problem-stage", { opacity: 0, duration: 0.32, ease: "power3.in" }, out);
+
+      window.__timelines["problem"] = tl;
+    })();
+  </script>
+</template>

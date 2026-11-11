@@ -1,0 +1,240 @@
+<template>
+  <style>
+    /* The turn. The ring the problem broke comes back as the product's own mark — which is
+       three members around one warm goal, so it is the same picture, mended. Then the two
+       claims the rest of the film has to earn: the share never leaves its wallet, and the
+       progress is read, not typed. */
+    #root { position: absolute; inset: 0; overflow: hidden; }
+    #root .stage { position: absolute; inset: 0; }
+
+    #root .seed {
+      position: absolute; left: 50%; top: 420px;
+      width: 46px; height: 46px; margin: -23px 0 0 -23px;
+      border-radius: 50%;
+      background: rgba(11, 11, 12, 0.18);
+      opacity: 0;
+    }
+
+    #root .lockup {
+      position: absolute; left: 50%; top: 420px;
+      width: 980px; height: 170px; margin: -85px 0 0 -490px;
+      /* The lockup is 369.326 × 64; the mark is its first 64 units, so 82.67% from the right
+         clipped shows the mark alone and opening the clip writes the name on. */
+      clip-path: inset(0 82.67% 0 0);
+      opacity: 0;
+    }
+    #root .lockup img { width: 980px; height: 170px; display: block; }
+
+    #root .card {
+      position: absolute; left: 50%; top: 392px; margin-left: -720px;
+      width: 1440px; text-align: center;
+      font-family: Mulish, sans-serif; font-weight: 700;
+      font-size: 112px; line-height: 1.02; letter-spacing: -0.034em;
+      color: var(--ink);
+      opacity: 0;
+    }
+    #root .card-word { display: inline-block; opacity: 0; }
+
+    #root .keeps { position: absolute; inset: 0; opacity: 0; }
+    #root .keeper {
+      position: absolute; top: 500px;
+      width: 300px; margin-top: -150px;
+      text-align: center;
+    }
+    #root .wallet {
+      position: relative; margin: 0 auto;
+      width: 230px; height: 162px;
+      border-radius: 28px;
+      background: var(--paper);
+      border: 3px solid rgba(11, 11, 12, 0.16);
+      box-shadow: 0 14px 34px rgba(11, 11, 12, 0.08);
+    }
+    #root .wallet b {
+      position: absolute; left: 50%; top: 50%;
+      width: 74px; height: 74px; margin: -37px 0 0 -37px;
+      border-radius: 50%;
+      background: radial-gradient(120% 120% at 32% 28%, #ffd45e, var(--gold));
+      box-shadow: 0 0 0 0 rgba(233, 178, 19, 0.55);
+    }
+    #root .keeper span {
+      display: block; margin-top: 22px;
+      font-family: Mulish, sans-serif; font-weight: 600; font-size: 29px; color: var(--muted);
+    }
+    /* Ink, not gold. Nimiq's gold on the warm ground measures 1.69:1, which is unreadable
+       type however well it matches the coin; the gold stays where it is a *fill* (the coin
+       itself), and the words that describe it are ink. */
+    #root .keeper .earn {
+      display: block; margin-top: 8px;
+      font-family: 'Fira Mono', monospace; font-weight: 500; font-size: 28px; color: var(--muted);
+      opacity: 0;
+    }
+
+    #root .source { position: absolute; inset: 0; opacity: 0; }
+    #root .db {
+      position: absolute; left: 50%; top: 376px; margin-left: -470px;
+      width: 280px; height: 232px;
+    }
+    #root .db svg { width: 280px; height: 232px; overflow: visible; }
+    #root .arrow {
+      position: absolute; left: 50%; top: 489px; margin-left: -166px;
+      width: 190px; height: 7px; border-radius: 3px; background: rgba(11, 11, 12, 0.22);
+      transform-origin: 0% 50%;
+    }
+    #root .blocks { position: absolute; left: 50%; top: 441px; margin-left: 40px; }
+    #root .block {
+      position: absolute; top: 0;
+      width: 104px; height: 104px;
+      border-radius: 22px;
+      background: var(--paper);
+      border: 3px solid rgba(11, 11, 12, 0.18);
+      opacity: 0;
+    }
+    #root .block.on { border-color: var(--green); }
+    #root .block i {
+      position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+      border-radius: 6px; background: rgba(11, 11, 12, 0.14);
+    }
+    #root .block.on i { background: var(--green); }
+    #root .readout {
+      position: absolute; left: 50%; top: 592px; margin-left: 30px;
+      font-family: 'Fira Mono', monospace; font-weight: 500; font-size: 30px; color: var(--muted);
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="intro" data-width="1920" data-height="1080">
+    <div class="stage" id="intro-stage">
+      <div class="seed" id="intro-seed-0"></div>
+      <div class="seed" id="intro-seed-1"></div>
+      <div class="seed" id="intro-seed-2"></div>
+
+      <div class="lockup" id="intro-lockup"><img src="assets/brand/logo.svg" alt="Squad Stake" /></div>
+
+      <div class="card" id="intro-card" data-layout-allow-overflow>
+        <span class="card-word" id="intro-word-0">Nobody</span>
+        <span class="card-word" id="intro-word-1">&nbsp;holds</span>
+        <span class="card-word" id="intro-word-2">&nbsp;the</span>
+        <span class="card-word" id="intro-word-3">&nbsp;pot.</span>
+      </div>
+
+      <div class="keeps" id="intro-keeps">
+        <div class="keeper" id="intro-keeper-0" style="left: 390px">
+          <span class="wallet"><b id="intro-coin-0"></b></span>
+          <span>their wallet</span>
+          <span class="earn" id="intro-earn-0">staked · earning</span>
+        </div>
+        <div class="keeper" id="intro-keeper-1" style="left: 810px">
+          <span class="wallet"><b id="intro-coin-1"></b></span>
+          <span>their wallet</span>
+          <span class="earn" id="intro-earn-1">staked · earning</span>
+        </div>
+        <div class="keeper" id="intro-keeper-2" style="left: 1230px">
+          <span class="wallet"><b id="intro-coin-2"></b></span>
+          <span>their wallet</span>
+          <span class="earn" id="intro-earn-2">staked · earning</span>
+        </div>
+      </div>
+
+      <div class="source" id="intro-source">
+        <div class="db" data-layout-ignore>
+          <svg viewBox="0 0 230 190">
+            <ellipse cx="115" cy="38" rx="96" ry="30" fill="none" stroke="#0b0b0c" stroke-width="6" opacity="0.45" />
+            <path d="M 19 38 L 19 152 A 96 30 0 0 0 211 152 L 211 38"
+              fill="none" stroke="#0b0b0c" stroke-width="6" opacity="0.45" />
+            <line id="intro-db-strike" x1="16" y1="176" x2="214" y2="12"
+              stroke="#d94432" stroke-width="10" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="arrow" id="intro-arrow"></div>
+        <div class="blocks">
+          <div class="block" id="intro-block-0" style="left: 0"><i></i></div>
+          <div class="block" id="intro-block-1" style="left: 128px"><i></i></div>
+          <div class="block" id="intro-block-2" style="left: 256px"><i></i></div>
+          <div class="block" id="intro-block-3" style="left: 384px"><i></i></div>
+        </div>
+        <div class="readout" id="intro-readout">read from the chain</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const scene = window.__SQUAD_BEATS.intro;
+      /* b0 so we built it · b1 nobody holds the pot · b2 each share stays and earns
+         b3 not typed into a database · b4 read straight from the chain */
+      const [b0, b1, b2, b3, b4] = scene.beats;
+      const tl = gsap.timeline({ paused: true });
+
+      /* Three seats fly in to where the mark's own members sit, then the mark takes their
+         place: the broken ring of the problem, mended into the product. */
+      /* Everything here is placed at or after b0, never before it: this scene starts on its
+         own first word, so a negative position is clamped to 0 by GSAP and two tweens that
+         were meant to run in sequence end up overlapping — which is what put a fade-out
+         *inside* the arrival it was supposed to follow (`gsap_tween_tail`, check 2026-11-11). */
+      const seats = [{ x: 0, y: -62 }, { x: -54, y: 32 }, { x: 54, y: 32 }];
+      seats.forEach((seat, index) => {
+        tl.fromTo("#intro-seed-" + index,
+          { opacity: 0, x: seat.x * 7, y: seat.y * 7, scale: 2.2 },
+          { opacity: 1, x: seat.x, y: seat.y, scale: 1, duration: 0.52, ease: "power3.out" },
+          b0 + index * 0.06);
+      });
+      tl.to(".seed", { opacity: 0, duration: 0.18 }, b0 + 0.68);
+      tl.fromTo("#intro-lockup",
+        { opacity: 0, scale: 0.72, clipPath: "inset(0 82.67% 0 0)" },
+        { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" }, b0 + 0.64);
+      /* The name writes on after the mark has landed; the mark itself then holds dead still. */
+      tl.to("#intro-lockup",
+        { clipPath: "inset(0 0% 0 0)", duration: 0.62, ease: "power3.out" }, b0 + 1.14);
+
+      /* The thesis card, in the lockup's place. */
+      tl.to("#intro-lockup", { opacity: 0, y: -26, duration: 0.3, ease: "power3.in" }, b1 - 0.25);
+      tl.set("#intro-card", { opacity: 1 }, b1);
+      for (let index = 0; index < 4; index += 1) {
+        tl.fromTo("#intro-word-" + index, { opacity: 0, filter: "blur(9px)" },
+          { opacity: 1, filter: "blur(0px)", duration: 0.26, ease: "power4.out" },
+          b1 + 0.02 + index * 0.1);
+      }
+
+      /* Each member keeps their own coin — the exact opposite of the hook's four coins. */
+      tl.to("#intro-card", { opacity: 0, duration: 0.26, ease: "power2.in" }, b2 - 0.35);
+      tl.set("#intro-keeps", { opacity: 1 }, b2 - 0.3);
+      for (let index = 0; index < 3; index += 1) {
+        tl.fromTo("#intro-keeper-" + index, { opacity: 0, y: 34, scale: 0.9 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" },
+          b2 - 0.25 + index * 0.11);
+        /* "staked" is a glow that arrives once and stays: no pulsing loop. */
+        tl.to("#intro-coin-" + index,
+          { boxShadow: "0 0 0 14px rgba(233, 178, 19, 0.22)", duration: 0.55, ease: "power2.out" },
+          b2 + 1.5 + index * 0.1);
+        tl.fromTo("#intro-earn-" + index, { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, b2 + 1.75 + index * 0.1);
+      }
+
+      /* Not typed into a database — read from the chain. */
+      tl.to("#intro-keeps", { opacity: 0, y: -24, duration: 0.3, ease: "power2.in" }, b3 - 0.3);
+      tl.set("#intro-source", { opacity: 1 }, b3 - 0.25);
+      tl.fromTo(".db", { opacity: 0, scale: 0.88 },
+        { opacity: 1, scale: 1, duration: 0.42, ease: "power3.out" }, b3 - 0.2);
+      tl.fromTo("#intro-db-strike", { scaleX: 0, transformOrigin: "0% 100%" },
+        { scaleX: 1, duration: 0.26, ease: "power4.out" }, b3 + 0.7);
+      tl.fromTo("#intro-arrow", { scaleX: 0, opacity: 0 },
+        { scaleX: 1, opacity: 1, duration: 0.34, ease: "power3.out" }, b4 - 0.15);
+      for (let index = 0; index < 4; index += 1) {
+        tl.fromTo("#intro-block-" + index, { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(1.6)" }, b4 + index * 0.1);
+      }
+      tl.set("#intro-block-0", { className: "block on" }, b4 + 0.56);
+      tl.set("#intro-block-1", { className: "block on" }, b4 + 0.64);
+      tl.set("#intro-block-2", { className: "block on" }, b4 + 0.72);
+      tl.set("#intro-block-3", { className: "block on" }, b4 + 0.8);
+      tl.fromTo("#intro-readout", { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, b4 + 0.86);
+
+      /* Hand the frame to the phone: the graphics lift, and screens.html raises it. */
+      const out = scene.duration - 0.55;
+      tl.to("#intro-stage", { opacity: 0, y: -40, duration: 0.42, ease: "power3.in" }, out);
+
+      window.__timelines["intro"] = tl;
+    })();
+  </script>
+</template>

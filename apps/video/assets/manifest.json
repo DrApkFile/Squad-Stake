@@ -1,0 +1,148 @@
+{
+  "builtAt": "2026-11-11T06:14:06.113Z",
+  "phone": {
+    "width": 390,
+    "height": 844
+  },
+  "clips": {
+    "app-welcome": {
+      "src": "assets/clips/app-welcome.mp4",
+      "seconds": 10.20531590461731
+    },
+    "app-my-squads": {
+      "src": "assets/clips/app-my-squads.mp4",
+      "seconds": 4.252992944717407
+    },
+    "app-create": {
+      "src": "assets/clips/app-create.mp4",
+      "seconds": 25.407916145324705
+    },
+    "app-invite": {
+      "src": "assets/clips/app-invite.mp4",
+      "seconds": 7.4332748222351075
+    },
+    "app-commit": {
+      "src": "assets/clips/app-commit.mp4",
+      "seconds": 9.764507131576538
+    },
+    "app-squad": {
+      "src": "assets/clips/app-squad.mp4",
+      "seconds": 10.061014013290405
+    },
+    "app-proof": {
+      "src": "assets/clips/app-proof.mp4",
+      "seconds": 6.694432096481323
+    }
+  },
+  "stills": {
+    "scene-pool-restake": "assets/stills/scene-pool-restake.png",
+    "scene-commit-waiting": "assets/stills/scene-commit-waiting.png",
+    "scene-commit-pending": "assets/stills/scene-commit-pending.png",
+    "scene-commit-committed": "assets/stills/scene-commit-committed.png",
+    "scene-tx-status-pending": "assets/stills/scene-tx-status-pending.png",
+    "scene-tx-status-done": "assets/stills/scene-tx-status-done.png",
+    "scene-squad-page-every-stage": "assets/stills/scene-squad-page-every-stage.png",
+    "scene-squad-page-leave-by": "assets/stills/scene-squad-page-leave-by.png",
+    "scene-squad-page-leaving-countdown": "assets/stills/scene-squad-page-leaving-countdown.png",
+    "scene-squad-page-withdrawn": "assets/stills/scene-squad-page-withdrawn.png",
+    "scene-squad-page-share-paid": "assets/stills/scene-squad-page-share-paid.png",
+    "scene-leaving-start": "assets/stills/scene-leaving-start.png",
+    "scene-leaving-countdown": "assets/stills/scene-leaving-countdown.png",
+    "scene-leaving-releasable-ticked": "assets/stills/scene-leaving-releasable-ticked.png",
+    "scene-leaving-retired": "assets/stills/scene-leaving-retired.png",
+    "scene-leaving-withdrawn-shared-goal": "assets/stills/scene-leaving-withdrawn-shared-goal.png",
+    "scene-pay-ready": "assets/stills/scene-pay-ready.png",
+    "scene-pay-paid-squad-complete": "assets/stills/scene-pay-paid-squad-complete.png",
+    "scene-proof-view-payments": "assets/stills/scene-proof-view-payments.png",
+    "scene-my-squads-several": "assets/stills/scene-my-squads-several.png",
+    "scene-member-backed": "assets/stills/scene-member-backed.png",
+    "scene-member-short": "assets/stills/scene-member-short.png",
+    "scene-member-unstaking": "assets/stills/scene-member-unstaking.png"
+  },
+  "taps": {
+    "app-welcome": [
+      {
+        "at": 6.18,
+        "x": 195,
+        "y": 758,
+        "label": "Sign in with Nimiq Pay"
+      }
+    ],
+    "app-my-squads": [
+      {
+        "at": 2.062,
+        "x": 195,
+        "y": 734,
+        "label": "Create squad"
+      }
+    ],
+    "app-create": [
+      {
+        "at": 1.933,
+        "x": 195,
+        "y": 716,
+        "label": "Got it"
+      },
+      {
+        "at": 4.651,
+        "x": 49,
+        "y": 292,
+        "label": "Trip"
+      },
+      {
+        "at": 6.693,
+        "x": 195,
+        "y": 422,
+        "label": "Shared goal"
+      },
+      {
+        "at": 8.003,
+        "x": 195,
+        "y": 422,
+        "label": "field: Total target (NIM)"
+      },
+      {
+        "at": 9.493,
+        "x": 195,
+        "y": 422,
+        "label": "field: Recipient address"
+      },
+      {
+        "at": 13.857,
+        "x": 195,
+        "y": 734,
+        "label": "Create squad"
+      },
+      {
+        "at": 17.53,
+        "x": 55,
+        "y": 369,
+        "label": "Copy link"
+      },
+      {
+        "at": 20.058,
+        "x": 195,
+        "y": 776,
+        "label": "Open the squad"
+      }
+    ],
+    "app-invite": [],
+    "app-commit": [
+      {
+        "at": 2.373,
+        "x": 195,
+        "y": 339,
+        "label": "field: commitment"
+      }
+    ],
+    "app-squad": [
+      {
+        "at": 4.067,
+        "x": 195,
+        "y": 422,
+        "label": "Refresh"
+      }
+    ],
+    "app-proof": []
+  }
+}

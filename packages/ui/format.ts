@@ -2,7 +2,7 @@
 //
 // Every function takes the language, because the separators, the month names and the words
 // ("Checked 3 min ago") differ (packages/ui/i18n). `Intl` is deliberately not used: ICU data
-// differs between Node builds and browsers, and the web app and the Remotion render must
+// differs between Node builds and browsers, and the web app and the HyperFrames render must
 // produce the same glyphs (AGENTS.md "UI purity" 3), so the separators come from the
 // catalogue and the grouping is done here.
 import { DEFAULT_LANG, strings, type Lang } from './i18n';
@@ -35,7 +35,7 @@ export function formatCount(value: number, lang: Lang = DEFAULT_LANG) {
 }
 
 /**
- * UTC and the catalogue's month list on purpose: the web app and the Remotion render must
+ * UTC and the catalogue's month list on purpose: the web app and the HyperFrames render must
  * produce the same glyphs whatever the machine's timezone or ICU data (AGENTS.md "UI purity").
  */
 export function formatDay(milliseconds: number, lang: Lang = DEFAULT_LANG) {
@@ -82,7 +82,7 @@ export function shortAddress(address: string) {
  * own zone, because "start leaving by 22:00" is only actionable in local time (PRD §7.5, Q08).
  *
  * The offset arrives as a **prop**, never from the environment: a component that read the
- * machine's zone would render differently in the app, in the Remotion render and in a test
+ * machine's zone would render differently in the app, in the HyperFrames render and in a test
  * (AGENTS.md "UI purity" 1). `formatDay` stays UTC for everything that is genuinely a UTC day.
  */
 const pad = (value: number) => String(value).padStart(2, '0');

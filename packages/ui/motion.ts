@@ -1,6 +1,6 @@
 /*
  * Time-driven motion. AGENTS.md "UI purity" 6: animation comes in as a prop and the component
- * derives its frame from it, so Remotion can render frame `n` without ever having played frames
+ * derives its frame from it, so HyperFrames can render frame `n` without ever having played frames
  * 0..n-1. `t` is seconds since the scene started: the web app feeds it from one
  * requestAnimationFrame hook, the video feeds it `frame / fps`, and a fixture feeds it a constant.
  *

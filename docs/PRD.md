@@ -115,7 +115,8 @@ Full scope; nothing is cut. Days are UTC.
   (7.5, screens 7, 9), Mode A payments (7.6, 7.8, screen 8), error catalog, tx tracker.
 - **Nov 8:** **live on mainnet** (P0 complete); 7.7 pool-aware validator choice, earned since
   joining, fiat estimates (screens 11–12), multi-squad warnings polish.
-- **Nov 9:** Remotion demo video, extra languages (es, de, fr, pt), squad templates, README.
+- **Nov 9:** demo video, extra languages (es, de, fr, pt), squad templates, README.
+  (The video was built on Nov 11 with HyperFrames, not Remotion - `docs/DECISIONS.md`.)
 - **Nov 10:** submit — portal, Skool + X post. **Nov 11 23:59 UTC** is the hard deadline.
 - Old tags map onto these days: P0 → Nov 6–8, P1 → Nov 8, P2 → Nov 9. The real mainnet squad
   of `briefing/PROOF_PLAN.md` runs from Nov 8, so §13 can be met before submitting.
@@ -156,9 +157,11 @@ payment verified (`PROOF_PLAN.md`); `pnpm gate` passes from a clean clone; READM
 + video first; every P0 screen checked at 390 px; Skool + X post.
 
 ## 13b. Demo video (≈ 90 s)
-A **how-to walkthrough for judges**, rendered with Remotion from the **same `packages/ui`
-components** as the app, inside a phone frame at 390 × 844, with **hand-written sample-data
-fixtures** (`packages/ui/scenes/demo/`). It does not depend on the mainnet run, so it can be built
+A **how-to walkthrough for judges**, composed with **HyperFrames** (HTML + GSAP, seeked frame
+by frame) inside a phone frame at 390 × 844. The screens are a **screen capture of the real
+app** running locally against a real database and live testnet reads; the states a wallet is
+needed to reach come from the app's own **hand-written sample-data fixtures**
+(`packages/ui/scenes/demo/`), which are the same components. It does not depend on the mainnet run, so it can be built
 as soon as its screens exist. Nimiq Pay approval moments: neutral "Approve in Nimiq Pay" step or
 real phone footage (never a recreation of their UI).
 Script: problem (10 s) → create a trip squad, share link (20 s) → friends join, ring fills,

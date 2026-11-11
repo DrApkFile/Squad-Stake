@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Squad Stake — demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* The app's own faces, self-hosted here as they are in packages/ui/fonts, so the video
+         and the app draw identical glyphs (AGENTS.md "UI purity" 3). */
+      @font-face { font-family: Mulish; src: url('assets/fonts/mulish-latin-300-normal.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: block; }
+      @font-face { font-family: Mulish; src: url('assets/fonts/mulish-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: block; }
+      @font-face { font-family: Mulish; src: url('assets/fonts/mulish-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: block; }
+      @font-face { font-family: Mulish; src: url('assets/fonts/mulish-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: block; }
+      @font-face { font-family: 'Fira Mono'; src: url('assets/fonts/fira-mono-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: block; }
+      @font-face { font-family: 'Fira Mono'; src: url('assets/fonts/fira-mono-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: block; }
+
+      :root {
+        /* packages/ui/tokens.css: the app's ink and paper, and Nimiq's own hues where they
+           carry meaning. The ground is warm paper rather than the app's flat white, because a
+           1920-wide field of #fff behind a white phone loses the phone. */
+        --ink: #0b0b0c;
+        --paper: #ffffff;
+        --ground: #f3efe8;
+        --ground-deep: #e9e2d6;
+        --muted: rgba(11, 11, 12, 0.62);
+        --faint: rgba(11, 11, 12, 0.4);
+        --hair: rgba(11, 11, 12, 0.12);
+        --gold: #e9b213;
+        --orange: #fc8702;
+        --green: #21bca5;
+        --blue: #0582ca;
+        --red: #d94432;
+        --font: Mulish, sans-serif;
+        --mono: 'Fira Mono', monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden;
+        background: var(--ground);
+        font-family: var(--font);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+      #root { width: 100%; height: 100%; position: relative; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="165"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="hook"
+        data-composition-id="hook"
+        data-composition-src="compositions/hook.html"
+        data-track-kind="graphics"
+        data-track-index="1"
+        data-start="0"
+        data-duration="13.927"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 1"
+      ></div>
+      <div
+        id="problem"
+        data-composition-id="problem"
+        data-composition-src="compositions/problem.html"
+        data-track-kind="graphics"
+        data-track-index="2"
+        data-start="13.927"
+        data-duration="17.044"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+      <div
+        id="intro"
+        data-composition-id="intro"
+        data-composition-src="compositions/intro.html"
+        data-track-kind="graphics"
+        data-track-index="3"
+        data-start="30.971"
+        data-duration="21.898"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 3"
+      ></div>
+      <div
+        id="screens"
+        data-composition-id="screens"
+        data-composition-src="compositions/screens.html"
+        data-track-kind="graphics"
+        data-track-index="4"
+        data-start="52.869"
+        data-duration="83.322"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 4"
+      ></div>
+      <div
+        id="nim"
+        data-composition-id="nim"
+        data-composition-src="compositions/nim.html"
+        data-track-kind="graphics"
+        data-track-index="5"
+        data-start="136.191"
+        data-duration="15.75"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 5"
+      ></div>
+      <div
+        id="close"
+        data-composition-id="close"
+        data-composition-src="compositions/close.html"
+        data-track-kind="graphics"
+        data-track-index="6"
+        data-start="151.941"
+        data-duration="13.059"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 6"
+      ></div>
+      <div
+        id="captions"
+        data-composition-id="captions"
+        data-composition-src="compositions/captions.html"
+        data-track-kind="captions"
+        data-track-index="20"
+        data-start="0"
+        data-duration="165"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 40"
+      ></div>
+      <audio
+        id="narration"
+        class="clip"
+        src="assets/audio/narration.mp3"
+        data-start="0"
+        data-duration="165"
+        data-track-index="30"
+        data-volume="1"
+      ></audio>
+      <audio
+        id="music"
+        class="clip"
+        src="assets/audio/music.mp3"
+        data-start="0"
+        data-duration="165"
+        data-track-index="31"
+        data-volume="1"
+      ></audio>
+    </div>
+    <script>
+      /* Sentence beats per scene, in seconds from that scene's own start, measured from the
+         Kokoro narration (apps/video/narration.json). A constant, not a clock. */
+      window.__SQUAD_BEATS = {
+        "hook": {
+          "beats": [
+            2,
+            4.66,
+            7.407
+          ],
+          "marks": {
+            "hook": 2
+          },
+          "duration": 13.927
+        },
+        "problem": {
+          "beats": [
+            0,
+            3.172,
+            5.187,
+            7.258,
+            10.111
+          ],
+          "marks": {
+            "problem": 0
+          },
+          "duration": 17.044
+        },
+        "intro": {
+          "beats": [
+            0,
+            4.185,
+            7.978,
+            14.935,
+            18.654
+          ],
+          "marks": {
+            "intro": 0
+          },
+          "duration": 21.898
+        },
+        "screens": {
+          "beats": [
+            0,
+            5.192,
+            11.101,
+            14.91,
+            19.538,
+            22.833,
+            26.557,
+            37.355,
+            39.907,
+            47.037,
+            49.809,
+            58.084,
+            60.81,
+            66.269,
+            74.33,
+            76.766
+          ],
+          "marks": {
+            "create": 0,
+            "commit": 22.833,
+            "progress": 47.037,
+            "goalday": 66.269
+          },
+          "duration": 83.322
+        },
+        "nim": {
+          "beats": [
+            0,
+            9.374
+          ],
+          "marks": {
+            "nim": 0
+          },
+          "duration": 15.75
+        },
+        "close": {
+          "beats": [
+            0,
+            3.779
+          ],
+          "marks": {
+            "close": 0
+          },
+          "duration": 13.059
+        }
+      };
+      window.__SQUAD_TAPS = {
+        "app-welcome": [
+          {
+            "at": 6.18,
+            "x": 195,
+            "y": 758,
+            "label": "Sign in with Nimiq Pay"
+          }
+        ],
+        "app-my-squads": [
+          {
+            "at": 2.062,
+            "x": 195,
+            "y": 734,
+            "label": "Create squad"
+          }
+        ],
+        "app-create": [
+          {
+            "at": 1.933,
+            "x": 195,
+            "y": 716,
+            "label": "Got it"
+          },
+          {
+            "at": 4.651,
+            "x": 49,
+            "y": 292,
+            "label": "Trip"
+          },
+          {
+            "at": 6.693,
+            "x": 195,
+            "y": 422,
+            "label": "Shared goal"
+          },
+          {
+            "at": 8.003,
+            "x": 195,
+            "y": 422,
+            "label": "field: Total target (NIM)"
+          },
+          {
+            "at": 9.493,
+            "x": 195,
+            "y": 422,
+            "label": "field: Recipient address"
+          },
+          {
+            "at": 13.857,
+            "x": 195,
+            "y": 734,
+            "label": "Create squad"
+          },
+          {
+            "at": 17.53,
+            "x": 55,
+            "y": 369,
+            "label": "Copy link"
+          },
+          {
+            "at": 20.058,
+            "x": 195,
+            "y": 776,
+            "label": "Open the squad"
+          }
+        ],
+        "app-invite": [],
+        "app-commit": [
+          {
+            "at": 2.373,
+            "x": 195,
+            "y": 339,
+            "label": "field: commitment"
+          }
+        ],
+        "app-squad": [
+          {
+            "at": 4.067,
+            "x": 195,
+            "y": 422,
+            "label": "Refresh"
+          }
+        ],
+        "app-proof": []
+      };
+      const tl = gsap.timeline({ paused: true });
+      /* The root holds only hosts and audio; every tween lives in the scene that owns it. */
+      tl.to({}, { duration: 165 });
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

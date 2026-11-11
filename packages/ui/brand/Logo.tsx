@@ -7,7 +7,7 @@ import { toneColours } from './tone';
  * The full lockup: the mark and the words "Squad Stake". The words are outlines taken from the
  * Mulish 700 file this repository self-hosts (`packages/ui/brand/wordmark.ts`), never live
  * text, so the logo renders identically where no stylesheet exists — an exported `.svg`, a
- * PNG, an app icon — and in the Remotion video.
+ * PNG, an app icon — and in the HyperFrames video.
  */
 export function Logo({
   size = 32, tone = 'colour-dark', id = 'sq-logo', title = 'Squad Stake', className,
