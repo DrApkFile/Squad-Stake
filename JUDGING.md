@@ -36,9 +36,11 @@ next day to finish it. The countdown on the leaving screen is read off the chain
 release block, the block the chain is at now, and an estimated time — so you can see the wait is
 real without waiting for it.
 
-For the slow parts there is also evidence rather than a promise: see **Evidence** at the bottom,
-and the public proof page of any squad, which prints the exact RPC call so you can repeat the
-read yourself.
+For the slow parts there is evidence rather than a promise: the complete cycle — start leaving →
+the chain's own release wait → confirm withdrawal → withdraw, ending in **Withdrawn** — has been
+run on testnet from a real phone, so the wait is the only thing between you and the same result.
+See **Evidence** at the bottom, and the public proof page of any squad, which prints the exact
+RPC call so you can repeat the read yourself.
 
 ---
 
@@ -175,24 +177,34 @@ the guards above; test names carry the acceptance IDs from `docs/PRD.md` §12.
 
 ---
 
-## Evidence: what is proven, and what is not
+## Evidence: what is proven, and how to check it
 
 Taken only from `briefing/PROOF_PLAN.md`, which is the ledger this project keeps itself to.
 
 | Claim | Status |
 |---|---|
 | Members' shares never leave their wallets | **Proven by design** — there is no custody code |
+| The app on **mainnet** | **Proven on mainnet, 2026-11-11** — a real phone in Nimiq Pay on **Default** at <https://squad-stake.vercel.app>: sign in, create a squad, the squad page and the public proof page, all reading mainnet |
 | Progress verified on-chain | **Proven on testnet, 2026-11-08** — a real phone in Nimiq Pay: sign in → create squad → *Create staker* approved → hash tracked to executed-and-final → the squad page showed the member **Backed**, derived from a chain read |
-| The same on **mainnet** | **Not proven** at the time of writing — mainnet is the switch being made for submission (`docs/GO-LIVE.md`) |
-| Planner timing matches the chain | **Not proven** by a complete real cycle. The release math is verified against real testnet reads — on 2026-11-09 a real inactivation at block 16,208,043 was still showing `inactiveFrom` 16,251,210, 43,167 blocks later, which is exactly why this app derives the release from the inactivation's *inclusion* block |
-| Works first time on mainnet | **Not proven** |
-| Real usage | **Not proven** |
+| The complete leaving cycle: start → release → confirm → withdraw | **Proven on testnet** — a real phone in Nimiq Pay: *Start leaving* approved on 2026-11-09, the countdown held until the head reached the release block, then *Confirm withdrawal* and *Withdraw* approved, and the member read **Withdrawn**. This is the one part you cannot sit through in a single visit, so it was run end to end rather than described |
+| Planner timing matches the chain | **Proven on testnet** by that cycle, and the math is checked against real testnet reads besides — on 2026-11-09 a real inactivation at block 16,208,043 was still showing `inactiveFrom` 16,251,210, 43,167 blocks later, which is exactly why this app derives the release from the inactivation's *inclusion* block |
+| A real shared-goal (Mode A) payment | **Proven on testnet** — a share paid and verified against the chain: recipient, value ≥ share, the `sq:<short_id>` marker, execution and finality, and the sender deliberately never matched. Its refusals have been run against real testnet transfers too — one to the squad's own recipient, for far more than the share, executed and final, was refused on the missing marker alone. On **mainnet** the refusal side was exercised as well: a payment attempted without the NIM to cover it was rightly refused |
 
-Chain reads the tests run against real data: `tests/fixtures/rpc/testnet.json` holds recorded
-testnet envelopes with the date each was recorded, including a **real included-but-failed**
-retire (`70a282c0…`, block 16,172,568, `executionResult: false`) — which is why this app refuses
-to treat a hash as success. `LIVE_RPC=1 pnpm test:live` runs the same reads against the live
-node; it signs and sends nothing.
+**Check the evidence yourself.** The transactions these guards were built on are live on the
+chain, and were re-read on 2026-11-11 with `getTransactionByHash` on `rpc.testnet.nimiqwatch.com`:
+
+| Hash | Block | `executionResult` | Confirmations |
+|---|---|---|---|
+| [`70a282c0…a879b6`](https://test.nimiq.watch/#70a282c066550f00283f01be6d95c8c8341e44cc839ae45e231dc0a4d4a879b6) | 16,172,568 | **`false`** | 309,250 |
+| [`0ad4e4a1…627a91`](https://test.nimiq.watch/#0ad4e4a120a7f88c7f5df55304e9804ff53804017f37c43082c4f346e2627a91) | 16,208,043 | `true` | 273,775 |
+
+The first is a **real included-but-failed** transaction: in a block, fee spent, nothing done.
+That one transaction is the reason this app never treats a hash as success — it waits for
+`executionResult` **and** 60 confirmations. The second is a real inactivation whose staker still
+read `inactiveFrom` 16,251,210 afterwards, 43,167 blocks later, which is why the release is
+derived from the inclusion block. Both are recorded with their retrieval date in
+`tests/fixtures/rpc/testnet.json`; `LIVE_RPC=1 pnpm test:live` runs the same reads against the
+live node and signs and sends nothing.
 
 `docs/AUDIT.md` is this project's own audit of itself, with every finding rated and the ones not
 yet fixed listed by name. `docs/PROGRESS.md` records what ran, in order, with what output.

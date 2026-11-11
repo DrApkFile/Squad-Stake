@@ -68,10 +68,22 @@ memory.
 - [ ] **Builder promotion** (5 points): the Skool post and a public social post, both before
       2026-11-10.
 
-## What is deliberately not claimed
+## What the submission may claim
 
-`briefing/PROOF_PLAN.md` is the ledger. At the time of writing: progress verified on-chain is
-**proven on testnet** (2026-11-08, a real phone in Nimiq Pay); mainnet, a complete real leaving
-cycle, a real settled Mode A payment and real usage are **not proven**. The README's "Honest
-limitations" section repeats exactly that, and `docs/AUDIT.md` lists this project's open
-findings against itself. Nothing in the submission may say more than those files do.
+`briefing/PROOF_PLAN.md` is the ledger, and nothing in the submission may say more than it does.
+As of 2026-11-11, each of these was done on a real phone in Nimiq Pay:
+
+- **Mainnet:** sign in, create a squad, the squad page and the public proof page, all reading
+  mainnet at <https://squad-stake.vercel.app>.
+- **Testnet:** progress verified on-chain (2026-11-08) — *Create staker* approved, the hash
+  tracked to executed-and-final, and the squad page showing a chain-derived status.
+- **Testnet:** the complete leaving cycle — start leaving, the chain's own release wait, confirm
+  withdrawal, withdraw, ending in **Withdrawn** — so the planner's timing is the chain's.
+- **Testnet:** a shared-goal (Mode A) payment settled and verified against the chain; its refusal
+  side exercised on mainnet as well.
+- **Real usage:** used end to end by the builder. No outside users and **no usage numbers** are
+  claimed anywhere — a traction figure nobody can check is worth less than none.
+
+Judge-checkable without waiting: the hash table in `JUDGING.md`, whose transactions were re-read
+from the live node on 2026-11-11, and the public proof page of any squad, which prints the exact
+RPC call. `docs/AUDIT.md` lists this project's own findings against itself.

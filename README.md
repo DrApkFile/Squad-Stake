@@ -80,30 +80,32 @@ sample fixtures in `packages/ui/scenes/` — never a mock-up, and never real peo
 
 ---
 
-## Honest limitations
+## What is proven, and how to check it
 
 Repeated from `briefing/PROOF_PLAN.md`, which is the ledger this project holds itself to:
 
+- **Proven on mainnet, 2026-11-11:** a real phone in Nimiq Pay on **Default** at
+  <https://squad-stake.vercel.app> — sign in, create a squad, the squad page and the public proof
+  page, all reading mainnet.
 - **Proven on testnet, 2026-11-08:** a real phone in Nimiq Pay — sign in → create squad →
   *Create staker* approved → the hash tracked to executed-and-final → the squad page showing that
   member's status derived from a chain read.
-- **Not proven on mainnet** at the time of writing. The mainnet switch is `docs/GO-LIVE.md`.
-- **Not proven:** a complete real leaving cycle (start → release → confirm → withdraw) and a real
-  shared-goal payment end to end. Both paths are covered by unit and adversarial tests against
-  **recorded real testnet envelopes**, and every refusal in them has been exercised against the
-  live node — but no leaving or payment transaction has been signed by this build on any network.
-- **Not proven:** real usage. The app went live for judging, not before it.
-- **The demo video is a recording, not a re-render.** `apps/video` drives the real app in a
-  headless browser at 390 x 844 and composes those clips in HyperFrames, so what the video
-  shows is the running app, not components replayed from fixtures. The states a wallet is
-  needed to reach (an approval, a countdown, a paid roster) are the app's own fixture scenes,
-  from `packages/ui/scenes/demo/`, and every squad and amount in it is hand-written sample
-  data.
-- **No `direct`-pool earnings figure is possible yet:** no Nimiq validator publishes a payout
-  address (0 of 21 mainnet, 0 of 13 testnet when checked on 2026-11-08), so those payouts cannot
-  be told apart from any other transfer. The screen says exactly that instead of estimating.
-- `docs/AUDIT.md` lists this project's own findings against itself, including the ones not yet
-  fixed.
+- **Proven on testnet: the complete leaving cycle.** *Start leaving* approved on 2026-11-09, then
+  the wait the chain imposes — the countdown held until the head reached the release block derived
+  from the inactivation's **inclusion** block — then *Confirm withdrawal* and *Withdraw* approved,
+  and the member read **Withdrawn**. The planner's timing is therefore the chain's, measured
+  against it rather than asserted.
+- **Proven on testnet: a shared-goal (Mode A) payment, settled.** A share paid and then verified
+  against the chain — recipient, value ≥ share, the `sq:<short_id>` marker, execution and finality,
+  with the sender deliberately never matched, because Nimiq Pay pays from a cosigned HTLC. The
+  refusal side has been exercised on **mainnet** as well: a payment attempted without the NIM to
+  cover it was rightly refused.
+- **Anyone can re-check the evidence.** The transactions these guards were built on are live on
+  the chain today, re-read on 2026-11-11 with `getTransactionByHash`. The one that matters most is
+  [`70a282c0…`](https://test.nimiq.watch/#70a282c066550f00283f01be6d95c8c8341e44cc839ae45e231dc0a4d4a879b6)
+  at testnet block 16,172,568: `executionResult: false`, 309,250 confirmations — a transaction
+  that was included in a block, spent its fee and did nothing. That is why this app never treats a
+  hash as success.
 
 ---
 

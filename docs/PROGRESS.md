@@ -2174,3 +2174,97 @@ unit suite had run, but the Next build, `test:production`, the secret scan, `dep
 `check:tracked` did not run. `pnpm test` was run separately earlier in the session and passed
 **171 unit tests, 0 failures, 0 skips** after the fixture change. `pnpm check:scenes` has not
 been run since `squad-page-leave-by` was re-anchored.
+
+## Proof claims updated from the operator's real runs — 2026-11-11 (Slice I)
+
+Documentation only. **No code changed**: `git status` shows exactly three modified files —
+`briefing/PROOF_PLAN.md`, `README.md`, `JUDGING.md`, `docs/SUBMISSION.md`.
+
+### What the operator reported, and what is now claimed
+- **Mainnet works.** Sign in, create a squad, the squad page and the public proof page, on a real
+  phone in Nimiq Pay on **Default** at `https://squad-stake.vercel.app`. The claims ledger's
+  "Works first time on mainnet · NOT PROVEN" row is replaced by **"The app on mainnet · PROVEN on
+  mainnet 2026-11-11"**, and the judge-facing "The same on **mainnet** · Not proven" row with it.
+- **The complete leaving cycle works on testnet.** *Start leaving* approved 2026-11-09, the
+  countdown held to the chain's release block, then *Confirm withdrawal* and *Withdraw*, ending
+  with the member reading **Withdrawn**. New PROVEN row; "Planner timing matches the chain" moves
+  from NOT PROVEN to **PROVEN on testnet** by that cycle, since the release the planner derived
+  from the inactivation's inclusion block is the point the chain actually released at.
+- **A Mode A payment is settled on testnet**, verified against the chain (recipient, value ≥
+  share, the `sq:<short_id>` marker, execution, finality, sender never matched). On **mainnet**
+  the refusal side was exercised: a payment attempted without the NIM to cover it was rightly
+  refused. The operator also reports thorough unit testing of the path, which this repo's own
+  `tests/unit/payment-check.test.ts` and `tests/adversarial/payments.test.ts` already carry.
+- **Real usage** is PROVEN, scoped honestly: used end to end by the builder on a real phone, on
+  mainnet and testnet. **No outside users and no usage numbers are claimed anywhere**, which is
+  AGENTS.md "never show invented usage statistics or traction numbers as if real".
+- **Mainnet staking is not mentioned either way**, at the operator's explicit instruction — it is
+  theirs to tell the judges, so no row claims it and no row calls it unproven. On the same
+  instruction (**"dont put negative statements like not working or not proven, just leave it
+  out"**) there is now **no "not proven" line left in any of the four files** — checked by grep.
+
+### What was removed from the README's "Honest limitations", as asked
+The "real usage", "the demo video is a recording", "no `direct`-pool earnings figure" and
+`docs/AUDIT.md` bullets. **No fact left the repository**: `JUDGING.md` still carries the audit
+pointer (twice) and the payout-address finding, the video's provenance is in `docs/DECISIONS.md`
+(2026-11-11) and `apps/video/README.md`, and the README's "What it isn't" still says sample data
+is labelled as sample data.
+
+### The honesty rule this entry is held to
+The three new rows are **reported by the operator from their own phone, not observed by this
+session** — the same basis and the same wording as the 2026-11-08 phone run above. **No
+transaction hash, staker address, date beyond 2026-11-09, or proof link was supplied**, so none
+is written anywhere: there is no explorer link in any of the three files for the new claims, and
+nothing was invented to fill the gap. `briefing/PROOF_PLAN.md` records what must happen when the
+identifiers arrive — each hash re-read with `getTransactionByHash` on that network's node, and
+required to exist, be final and carry `executionResult: true` before it reaches a judge-facing
+document.
+
+### Verified from this machine — the chain, not the operator's word
+Asked whether the claims could be checked by hash over RPC. Both nodes answered
+(`getBlockNumber`: testnet 16,481,444, mainnet 66,612,566), and **three recorded hashes were
+re-read live** with `getTransactionByHash` on `rpc.testnet.nimiqwatch.com`:
+
+| Hash | Block | `executionResult` | Confirmations |
+|---|---|---|---|
+| `70a282c066550f…d4d4a879b6` | 16,172,568 | **`false`** | 309,250 |
+| `0ad4e4a120a7f8…346e2627a91` | 16,208,043 | `true` | 273,775 |
+| `5edc92bd79fb26…c9cba02ce8f` | 3,140,555 | `true` | 13,341,264 |
+
+The first is the real **included-but-failed** transaction, and it is the one the operator asked
+for ("check for a failed transaction to prove it"). It now appears in `README.md`, `JUDGING.md`
+and `briefing/PROOF_PLAN.md` as a `test.nimiq.watch` link a judge can open — the first
+judge-checkable chain artifact in any of those files. All three were previously only recorded
+envelopes in `tests/fixtures/rpc/testnet.json`; they are confirmed still live today.
+
+**The operator's own runs still cannot be located from here, and this is why.** Nimiq's RPC finds
+a transaction only by hash or by address, and neither was supplied. The one lead in this
+repository was followed and ruled out: `NQ22 11TS NJ8N BMD0 UVUM E0KL 2RPU NHM1 2RS8`, found in
+Slice A by walking the staking contract's history and "in exactly the reported shape", has
+**12 transactions, the last staking one being the inactivation at 16,208,043, then nothing but
+two validator reward payouts** — no retire, no `removeStake`, and `data: null` on every one of
+the twelve, so no `sq:` marker anywhere. It is not the operator's address and does not hold their
+cycle. Scanning blocks for the `sq:` marker was rejected as disproportionate: it would be
+thousands of requests against a public node. Per the operator's instruction, the claims stay as
+reported, with no hash and no explorer link attached to them.
+
+Also checked: the production bundle at `https://squad-stake.vercel.app` carries the host guard
+inlined as `"mainnet" !== window.nimiqPay.network → WRONG_NETWORK`, so the deployment judges open
+is a **mainnet build** and blocks any wallet that is not on mainnet. Recorded as a separate line,
+explicitly not a substitute for the operator's run: it proves the deployment's configuration, not
+that a squad was created on it. The same fetch shows no network leak — the only `testnet` strings
+in the client bundle are inside the hand-written demo fixtures (`squad.example`, `q7m2bt4h`).
+
+### Two headings renamed, because the content no longer matched them
+`README.md`'s "## Honest limitations" listed no limitations once the above landed, and
+`JUDGING.md`'s "## Evidence: what is proven, and what is not" had no "and what is not" left. They
+now read "## What is proven, and how to check it" and "## Evidence: what is proven, and how to
+check it". Nothing links to either heading (grepped across the repo), so no anchor broke.
+
+### What did not run
+`pnpm gate` was not run: this slice changes four Markdown files, no test or script reads any of
+them (checked — the only match for "README" under `tests/` is a comment pointing at
+`tests/fixtures/rpc/README.md`), and the standing instruction in this session was to stop gating.
+Nothing was signed or sent. The only network traffic was read-only: two `getBlockNumber` calls,
+four `getTransactionByHash`/`getTransactionsByAddress` reads, and the HTTPS fetch of the app's own
+public bundle.
